@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ from server.services.execution.log_store import ExecutionAgentLogStore
 from server.services.execution.memory import (
     AgentMemory,
     Extraction,
+    Fact,
     HeuristicExtractor,
     LLMExtractor,
     MemoryConfig,
@@ -454,3 +456,57 @@ async def test_shutdown_cancels_pending_compaction(tmp_path, store):
     assert task.cancelled() or task.done()
     assert mem.load("a").compacted_through == 0
     assert not mem.pending_tasks()
+
+
+# ---- round three: corrections and key replacement in the extractor contract --------------
+
+
+async def test_heuristic_extracts_corrections(tmp_path, store):
+    store.record_request("a", "Priya says the invoice was wrong: it is $700, not $500. Update our records.")
+    store.record_agent_response("a", "Updated: the deposit is $900 (was $850).")
+    ext = await HeuristicExtractor()(list(store.iter_entries("a")), MemoryState())
+    assert ("$500", "$700") in ext.corrections
+    assert ("$850", "$900") in ext.corrections
+
+
+def test_merge_correction_invalidates_matching_fact(tmp_path, store):
+    mem = make_memory(tmp_path, store)
+    state = MemoryState(facts=[Fact(key="Priya invoice amount", value="$500", recorded_at="t0"),
+                               Fact(key="Bob deposit", value="$500", recorded_at="t0")])
+    extraction = Extraction(facts=[("Priya invoice", "$700")], corrections=[("$500", "$700")])
+    mem._merge(state, extraction, "t1")
+    by_key = {f.key: f for f in state.facts}
+    assert by_key["Priya invoice amount"].active is False
+    assert by_key["Priya invoice amount"].superseded_by == "$700"
+    assert by_key["Bob deposit"].active is True  # shares no key token with the correcting fact
+    assert by_key["Priya invoice"].active and by_key["Priya invoice"].value == "$700"
+
+
+def test_merge_replaces_invalidates_named_key(tmp_path, store):
+    mem = make_memory(tmp_path, store)
+    state = MemoryState(facts=[Fact(key="October invoice", value="$500", recorded_at="t0")])
+    extraction = Extraction(facts=[("Priya October invoice amount", "$700")],
+                            replaces={"Priya October invoice amount": "October invoice"})
+    mem._merge(state, extraction, "t1")
+    old = next(f for f in state.facts if f.key == "October invoice")
+    assert old.active is False and old.superseded_by == "$700"
+    assert len(state.active_facts()) == 1
+
+
+async def test_llm_extractor_parses_replaces_and_corrections(tmp_path, store, monkeypatch):
+    from server.openrouter_client import client as oc
+
+    fill_log(store, "a", rounds=1)
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        assert "replaces" in (system if isinstance(system, str) else system[0]["text"])
+        return {"choices": [{"message": {"content": json.dumps({
+            "facts": [{"key": "Priya invoice amount", "value": "$700", "replaces": "invoice"}],
+            "corrections": [{"old": "$500", "new": "$700"}],
+            "threads": [], "resolved_threads": [], "episodes": []})}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", fake)
+    ext = await LLMExtractor()(list(store.iter_entries("a")), MemoryState())
+    assert ext.facts == [("Priya invoice amount", "$700")]
+    assert ext.replaces == {"Priya invoice amount": "invoice"}
+    assert ext.corrections == [("$500", "$700")]

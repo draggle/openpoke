@@ -164,6 +164,10 @@ class Extraction:
     threads: List[Thread] = field(default_factory=list)
     resolved_threads: List[str] = field(default_factory=list)  # subjects now closed
     episodes: List[str] = field(default_factory=list)
+    # Round three. Key normalisation only supersedes a fact when the extractor reuses the key;
+    # these two carry the extractor's own knowledge of what changed:
+    corrections: List[Tuple[str, str]] = field(default_factory=list)  # (old value, new value)
+    replaces: Dict[str, str] = field(default_factory=dict)  # new key -> existing key it updates
 
 
 class Extractor(Protocol):
@@ -226,6 +230,21 @@ def normalise_key(key: str) -> str:
 # --------------------------------------------------------------------------------------
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+# "it is $700, not $500" / "$900 (was $850)" / "$900, was $850" -> (old, new)
+_AMOUNT = r"(\$\d(?:[\d,]*\d)?(?:\.\d+)?)"
+_CORRECTION_NOT_RE = re.compile(_AMOUNT + r"\s*,?\s*not\s+" + _AMOUNT, re.I)
+_CORRECTION_WAS_RE = re.compile(_AMOUNT + r"\s*(?:\(|,)?\s*(?:was|previously|formerly|up from|down from)\s+" + _AMOUNT, re.I)
+
+
+def extract_corrections(text: str) -> List[Tuple[str, str]]:
+    """(old, new) value pairs stated as corrections in free text."""
+    out: List[Tuple[str, str]] = []
+    for new, old in _CORRECTION_NOT_RE.findall(text):
+        out.append((old, new))
+    for new, old in _CORRECTION_WAS_RE.findall(text):
+        if (old, new) not in out:
+            out.append((old, new))
+    return out
 _CAPITALISED_RE = re.compile(r"\b([A-Z][a-z]{1,30})\b")
 _NOT_A_NAME = frozenset(
     "Calling Round Email To From Subject Cc Bcc Draft Drafted Sent Reply Ask Asked Find Found "
@@ -285,16 +304,23 @@ class HeuristicExtractor:
                 name = _name_before(payload, match.start())
                 if name:
                     out.facts.append((f"{name} email", match.group(0)))
+            for old, new in extract_corrections(text):
+                if (old, new) not in out.corrections:
+                    out.corrections.append((old, new))
         return out
 
 
 _LLM_SYSTEM_PROMPT = """You compress an execution agent's activity log into durable memory.
 Return ONLY a JSON object with keys:
-  "facts": [{"key": "...", "value": "..."}]   stable facts (addresses, dates, decisions, preferences). Keys are short noun phrases; if a fact changed, give the NEW value.
+  "facts": [{"key": "...", "value": "...", "replaces": "..."}]   stable facts (addresses, dates, amounts, decisions, preferences).
+      Keys are "<entity> <attribute>" ("Priya invoice amount", "Alice email", "dentist appointment date").
+      If a fact in the existing memory changed, REUSE ITS KEY EXACTLY and give the new value. If you must use a
+      different key for a fact that updates an existing one, set "replaces" to the existing key. Omit "replaces" otherwise.
+  "corrections": [{"old": "$500", "new": "$700"}]   every value the log explicitly corrects ("it is $700, not $500", "$900 (was $850)").
   "threads": [{"subject": "...", "last_action": "...", "waiting_on": "..."}]   things still pending.
   "resolved_threads": ["subject", ...]   previously-open threads that are now closed.
   "episodes": ["...", ...]   one line per notable event, chronological, past tense, <=140 chars.
-Be concrete. Preserve names, email addresses, dates, amounts, and any commitment or reminder the user asked for verbatim. Omit tool-call mechanics. (Reminders and rules the user stated are also kept verbatim in a separate commitments list; you need not repeat them, but do not contradict them.)"""
+Be concrete. Preserve names, email addresses, dates, amounts, and any commitment or reminder the user asked for verbatim. Never list a superseded value as a current fact. Omit tool-call mechanics. (Reminders and rules the user stated are also kept verbatim in a separate commitments list; you need not repeat them, but do not contradict them.)"""
 
 
 class LLMExtractor:
@@ -325,9 +351,15 @@ class LLMExtractor:
             )
             content = ((response.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
             data = _parse_json_object(content)
+            raw_facts = [f for f in data.get("facts", []) if isinstance(f, dict) and f.get("key") and f.get("value")]
+            replaces = {str(f["key"]).strip(): str(f["replaces"]).strip()
+                        for f in raw_facts if f.get("replaces") and str(f["replaces"]).strip()}
+            corrections = [(str(c.get("old", "")).strip(), str(c.get("new", "")).strip())
+                           for c in data.get("corrections", []) if isinstance(c, dict) and c.get("old") and c.get("new")]
             return Extraction(
-                facts=[(str(f.get("key", "")).strip(), str(f.get("value", "")).strip())
-                       for f in data.get("facts", []) if f.get("key") and f.get("value")],
+                facts=[(str(f["key"]).strip(), str(f["value"]).strip()) for f in raw_facts],
+                replaces=replaces,
+                corrections=corrections,
                 threads=[Thread(subject=str(t.get("subject", ""))[:120],
                                 last_action=str(t.get("last_action", ""))[:240],
                                 waiting_on=str(t.get("waiting_on", ""))[:120])
@@ -552,7 +584,34 @@ class AgentMemory:
                     continue
                 current.invalidated_at = now_ts
                 current.superseded_by = value
+            # The extractor named the existing key this fact updates (a different spelling).
+            replaced_norm = normalise_key(extraction.replaces.get(key, ""))
+            if replaced_norm and replaced_norm != key_norm:
+                for fact in state.facts:
+                    if fact.active and normalise_key(fact.key) == replaced_norm:
+                        fact.invalidated_at = now_ts
+                        fact.superseded_by = value
             state.facts.append(Fact(key=key.strip(), value=value.strip(), recorded_at=now_ts))
+        # corrections: "it is $700, not $500" invalidates any active fact still asserting $500,
+        # provided its key shares a token with the fact that carries the new value (so an
+        # unrelated $500 elsewhere is left alone).
+        for old_value, new_value in extraction.corrections:
+            old_norm = old_value.strip().lower()
+            if not old_norm:
+                continue
+            carriers = [set(normalise_key(k).split()) for k, v in extraction.facts
+                        if v.strip().lower() == new_value.strip().lower()]
+            carriers += [set(normalise_key(f.key).split()) for f in state.facts
+                         if f.active and f.value.strip().lower() == new_value.strip().lower()]
+            for fact in state.facts:
+                if not fact.active or old_norm not in fact.value.strip().lower():
+                    continue
+                if fact.value.strip().lower() == new_value.strip().lower():
+                    continue
+                fact_tokens = set(normalise_key(fact.key).split())
+                if any(fact_tokens & c for c in carriers):
+                    fact.invalidated_at = now_ts
+                    fact.superseded_by = new_value
         # cap facts: drop oldest *invalidated* first; only then the oldest active ones
         if len(state.facts) > self.config.max_facts:
             inactive = [f for f in state.facts if not f.active]
@@ -682,6 +741,7 @@ __all__ = [
     "MemoryState",
     "Thread",
     "extract_commitments",
+    "extract_corrections",
     "get_agent_memory",
     "normalise_key",
 ]
