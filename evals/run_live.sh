@@ -99,7 +99,7 @@ asyncio.run(main())
 PY
 if [ -f evals/out/.jev_unavailable ]; then export OPENPOKE_JEV=0; rm -f evals/out/.jev_unavailable; fi
 
-run() { echo; echo "================ $* ================"; "$@" 2>&1 | grep -v " - INFO - " | tee -a evals/out/live_log.txt; }
+run() { echo; echo "================ $* ================"; PYTHONUNBUFFERED=1 "$@" 2>&1 | grep --line-buffered -v " - INFO - " | tee -a evals/out/live_log.txt; }
 
 : > evals/out/live_log.txt
 run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES"
