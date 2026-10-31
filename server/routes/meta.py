@@ -52,3 +52,44 @@ def set_timezone(payload: SetTimezoneRequest) -> SetTimezoneResponse:
 def get_timezone() -> SetTimezoneResponse:
     store = get_timezone_store()
     return SetTimezoneResponse(timezone=store.get_timezone())
+
+
+@router.get("/meta/usage")
+# Return LLM token/cost totals by role and model for this server process
+def usage() -> dict:
+    from ..services.llm import get_model_router, get_usage_ledger
+
+    router_ = get_model_router()
+    return {
+        "routing": {
+            "mode": router_.mode,
+            "strong_model": router_.strong_model,
+            "cheap_model": router_.cheap_model,
+            "tiers": router_.tiers,
+        },
+        **get_usage_ledger().totals(),
+    }
+
+
+@router.get("/meta/agents")
+# Return the execution-agent registry with lifecycle status (observability for roster overload)
+def agents() -> dict:
+    from ..services.execution import get_agent_registry
+
+    registry = get_agent_registry()
+    registry.load()
+    records = registry.records()
+    return {
+        "total": len(records),
+        "agents": [
+            {
+                "name": r.name,
+                "status": registry.status_of(r).value,
+                "pinned": registry.is_pinned(r.name),
+                "use_count": r.use_count,
+                "last_used_at": r.last_used_at,
+                "summary": r.summary or r.description,
+            }
+            for r in sorted(records, key=lambda r: -r.last_used_at)
+        ],
+    }

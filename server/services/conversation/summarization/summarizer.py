@@ -5,7 +5,8 @@ from typing import List, Optional, TYPE_CHECKING
 
 from ....config import get_settings
 from ....logging_config import logger
-from ....openrouter_client import OpenRouterError, request_chat_completion
+from ....openrouter_client import OpenRouterError
+from ....services.llm import ROLE_SUMMARIZER, complete as llm_complete
 from .prompt_builder import SummaryPrompt, build_summarization_prompt
 from .state import LogEntry, SummaryState
 from .working_memory_log import get_working_memory_log
@@ -31,11 +32,12 @@ async def _call_openrouter(prompt: SummaryPrompt, model: str, api_key: Optional[
     last_error: Exception | None = None
     for attempt in range(2):
         try:
-            response = await request_chat_completion(
-                model=model,
+            response = await llm_complete(
+                role=ROLE_SUMMARIZER,
                 messages=prompt.messages,
                 system=prompt.system_prompt,
                 api_key=api_key,
+                tag="conversation_summary",
             )
             choices = response.get("choices") or []
             if not choices:

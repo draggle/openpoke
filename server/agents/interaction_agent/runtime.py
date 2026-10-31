@@ -8,7 +8,7 @@ from .agent import build_system_prompt, prepare_message_with_history
 from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
-from ...openrouter_client import request_chat_completion
+from ...services.llm import ROLE_INTERACTION, complete as llm_complete, get_model_router
 from ...logging_config import logger
 
 
@@ -50,7 +50,7 @@ class InteractionAgentRuntime:
     def __init__(self) -> None:
         settings = get_settings()
         self.api_key = settings.openrouter_api_key
-        self.model = settings.interaction_agent_model
+        self.model = get_model_router().model_for(ROLE_INTERACTION)
         self.settings = settings
         self.conversation_log = get_conversation_log()
         self.working_memory_log = get_working_memory_log()
@@ -210,12 +210,13 @@ class InteractionAgentRuntime:
             "Interaction agent calling LLM",
             extra={"model": self.model, "tools": len(self.tool_schemas)},
         )
-        return await request_chat_completion(
-            model=self.model,
+        return await llm_complete(
+            role=ROLE_INTERACTION,
             messages=messages,
             system=system_prompt,
             api_key=self.api_key,
             tools=self.tool_schemas,
+            tag="interaction",
         )
 
     # Extract the assistant's message from the OpenRouter API response structure

@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from server.config import get_settings
 from server.logging_config import logger
-from server.openrouter_client import request_chat_completion
+from server.services.llm import ROLE_EXECUTION_SEARCH, complete as llm_complete
 from server.services.execution import get_execution_agent_logs
 from server.services.gmail import (
     EmailTextCleaner,
@@ -147,12 +147,13 @@ async def _run_email_search(
         )
         
         # Get LLM response
-        response = await request_chat_completion(
-            model=model,
+        response = await llm_complete(
+            role=ROLE_EXECUTION_SEARCH,
             messages=messages,
             system=get_system_prompt(),
             api_key=api_key,
             tools=[GMAIL_FETCH_EMAILS_SCHEMA, _COMPLETION_TOOL_SCHEMA],
+            tag="search_email",
         )
         
         # Process assistant response

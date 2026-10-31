@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from .agent import ExecutionAgent
 from .tools import get_tool_schemas, get_tool_registry
 from ...config import get_settings
-from ...openrouter_client import request_chat_completion
+from ...services.llm import ROLE_EXECUTION, complete as llm_complete, get_model_router
 from ...logging_config import logger
 
 
@@ -32,7 +32,7 @@ class ExecutionAgentRuntime:
         settings = get_settings()
         self.agent = ExecutionAgent(agent_name)
         self.api_key = settings.openrouter_api_key
-        self.model = settings.execution_agent_model
+        self.model = get_model_router().model_for(ROLE_EXECUTION)
         self.tool_registry = get_tool_registry(agent_name=agent_name)
         self.tool_schemas = get_tool_schemas()
 
@@ -153,12 +153,13 @@ class ExecutionAgentRuntime:
         """Make an LLM call."""
         tools_to_send = self.tool_schemas if with_tools else None
         logger.info(f"[{self.agent.name}] Calling LLM with model: {self.model}, tools: {len(tools_to_send) if tools_to_send else 0}")
-        return await request_chat_completion(
-            model=self.model,
+        return await llm_complete(
+            role=ROLE_EXECUTION,
             messages=messages,
             system=system_prompt,
             api_key=self.api_key,
-            tools=tools_to_send
+            tools=tools_to_send,
+            tag=self.agent.name,
         )
 
     # Parse and validate tool calls from LLM response into structured format

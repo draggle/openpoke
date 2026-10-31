@@ -8,7 +8,8 @@ from typing import Any, Dict, Optional
 from .processing import ProcessedEmail
 from ...config import get_settings
 from ...logging_config import logger
-from ...openrouter_client import OpenRouterError, request_chat_completion
+from ...openrouter_client import OpenRouterError
+from ..llm import ROLE_EMAIL_CLASSIFIER, complete as llm_complete
 
 
 _TOOL_NAME = "mark_email_importance"
@@ -92,12 +93,13 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
     messages = [{"role": "user", "content": user_payload}]
 
     try:
-        response = await request_chat_completion(
-            model=model,
+        response = await llm_complete(
+            role=ROLE_EMAIL_CLASSIFIER,
             messages=messages,
             system=_SYSTEM_PROMPT,
             api_key=api_key,
             tools=[_TOOL_SCHEMA],
+            tag=email.id or "",
         )
     except OpenRouterError as exc:
         logger.error(
