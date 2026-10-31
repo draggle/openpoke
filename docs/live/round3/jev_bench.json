@@ -1,0 +1,51 @@
+{
+  "latency_model_s": {
+    "llm_classify": 1.8,
+    "llm_summarise": 1.8,
+    "jev": 0.15
+  },
+  "email": {
+    "before (prefilter + LLM) @ fixture base rate 62%": {
+      "llm_calls_per_day": 88.7,
+      "jev_calls_per_day": 0.0,
+      "usd_per_day": 0.0993,
+      "model_seconds_per_day": 159.7,
+      "p50_decision_latency_s": 1.8
+    },
+    "after  (prefilter + Jev gate + LLM summary) @ fixture base rate 62%": {
+      "llm_calls_per_day": 54.8,
+      "jev_calls_per_day": 88.7,
+      "usd_per_day": 0.0675,
+      "model_seconds_per_day": 111.9,
+      "p50_decision_latency_s": 0.15
+    },
+    "before (prefilter + LLM) @ realistic inbox 10%": {
+      "llm_calls_per_day": 88.7,
+      "jev_calls_per_day": 0.0,
+      "usd_per_day": 0.0993,
+      "model_seconds_per_day": 159.7,
+      "p50_decision_latency_s": 1.8
+    },
+    "after  (prefilter + Jev gate + LLM summary) @ realistic inbox 10%": {
+      "llm_calls_per_day": 8.9,
+      "jev_calls_per_day": 88.7,
+      "usd_per_day": 0.0161,
+      "model_seconds_per_day": 29.3,
+      "p50_decision_latency_s": 0.15
+    }
+  },
+  "routing": {
+    "after: Jev choice over budgeted roster (oracle)": {
+      "candidates_contain_target": 0.97,
+      "oracle_hint_correct": 0.97,
+      "jev_tokens_per_decision": 392,
+      "jev_usd_per_decision": 2.3e-05,
+      "llm_usd_per_extra_reasoning_call(3k prompt)": 0.01125,
+      "latency_model_s": {
+        "jev": 0.15,
+        "llm_call": 1.8
+      },
+      "note": "offline Jev is an oracle; accuracy needs --live"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "feature_names": [
+    "bm25",
+    "name_overlap",
+    "recency_rank",
+    "log_age",
+    "use_count",
+    "pinned",
+    "in_transcript",
+    "waiting"
+  ],
+  "weights": [
+    3.608,
+    1.875,
+    -1.269,
+    -0.795,
+    -0.207,
+    -0.225,
+    1.37,
+    0.007
+  ],
+  "bias": -1.22,
+  "k": 12,
+  "n_train_pairs": 225000,
+  "n_test": 900,
+  "learned_recall": 1.0,
+  "select_recall": 0.954,
+  "note": "trained and tested on synthetic workloads; a real deployment would train on its own delegation log"
+}

@@ -92,7 +92,8 @@ def _load_measurement(path: Path, key: str, match: Dict[str, object], default: f
 
 
 _DOCS_LIVE = Path(__file__).resolve().parent.parent / "docs" / "live"
-_LIVE_MEMORY_CANDIDATES = (_DOCS_LIVE / "round2" / "memory_results_live.json", _DOCS_LIVE / "memory_results_live.json")
+_LIVE_MEMORY_CANDIDATES = (_DOCS_LIVE / "round3" / "memory_results_live.json", _DOCS_LIVE / "round2" / "memory_results_live.json",
+                           _DOCS_LIVE / "memory_results_live.json")
 _LIVE_MEMORY = next((p for p in _LIVE_MEMORY_CANDIDATES if p.exists()), _LIVE_MEMORY_CANDIDATES[0])
 
 
