@@ -181,15 +181,18 @@ Built after the first live run, each targeting something it exposed. Re-running 
 routing eval ([`docs/live/live_routing_results_second_pass.json`](docs/live/live_routing_results_second_pass.json))
 moved accuracy **85% → 90%**: four of the six "nudge Tara again" misses are fixed; the two new
 misses are the model answering directly instead of delegating to a thread its summary shows as
-closed — a judgement call, not a routing error. Prompt caching reported **0 cached tokens** on
-Anthropic's OpenAI-compatible endpoint, so it is on but unverified there (OpenRouter honours the
-same block format).
+closed — a judgement call, not a routing error. Prompt caching reported **0 cached tokens**
+because the live run used Anthropic's OpenAI-compatible endpoint, which [does not support prompt
+caching](https://docs.anthropic.com/en/api/openai-sdk) (the markers are silently ignored). The
+block format is honoured by OpenRouter — OpenPoke's upstream provider — so the saving is real
+on the default deployment path but unmeasured here; verifying it needs an OpenRouter key or a
+native Messages-API client.
 
 | Change | Why | Flag |
 |---|---|---|
 | **Duplicate-agent consolidation** — a new agent whose name tokens match a live agent's ("Alice Lunch" vs "Email to Alice about lunch") is redirected to the existing one | the Interaction Agent names agents freely, so the same thread accrues several agents and context splits | `OPENPOKE_AGENT_CONSOLIDATE=0` to disable |
 | **Recency-first roster + ambiguity rule** — roster ordered most-recent-first; prompt says to take the top match on person-only / topic-only follow-ups | all 6 live misses were "nudge Tara again" with 3 live Tara threads | (always on) |
-| **Prompt caching** — the ~3k-token system prompt is sent as a cacheable block; cache reads are recorded in the ledger and billed at 10% | the system prompt + tool schemas are identical on every call | `OPENPOKE_PROMPT_CACHE=0`; auto-disables if the endpoint rejects it |
+| **Prompt caching** — the ~3k-token system prompt is sent as a cacheable block; cache reads are recorded in the ledger and billed at 10% | the system prompt + tool schemas are identical on every call | `OPENPOKE_PROMPT_CACHE=0`; auto-disables if the endpoint rejects it; **ignored by Anthropic's OpenAI-compat endpoint**, honoured by OpenRouter |
 | **Tool-payload compaction at write time** — keep subject/from/body/ids, drop headers/labels/history ids, before the 500-char cap | upstream kept the first 500 chars of a Gmail payload, i.e. the boilerplate | (always on) |
 | **Concurrent email classification** (bounded, default 4) | a burst of N emails took N × classifier latency | `OPENPOKE_CLASSIFIER_CONCURRENCY` |
 | **Trigger wake-ups get their own routing role** | reminder-driven runs can be routed cheaply without touching user-initiated execution | `OPENPOKE_TIER_EXECUTION_TRIGGER=cheap` |
