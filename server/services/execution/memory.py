@@ -176,6 +176,7 @@ class HeuristicExtractor:
     - every ``agent_request`` becomes a timeline episode ("Asked: ...")
     - every ``agent_response`` becomes a timeline episode ("Result: ...")
     - "Name ... email@x" patterns become facts ("Name email" -> address)
+    - reminder requests are promoted to facts so capping the timeline never drops them
     - a response mentioning "waiting"/"awaiting"/"no reply" opens a thread
     """
 
@@ -188,6 +189,10 @@ class HeuristicExtractor:
             text = " ".join(payload.split())
             if tag == "agent_request":
                 out.episodes.append(f"Asked: {text[: self.snippet_chars]}")
+                # Commitments (reminders) are promoted to facts so they are never dropped
+                # when the timeline is capped.
+                if re.search(r"\bremind(?:er|ers)?\b", text, re.I):
+                    out.facts.append((f"Reminder: {text[:80]}", text[: self.snippet_chars]))
             elif tag == "agent_response":
                 out.episodes.append(f"Result: {text[: self.snippet_chars]}")
                 lowered = text.lower()

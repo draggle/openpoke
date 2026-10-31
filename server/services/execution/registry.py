@@ -69,6 +69,8 @@ class RegistryConfig:
     archive_ttl_s: float = 14 * 24 * 3600  # idle longer than this -> archived
     description_chars: int = 160
     recent_requests_kept: int = 3
+    recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
+    recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
 
     @classmethod
     def from_env(cls) -> "RegistryConfig":
@@ -78,6 +80,7 @@ class RegistryConfig:
             hot_cache_size=_env_int("OPENPOKE_ROSTER_HOT", 4),
             retrieval_k=_env_int("OPENPOKE_ROSTER_RETRIEVAL_K", 8),
             min_score=_env_float("OPENPOKE_ROSTER_MIN_SCORE", 0.0),
+            recency_weight=_env_float("OPENPOKE_ROSTER_RECENCY_WEIGHT", 0.6),
             active_ttl_s=_env_float("OPENPOKE_AGENT_ACTIVE_TTL_S", 48 * 3600),
             archive_ttl_s=_env_float("OPENPOKE_AGENT_ARCHIVE_TTL_S", 14 * 24 * 3600),
         )
@@ -348,13 +351,21 @@ class AgentRegistry:
 
         # BM25's IDF collapses to ~0 on tiny corpora (a term in 1 of 2 docs scores nothing),
         # so blend in plain query-token overlap. A hit must share at least one token.
+        # Scores are normalised to [0, 1] and a recency prior is added so that, among
+        # agents that match equally well ("any update on the visa?" with three visa agents),
+        # the one the user most recently worked with wins.
         unique_query = set(query_tokens)
+        max_bm = max((float(b) for b in bm25_scores), default=0.0)
+        now = self._clock()
         scored: List[Tuple[AgentRecord, float]] = []
         for record, doc_tokens, bm in zip(candidates, corpus, bm25_scores):
             overlap = len(unique_query & set(doc_tokens))
             if overlap == 0:
                 continue
-            score = float(bm) + overlap / len(unique_query)
+            bm_norm = float(bm) / max_bm if max_bm > 0 else 0.0
+            idle = max(0.0, now - record.last_used_at)
+            recency = 0.5 ** (idle / self.config.recency_half_life_s)
+            score = bm_norm + overlap / len(unique_query) + self.config.recency_weight * recency
             if score > self.config.min_score:
                 scored.append((record, score))
         scored.sort(key=lambda pair: (-pair[1], -pair[0].last_used_at))
