@@ -54,6 +54,7 @@ def test_tier_override_per_role():
 
 
 def test_env_parsing(monkeypatch):
+    monkeypatch.setenv("OPENPOKE_ROUTING", "tiered")
     monkeypatch.setenv("OPENPOKE_STRONG_MODEL", "x/strong")
     monkeypatch.setenv("OPENPOKE_CHEAP_MODEL", "x/cheap")
     monkeypatch.setenv("OPENPOKE_TIER_INTERACTION", "cheap")

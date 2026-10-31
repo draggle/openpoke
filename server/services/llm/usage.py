@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import threading
 import time
-from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
@@ -49,14 +48,31 @@ class UsageRecord:
 
 
 class UsageLedger:
+    MAX_RECORDS = 5000  # ring buffer; totals are kept separately so nothing is lost
+
     def __init__(self, path: Optional[Path] = None) -> None:
         self._path = path
         self._records: List[UsageRecord] = []
         self._lock = threading.Lock()
+        self._by_role: Dict[str, Dict[str, float]] = {}
+        self._by_model: Dict[str, Dict[str, float]] = {}
+        self._total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
+
+    @staticmethod
+    def _bump(bucket: Dict[str, float], rec: "UsageRecord") -> None:
+        bucket["calls"] += 1
+        bucket["prompt_tokens"] += rec.prompt_tokens
+        bucket["completion_tokens"] += rec.completion_tokens
+        bucket["cost_usd"] += rec.cost_usd
 
     def record(self, record: UsageRecord) -> None:
         with self._lock:
             self._records.append(record)
+            if len(self._records) > self.MAX_RECORDS:
+                del self._records[: len(self._records) - self.MAX_RECORDS]
+            for buckets, key in ((self._by_role, record.role), (self._by_model, record.model)):
+                self._bump(buckets.setdefault(key, {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}), record)
+            self._bump(self._total, record)
             if self._path is not None:
                 try:
                     self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,26 +88,17 @@ class UsageLedger:
     def reset(self) -> None:
         with self._lock:
             self._records.clear()
+            self._by_role.clear()
+            self._by_model.clear()
+            self._total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
 
     def totals(self) -> Dict[str, Any]:
-        by_role: Dict[str, Dict[str, float]] = defaultdict(
-            lambda: {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
-        )
-        by_model: Dict[str, Dict[str, float]] = defaultdict(
-            lambda: {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
-        )
-        total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
-        for rec in self.records():
-            for bucket in (by_role[rec.role], by_model[rec.model], total):
-                bucket["calls"] += 1
-                bucket["prompt_tokens"] += rec.prompt_tokens
-                bucket["completion_tokens"] += rec.completion_tokens
-                bucket["cost_usd"] += rec.cost_usd
-        return {
-            "total": total,
-            "by_role": dict(by_role),
-            "by_model": dict(by_model),
-        }
+        with self._lock:
+            return {
+                "total": dict(self._total),
+                "by_role": {k: dict(v) for k, v in self._by_role.items()},
+                "by_model": {k: dict(v) for k, v in self._by_model.items()},
+            }
 
 
 _DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"

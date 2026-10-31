@@ -20,7 +20,7 @@ All numbers from `python -m evals.run_all` (offline, deterministic, no API key n
 | Correct agent reachable, 400 agents | 100% (everything is in the prompt) | 94% in roster, **100% with `search_agents`** |
 | Execution-agent history in prompt, 320 log entries | 18k tokens, unbounded | **2.2k tokens** (12%) |
 | Reminder commitments surviving compaction | n/a (nothing is compacted) | **100%** |
-| Email classifier model calls | every email | **50% fewer**, zero important emails dropped |
+| Email classifier model calls | every email | **50% fewer** on the 40-email labelled set, with none of its 16 important emails dropped |
 | Modelled cost, 200 agents, 40 turns/day | $6.71/day | **$2.87/day (−57%)** |
 
 ![roster tokens vs agents](docs/roster_tokens_vs_agents.png)
@@ -120,7 +120,7 @@ important email is ever dismissed, and double as a live precision/recall set for
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 53 tests, < 1s, no network
+python -m pytest                 # 58 tests, < 1s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 ```
 
@@ -150,9 +150,12 @@ words at all.
 - The roster fix trades a bounded amount of recall (archived agents only) for a constant
   prompt. The fallback tool makes it recoverable rather than lost, at the price of one extra
   tool round-trip on the rare miss.
-- The memory eval is honest about the heuristic extractor: it keeps surface facts and
-  commitments but loses facts that only ever appeared inside raw tool payloads. That is
-  exactly why the runtime default is the LLM extractor; `--live` measures it.
+- The memory eval is honest about the heuristic extractor: reminder commitments survive at
+  100% (they are promoted to facts), but ordinary surface facts decay once the 40-episode
+  timeline cap bites (62% at 160 entries, 32% at 320) and facts that only ever appeared inside
+  raw tool payloads are mostly lost (4%). The heuristic is a fallback; the runtime default is
+  the LLM extractor, which is asked to lift amounts, dates and addresses into facts — `--live`
+  measures it.
 - The cost model's assumptions are editable in `evals/cost_eval.py` and printed with the
   result. The takeaway that survives any reasonable assumption: **per-agent history is the
   biggest line item**, bigger than the roster the explainer focuses on.
@@ -170,7 +173,7 @@ Fixed in this fork:
   reminders. Registry pins agents with active triggers; trigger fires re-activate them.
 - **No per-agent memory** — see above; it dominates cost.
 - **Classifier on every email** — pre-filter.
-- **Zero tests** — 53 now, plus five evaluators.
+- **Zero tests** — 58 now, plus five evaluators.
 
 Flagged, not built (what I'd do next, in order):
 1. **Duplicate-agent consolidation.** The Interaction Agent still *can* create "Email to Alice"
@@ -184,6 +187,8 @@ Flagged, not built (what I'd do next, in order):
 4. **Cross-agent facts.** When two agents share an entity, link their fact stores — the point at
    which a graph starts paying for itself.
 5. **Live A/B on a real inbox** with `/meta/usage` before/after; the offline numbers are a model.
+6. **Retire the dead `Settings.*_model` fields** — model choice now lives in the router; the
+   fields are kept only so upstream call sites still import cleanly.
 
 ## Files changed
 
@@ -199,6 +204,6 @@ server/agents/execution_agent/{agent,runtime}.py  memory-backed history, compact
 server/services/trigger_scheduler.py              touch agent on fire
 server/services/gmail/importance_watcher.py       prefilter before classify
 server/routes/meta.py                             /meta/usage, /meta/agents
-tests/                                            53 tests + labelled email fixtures
+tests/                                            58 tests + labelled email fixtures
 evals/                                            5 evaluators + synthetic workload
 ```

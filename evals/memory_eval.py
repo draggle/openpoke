@@ -158,10 +158,10 @@ async def evaluate(rounds_list: List[int], live: bool, out_dir: Path, seed: int 
 
 
 def print_table(results: List[RoundResult]) -> None:
-    print(f"{'rounds':>6} {'entries':>7} {'upstream':>9} {'compacted':>9} {'ratio':>6} {'compactions':>11}  retention")
+    print(f"{'rounds':>6} {'entries':>7} {'upstream_tok':>12} {'compacted_tok':>13} {'ratio':>6} {'compactions':>11}  retention")
     for r in results:
         ret = " ".join(f"{k}={v:.2f}" for k, v in r.retention.items())
-        print(f"{r.rounds:>6} {r.entries:>7} {r.upstream_chars:>9} {r.compacted_chars:>9} {r.ratio:>6.2f} {r.compactions:>11}  {ret}")
+        print(f"{r.rounds:>6} {r.entries:>7} {r.upstream_chars // 4:>12} {r.compacted_chars // 4:>13} {r.ratio:>6.2f} {r.compactions:>11}  {ret}")
 
 
 def plot(results: List[RoundResult], out_dir: Path) -> Path:

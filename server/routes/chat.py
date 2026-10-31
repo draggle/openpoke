@@ -34,9 +34,13 @@ def clear_history() -> ChatHistoryClearResponse:
     execution_logs = get_execution_agent_logs()
     execution_logs.clear_all()
 
-    # Clear agent roster
+    # Clear agent roster, registry and per-agent memory
     roster = get_agent_roster()
     roster.clear()
+    from ..services.execution import get_agent_memory, get_agent_registry
+
+    get_agent_registry().clear()
+    get_agent_memory().clear_all()
 
     # Clear stored triggers
     trigger_service = get_trigger_service()

@@ -28,6 +28,8 @@ lunch from Friday to Thursday" is answerable and auditable.
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import json
 import os
 import re
@@ -192,7 +194,8 @@ class HeuristicExtractor:
                 # Commitments (reminders) are promoted to facts so they are never dropped
                 # when the timeline is capped.
                 if re.search(r"\bremind(?:er|ers)?\b", text, re.I):
-                    out.facts.append((f"Reminder: {text[:80]}", text[: self.snippet_chars]))
+                    digest = hashlib.sha1(text.lower().encode()).hexdigest()[:6]
+                    out.facts.append((f"reminder {digest}", text[: self.snippet_chars]))
             elif tag == "agent_response":
                 out.episodes.append(f"Result: {text[: self.snippet_chars]}")
                 lowered = text.lower()
@@ -201,8 +204,13 @@ class HeuristicExtractor:
                         Thread(subject=text[:60], last_action=text[: self.snippet_chars],
                                waiting_on="reply")
                     )
-                if any(k in lowered for k in ("replied", "confirmed", "sent successfully", "done")):
-                    out.resolved_threads.extend(t.subject for t in state.threads)
+                if any(k in lowered for k in ("replied", "confirmed", "sent successfully")):
+                    # Resolve only threads this response plausibly refers to (shared tokens).
+                    words = set(re.findall(r"[a-z0-9]{3,}", lowered))
+                    for thread in state.threads:
+                        subject_words = set(re.findall(r"[a-z0-9]{3,}", thread.subject.lower()))
+                        if len(words & subject_words) >= 2:
+                            out.resolved_threads.append(thread.subject)
             for match in _EMAIL_RE.finditer(payload):
                 name = _name_before(payload, match.start())
                 if name:
@@ -295,6 +303,10 @@ class AgentMemory:
         self.config = config or MemoryConfig.from_env()
         self.extractor: Extractor = extractor or LLMExtractor()
         self._on_summary = on_summary  # e.g. registry.update_summary
+        self._locks: Dict[str, asyncio.Lock] = {}
+
+    def _lock(self, agent_name: str) -> asyncio.Lock:
+        return self._locks.setdefault(_slugify(agent_name), asyncio.Lock())
 
     # ---- persistence -----------------------------------------------------------------
 
@@ -306,10 +318,14 @@ class AgentMemory:
         if not path.exists():
             return MemoryState()
         try:
-            return MemoryState.from_json(json.loads(path.read_text(encoding="utf-8")))
+            state = MemoryState.from_json(json.loads(path.read_text(encoding="utf-8")))
         except Exception as exc:
             logger.warning(f"Failed to load memory for {agent_name}: {exc}")
             return MemoryState()
+        # The log was cleared/truncated underneath us (e.g. DELETE /history): start over.
+        if state.compacted_through > len(list(self._log_store.iter_entries(agent_name))):
+            return MemoryState()
+        return state
 
     def save(self, agent_name: str, state: MemoryState) -> None:
         try:
@@ -345,21 +361,22 @@ class AgentMemory:
 
     async def compact(self, agent_name: str, *, force: bool = False) -> Optional[MemoryState]:
         """Absorb older log entries into structured memory. Returns new state or None."""
-        state = self.load(agent_name)
-        if not force and not self.needs_compaction(agent_name, state):
-            return None
-        entries = list(self._log_store.iter_entries(agent_name))
-        cutoff = max(state.compacted_through, len(entries) - self.config.tail_entries)
-        batch = entries[state.compacted_through : cutoff]
-        if not batch:
-            return None
+        async with self._lock(agent_name):  # one compaction per agent at a time
+            state = self.load(agent_name)
+            if not force and not self.needs_compaction(agent_name, state):
+                return None
+            entries = list(self._log_store.iter_entries(agent_name))
+            cutoff = max(state.compacted_through, len(entries) - self.config.tail_entries)
+            batch = entries[state.compacted_through : cutoff]
+            if not batch:
+                return None
 
-        extraction = await self.extractor(batch, state)
-        now_ts = batch[-1][1] or ""
-        self._merge(state, extraction, now_ts)
-        state.compacted_through = cutoff
-        state.compactions += 1
-        self.save(agent_name, state)
+            extraction = await self.extractor(batch, state)
+            now_ts = batch[-1][1] or ""
+            self._merge(state, extraction, now_ts)
+            state.compacted_through = cutoff
+            state.compactions += 1
+            self.save(agent_name, state)
 
         if self._on_summary:
             try:
@@ -385,12 +402,14 @@ class AgentMemory:
                 current.invalidated_at = now_ts
                 current.superseded_by = value
             state.facts.append(Fact(key=key.strip(), value=value.strip(), recorded_at=now_ts))
-        # cap facts: drop oldest *invalidated* first, never active ones
+        # cap facts: drop oldest *invalidated* first; only then the oldest active ones
         if len(state.facts) > self.config.max_facts:
             inactive = [f for f in state.facts if not f.active]
             overflow = len(state.facts) - self.config.max_facts
             for fact in inactive[:overflow]:
                 state.facts.remove(fact)
+        if len(state.facts) > self.config.max_facts:
+            state.facts = state.facts[len(state.facts) - self.config.max_facts :]
 
         # threads
         resolved = {s.strip().lower() for s in extraction.resolved_threads}

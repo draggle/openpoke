@@ -24,3 +24,9 @@ def test_prefilter_dismisses_a_useful_share_of_noise():
 def test_otp_from_noreply_is_kept():
     row = next(r for r in ROWS if r["id"] == "i03")
     assert prefilter(to_processed(row)).reason == "keep-signal"
+
+
+def test_fraud_alert_from_alerts_sender_reaches_model():
+    row = {"id": "x", "sender": "Bank <alerts@bank.com>", "subject": "Unusual activity on your card",
+           "body": "We noticed a charge of $900. If this wasn't you call us. Opt-out of alerts.", "labels": ["INBOX"]}
+    assert prefilter(to_processed(row)).skip is False

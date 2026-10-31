@@ -206,7 +206,8 @@ def test_all_strategy_matches_upstream_rendering(tmp_path, clock):
     reg.register("B agent", "x")
     reg.register("A agent", "y")
     rendered = reg.render(reg.select("whatever"))
-    assert rendered == '<agent name="A agent" />\n<agent name="B agent" />'
+    # insertion order, like upstream roster.json
+    assert rendered == '<agent name="B agent" />\n<agent name="A agent" />'
 
 
 def test_budgeted_rendering_has_note_and_summaries(tmp_path, clock):

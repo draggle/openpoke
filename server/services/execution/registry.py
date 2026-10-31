@@ -21,7 +21,6 @@ Set ``OPENPOKE_ROSTER_STRATEGY=all`` to reproduce upstream behaviour (used as th
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import re
@@ -238,13 +237,10 @@ class AgentRegistry:
         payload = {"version": 1, "agents": [r.to_json() for r in self._records.values()]}
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self._path.with_suffix(".json.tmp")
+            # Atomic replace: readers never see a partially written file.
+            tmp = self._path.with_suffix(f".{os.getpid()}.tmp")
             with open(tmp, "w", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                try:
-                    json.dump(payload, handle, indent=2)
-                finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                json.dump(payload, handle, indent=2)
             os.replace(tmp, self._path)
         except Exception as exc:
             logger.warning(f"Failed to save registry.json: {exc}")
@@ -334,14 +330,19 @@ class AgentRegistry:
         return AgentStatus.ARCHIVED
 
     def search(
-        self, query: str, *, limit: int = 8, include_archived: bool = True
+        self,
+        query: str,
+        *,
+        limit: int = 8,
+        include_archived: bool = True,
+        statuses: Optional[Dict[str, AgentStatus]] = None,
     ) -> List[Tuple[AgentRecord, float]]:
         """BM25 search over agent metadata. Returns (record, score) with score > min_score."""
-        candidates = [
-            r
-            for r in self._records.values()
-            if include_archived or self.status_of(r) != AgentStatus.ARCHIVED
-        ]
+        if include_archived:
+            candidates = list(self._records.values())
+        else:
+            statuses = statuses or {r.name: self.status_of(r) for r in self._records.values()}
+            candidates = [r for r in self._records.values() if statuses[r.name] != AgentStatus.ARCHIVED]
         query_tokens = tokenize(query)
         if not candidates or not query_tokens:
             return []
@@ -378,13 +379,20 @@ class AgentRegistry:
         total = len(records)
 
         if self.config.strategy == "all":
-            shown = [
-                RosterEntry(r, self.status_of(r, now), False, "all")
-                for r in sorted(records, key=lambda r: r.name)
-            ]
+            # Upstream order (roster.json insertion order); no status/trigger lookups.
+            shown = [RosterEntry(r, AgentStatus.ACTIVE, False, "all") for r in records]
             return RosterSelection(shown=shown, total=total, archived=0, strategy="all")
 
+        # One status pass per turn. status_of() only consults the trigger store for agents
+        # past the archive TTL, and pinned-ness is cached from that pass below.
         statuses = {r.name: self.status_of(r, now) for r in records}
+        pinned_cache: Dict[str, bool] = {}
+
+        def pinned(name: str) -> bool:
+            if name not in pinned_cache:
+                pinned_cache[name] = self.is_pinned(name)
+            return pinned_cache[name]
+
         archived = sum(1 for s in statuses.values() if s == AgentStatus.ARCHIVED)
         live = [r for r in records if statuses[r.name] != AgentStatus.ARCHIVED]
 
@@ -392,14 +400,12 @@ class AgentRegistry:
 
         # 1) hot cache: most recently used live agents
         for record in sorted(live, key=lambda r: -r.last_used_at)[: self.config.hot_cache_size]:
-            chosen[record.name] = RosterEntry(
-                record, statuses[record.name], self.is_pinned(record.name), "hot"
-            )
+            chosen[record.name] = RosterEntry(record, statuses[record.name], pinned(record.name), "hot")
 
         # 2) retrieval: relevance to the current message
         if query.strip():
             for record, score in self.search(
-                query, limit=self.config.retrieval_k, include_archived=False
+                query, limit=self.config.retrieval_k, include_archived=False, statuses=statuses
             ):
                 if record.name in chosen:
                     chosen[record.name].score = max(chosen[record.name].score, score)
@@ -407,7 +413,7 @@ class AgentRegistry:
                 if len(chosen) >= self.config.max_roster:
                     break
                 chosen[record.name] = RosterEntry(
-                    record, statuses[record.name], self.is_pinned(record.name), "retrieved", score
+                    record, statuses[record.name], pinned(record.name), "retrieved", score
                 )
 
         # 3) fill any remaining budget with the next most recent live agents
@@ -417,7 +423,7 @@ class AgentRegistry:
                     break
                 if record.name not in chosen:
                     chosen[record.name] = RosterEntry(
-                        record, statuses[record.name], self.is_pinned(record.name), "recent"
+                        record, statuses[record.name], pinned(record.name), "recent"
                     )
 
         shown = sorted(

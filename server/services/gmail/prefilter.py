@@ -24,7 +24,7 @@ from .processing import ProcessedEmail
 
 _BULK_SENDER_RE = re.compile(
     r"(^|[<\s.])(no-?reply|do-?not-?reply|noreply|newsletter|newsletters|news|marketing|promo|promotions|"
-    r"offers|deals|digest|notifications?|updates|bounce|mailer-daemon|alerts?)[@.\-_]",
+    r"offers|deals|digest|updates|bounce|mailer-daemon)[@.\-_]",
     re.I,
 )
 _BULK_SUBJECT_RE = re.compile(
@@ -38,7 +38,8 @@ _SIGNALS_KEEP_RE = re.compile(
     r"(\bOTP\b|one[- ]time (pass)?code|verification code|security (alert|code)|sign-?in|login attempt|"
     r"password|2fa|two-factor|invitation:|invite|calendar|meeting|interview|reschedul|urgent|"
     r"action required|re:|fwd?:|payment (failed|due|received)|invoice|receipt for your|"
-    r"your (order|flight|booking|appointment)|confirm)",
+    r"your (order|flight|booking|appointment)|confirm|fraud|unusual|suspicious|transaction|charge|declined|"
+    r"review requested|mentioned you|assigned to you|overdue|deadline|cancel+ed)",
     re.I,
 )
 _BULK_LABELS = {"CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS", "SPAM"}

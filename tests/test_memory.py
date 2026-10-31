@@ -208,3 +208,51 @@ async def test_summary_callback_feeds_registry(tmp_path, store):
                       on_summary=lambda name, summary: seen.update({name: summary}))
     await mem.compact("a")
     assert "a" in seen and seen["a"]
+
+
+# ---- regressions from review ---------------------------------------------------------
+
+
+async def test_cleared_log_resets_memory(tmp_path, store):
+    fill_log(store, "a", rounds=10)
+    mem = make_memory(tmp_path, store)
+    await mem.compact("a", force=True)
+    store.clear_all()
+    assert mem.load("a").compacted_through == 0
+    assert mem.render_history("a") == ""
+
+
+async def test_response_only_resolves_matching_thread(tmp_path, store):
+    agent = "a"
+    store.record_request(agent, "Ask Alice about lunch")
+    store.record_agent_response(agent, "Draft sent to Alice about lunch; awaiting reply")
+    store.record_request(agent, "Ask Bob about the contract")
+    store.record_agent_response(agent, "Draft sent to Bob about the contract; awaiting reply")
+    mem = make_memory(tmp_path, store, tail_entries=0)
+    s1 = await mem.compact(agent, force=True)
+    assert len(s1.threads) == 2
+    store.record_request(agent, "check")
+    store.record_agent_response(agent, "Bob replied and confirmed the contract is signed")
+    s2 = await mem.compact(agent, force=True)
+    subjects = [t.subject for t in s2.threads]
+    assert any("Alice" in s for s in subjects) and not any("Bob" in s for s in subjects)
+
+
+async def test_active_facts_are_capped(tmp_path, store):
+    fill_log(store, "a", rounds=2)
+    ext = ScriptedExtractor(Extraction(facts=[(f"k{i}", f"v{i}") for i in range(100)]))
+    mem = make_memory(tmp_path, store, extractor=ext, max_facts=20)
+    state = await mem.compact("a", force=True)
+    assert len(state.facts) == 20 and state.facts[-1].key == "k99"
+
+
+async def test_concurrent_compactions_do_not_duplicate(tmp_path, store):
+    import asyncio
+
+    fill_log(store, "a", rounds=10)
+    mem = make_memory(tmp_path, store)
+    await asyncio.gather(mem.compact("a", force=True), mem.compact("a", force=True))
+    state = mem.load("a")
+    assert state.compactions == 1
+    texts = [e.text for e in state.episodes]
+    assert len(texts) == len(set(texts))
