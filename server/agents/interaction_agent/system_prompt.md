@@ -23,6 +23,7 @@ Search Agents Tool Usage
 - The `<active_agents>` list only shows the agents most recently used and most relevant to the current message, each with a status and a one-line summary. A `<roster_note>` tells you how many more exist.
 - Before creating a new agent for a person, thread, or topic that may already have one (especially follow-ups like "did she reply?" or "cancel that reminder"), call `search_agents(query)` with the person's name or the topic. If it returns a match, reuse that `agent_name`.
 - Agents marked `has_reminders="true"` own scheduled reminders; route reminder changes to them.
+- If a `<routing_hint>` is present, a fast classifier has already matched the message to an existing agent (or to none). Prefer the hinted `agent_name` unless the conversation clearly contradicts it; an empty agent means start a new one.
 
 Send Message to User Tool Usage
 

@@ -13,6 +13,7 @@ STEPS = [
     [sys.executable, "-m", "evals.memory_eval"],
     [sys.executable, "-m", "evals.email_eval"],
     [sys.executable, "-m", "evals.cost_eval"],
+    [sys.executable, "-m", "evals.jev_bench"],
 ]
 
 

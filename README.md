@@ -114,13 +114,44 @@ to the model; obvious bulk (promotions/social labels with unsubscribe footers, b
 spam) is dismissed. 40 labelled emails in `tests/fixtures/emails.json` pin the property that no
 important email is ever dismissed, and double as a live precision/recall set for the full pipeline.
 
+### 5. Jev typed decisions (`server/services/llm/jev.py`) — opt-in, benchmarked
+
+Two of OpenPoke's decisions are classification, not generation, yet each costs a chat-model
+call. [Jev](https://docs.typesafe.ai) (TypeSafe's "System One" model) answers typed questions
+— yes/no with a probability, or a choice from up to 255 options — with parallel decoding, so
+it is both faster and thresholdable. With `OPENPOKE_JEV=1` and `TYPESAFE_API_KEY`:
+
+- **Email importance** — a `noul` question gates the classifier. Below
+  `OPENPOKE_JEV_EMAIL_THRESHOLD` (0.5) no chat model runs; above it the cheap model only writes
+  the summary. Any Jev failure falls back to the upstream path.
+- **Agent routing hint** — a `choice` question over the budgeted roster (+ "none of these").
+  A confident answer is injected as `<routing_hint agent=… confidence=…>` ahead of the user
+  message; the Interaction Agent still decides, but the hard part is pre-answered.
+
+`python -m evals.jev_bench` compares before/after. Offline (oracle Jev, stated latency model):
+
+| | before | after (Jev) |
+|---|---|---|
+| Email: LLM calls/day at a realistic 10% important rate | 60 | **6** |
+| Email: decision latency (model) | ~1.8 s | **~0.15 s** |
+| Email: $/day | $0.067 | $0.011 |
+| Routing: $ per decision | $0.011 (one extra LLM reasoning call) | **$0.00002** |
+| Routing: candidates contain target (200 agents) | — | 97% |
+
+What offline can't tell you is **accuracy** — that's `--live`, which runs both configurations
+on the labelled emails and the synthetic routing workload and reports precision/recall, routing
+accuracy, p50/p95 wall-clock and $ side by side. The email dollar saving is small because the
+classifier was already on the cheap tier; the case for Jev there is latency and a tunable
+threshold. The routing case is the stronger one if live accuracy holds up. Both are behind a
+flag so they can be removed in one line if they don't earn their place.
+
 ## Tests and evaluators
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 58 tests, < 1s, no network
+python -m pytest                 # 69 tests, < 1s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 ```
 
@@ -130,6 +161,7 @@ python -m evals.run_all          # all offline evals -> evals/out/*.json + chart
 | `tests/test_memory.py` | upstream-identical before first compaction, prompt bound + verbatim tail, incremental compaction, fact supersession with history, thread open/update/resolve, **reminder commitment survives compaction**, LLM extractor JSON parsing + fallback |
 | `tests/test_router_and_gateway.py` | tiering, per-role overrides, env parsing, usage recorded from provider or estimated |
 | `tests/test_email_prefilter.py` | parametrised: every important fixture reaches the model; ≥60% of noise caught |
+| `tests/test_jev.py` | answer parsing, option limit, Jev gate skips/permits the LLM, failure fallback, disabled = upstream, threshold env, routing hint confident/none/low-confidence, hint injected into prompt |
 | `tests/test_interaction_e2e.py` | the real `InteractionAgentRuntime` loop with a scripted LLM: bounded roster with note at 60 agents, `search_agents` finds the hidden agent, delegation touches the registry |
 
 | Evaluator | Measures | Needs key |
@@ -138,6 +170,7 @@ python -m evals.run_all          # all offline evals -> evals/out/*.json + chart
 | `evals.memory_eval` | prompt size and needle retention (surface facts, facts buried in tool payloads, reminder commitments) across 20–320 log entries | no (`--live` for the LLM extractor) |
 | `evals.email_eval` | pre-filter skip rate and skip precision | no (`--live` for pipeline P/R/F1) |
 | `evals.cost_eval` | $/user/day under upstream / routing-only / context-only / both, from measured token savings and a printed call-mix assumption | no |
+| `evals.jev_bench` | email gating and routing: calls, $, latency model (offline) or real P/R, accuracy, p50/p95 latency (`--live`) | no (`--live` needs TypeSafe + OpenRouter keys) |
 | `evals.live_routing_eval` | the **real Interaction model** choosing an agent from the real prompt: accuracy, new-agent spawns, prompt tokens, $ — upstream vs budgeted + `search_agents` | yes |
 
 The synthetic workload (`evals/synthetic.py`) is seeded and deliberately adversarial: the same
@@ -173,7 +206,7 @@ Fixed in this fork:
   reminders. Registry pins agents with active triggers; trigger fires re-activate them.
 - **No per-agent memory** — see above; it dominates cost.
 - **Classifier on every email** — pre-filter.
-- **Zero tests** — 58 now, plus five evaluators.
+- **Zero tests** — 69 now, plus six evaluators.
 
 Flagged, not built (what I'd do next, in order):
 1. **Duplicate-agent consolidation.** The Interaction Agent still *can* create "Email to Alice"
@@ -197,6 +230,8 @@ ARCHITECTURE.md                                   code-path notes with line refs
 server/services/execution/registry.py             AgentRegistry (new)
 server/services/execution/memory.py               AgentMemory (new)
 server/services/llm/{router,usage,gateway}.py     routing + ledger (new)
+server/services/llm/jev.py                        Jev typed-decision client (new, opt-in)
+server/services/execution/routing_hint.py         Jev routing hint (new)
 server/services/gmail/prefilter.py                email pre-filter (new)
 server/agents/interaction_agent/{agent,tools}.py  budgeted roster, search_agents tool
 server/agents/interaction_agent/system_prompt.md  search_agents guidance
@@ -204,6 +239,6 @@ server/agents/execution_agent/{agent,runtime}.py  memory-backed history, compact
 server/services/trigger_scheduler.py              touch agent on fire
 server/services/gmail/importance_watcher.py       prefilter before classify
 server/routes/meta.py                             /meta/usage, /meta/agents
-tests/                                            58 tests + labelled email fixtures
-evals/                                            5 evaluators + synthetic workload
+tests/                                            69 tests + labelled email fixtures
+evals/                                            6 evaluators + synthetic workload
 ```

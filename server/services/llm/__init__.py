@@ -1,6 +1,7 @@
 """LLM access: role-based routing, usage accounting, single call gateway."""
 
 from .gateway import complete
+from .jev import FakeJev, JevClient, JevError, get_jev_client, jev_enabled, set_jev_client
 from .router import (
     ALL_ROLES,
     ROLE_EMAIL_CLASSIFIER,
@@ -34,6 +35,12 @@ __all__ = [
     "UsageLedger",
     "UsageRecord",
     "complete",
+    "FakeJev",
+    "JevClient",
+    "JevError",
+    "get_jev_client",
+    "jev_enabled",
+    "set_jev_client",
     "estimate_message_tokens",
     "estimate_tokens",
     "get_model_router",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Dict, Optional
 
 from .processing import ProcessedEmail
@@ -10,6 +11,7 @@ from ...config import get_settings
 from ...logging_config import logger
 from ...openrouter_client import OpenRouterError
 from ..llm import ROLE_EMAIL_CLASSIFIER, complete as llm_complete
+from ..llm.jev import ROLE_JEV_EMAIL, JevError, get_jev_client, noul
 
 
 _TOOL_NAME = "mark_email_importance"
@@ -78,8 +80,44 @@ def _format_email_payload(email: ProcessedEmail) -> str:
     )
 
 
+_JEV_QUESTION = noul(
+    "Should the assistant proactively interrupt the user about this email right now? "
+    "Yes only if it requires timely attention, a decision, coordination, or is a security-"
+    "sensitive code/notice (OTP, sign-in). No for receipts, marketing, newsletters, routine "
+    "notifications and low-impact updates.",
+    true_means="Interrupt the user: timely action, decision, meeting/interview change, or security code.",
+    false_means="Do not interrupt: routine, promotional, informational, or can wait.",
+)
+
+
+def _jev_threshold() -> float:
+    try:
+        return float(os.getenv("OPENPOKE_JEV_EMAIL_THRESHOLD", "0.5"))
+    except ValueError:
+        return 0.5
+
+
+async def jev_importance_probability(email: ProcessedEmail) -> Optional[float]:
+    """P(important) from Jev, or None when Jev is disabled or fails (caller falls back)."""
+    client = get_jev_client()
+    if client is None:
+        return None
+    try:
+        answers = await client.ask(_format_email_payload(email), {"important": _JEV_QUESTION},
+                                   role=ROLE_JEV_EMAIL, tag=email.id or "")
+        return answers["important"].probability
+    except (JevError, KeyError, Exception) as exc:  # fall back to the LLM path
+        logger.warning(f"Jev importance check failed for {email.id}: {exc}")
+        return None
+
+
 async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
-    """Return summary text when email should be surfaced; otherwise None."""
+    """Return summary text when email should be surfaced; otherwise None.
+
+    With Jev enabled, a typed yes/no decision gates the call: only emails Jev scores at or
+    above ``OPENPOKE_JEV_EMAIL_THRESHOLD`` reach the chat model, which then writes the
+    summary. Without Jev (or on Jev failure) the chat model makes both decisions as upstream.
+    """
 
     settings = get_settings()
     api_key = settings.openrouter_api_key
@@ -87,6 +125,11 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
 
     if not api_key:
         logger.warning("Skipping importance check; OpenRouter API key missing")
+        return None
+
+    probability = await jev_importance_probability(email)
+    if probability is not None and probability < _jev_threshold():
+        logger.debug(f"Jev dismissed {email.id} (p={probability:.2f})")
         return None
 
     user_payload = _format_email_payload(email)
