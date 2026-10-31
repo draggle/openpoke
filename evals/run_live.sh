@@ -9,6 +9,7 @@
 #   AI_GATEWAY_API_KEY=...     (Vercel AI Gateway)
 #   OPENROUTER_API_KEY=...     (+ optionally TYPESAFE_API_KEY=... for Jev)
 # Optional: OPENPOKE_STRONG_MODEL / OPENPOKE_CHEAP_MODEL / TYPESAFE_MODEL to pin model IDs.
+#           ONLY_JEV=1 bash evals/run_live.sh   -> run just the Jev bench (Claude evals already done)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -17,6 +18,13 @@ if [ -f "$ENV_FILE" ]; then
   set -a; . "$ENV_FILE"; set +a
 fi
 
+# --- Jev via OpenRouter, independent of which provider serves the chat side ----------
+#   JEV_OPENROUTER_KEY=sk-or-...   (OpenRouter proxies TypeSafe's native schema as typesafe/jev-latest)
+if [ -n "${JEV_OPENROUTER_KEY:-}" ]; then
+  export TYPESAFE_API_KEY="${TYPESAFE_API_KEY:-$JEV_OPENROUTER_KEY}"
+  export TYPESAFE_MODEL="${TYPESAFE_MODEL:-typesafe/jev-latest}"
+  export JEV_BASE_CANDIDATES="${TYPESAFE_BASE_URL:-https://openrouter.ai/api https://openrouter.ai/api/v1 https://openrouter.ai/api/v1/typesafe}"
+fi
 # --- Anthropic directly (OpenAI-compatible endpoint) ---------------------------------
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-$ANTHROPIC_API_KEY}"
@@ -88,23 +96,31 @@ async def main():
     print("chat ok:", (r.get("choices") or [{}])[0].get("message", {}).get("content", "")[:40].strip())
     if not os.environ.get("TYPESAFE_API_KEY"):
         print("jev: no TYPESAFE_API_KEY, skipping Jev evals"); open("evals/out/.jev_unavailable", "w").close(); return
-    try:
-        a = await JevClient().ask("The invoice is 10 days overdue.", {"urgent": noul("Is this urgent?")}, role="preflight")
-        print("jev ok: P(urgent)=%.2f" % a["urgent"].probability)
-    except Exception as exc:
-        print("jev FAILED (continuing without it):", exc)
-        os.environ["OPENPOKE_JEV"] = "0"
-        open("evals/out/.jev_unavailable", "w").close()
+    bases = os.environ.get("JEV_BASE_CANDIDATES", os.environ.get("TYPESAFE_BASE_URL", "https://api.typesafe.ai")).split()
+    for base in bases:
+        try:
+            a = await JevClient(base_url=base, model=os.environ.get("TYPESAFE_MODEL", "jev-latest")).ask(
+                "The invoice is 10 days overdue.", {"urgent": noul("Is this urgent?")}, role="preflight")
+            print(f"jev ok via {base}: P(urgent)={a['urgent'].probability:.2f}")
+            open("evals/out/.jev_base", "w").write(base)
+            return
+        except Exception as exc:
+            print(f"jev via {base} failed: {str(exc)[:160]}")
+    print("jev FAILED on every base URL (continuing without it)")
+    open("evals/out/.jev_unavailable", "w").close()
 asyncio.run(main())
 PY
 if [ -f evals/out/.jev_unavailable ]; then export OPENPOKE_JEV=0; rm -f evals/out/.jev_unavailable; fi
+if [ -f evals/out/.jev_base ]; then export TYPESAFE_BASE_URL="$(cat evals/out/.jev_base)"; rm -f evals/out/.jev_base; fi
 
 run() { echo; echo "================ $* ================"; PYTHONUNBUFFERED=1 "$@" 2>&1 | grep --line-buffered -v " - INFO - " | tee -a evals/out/live_log.txt; }
 
 : > evals/out/live_log.txt
-run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES"
-run python -m evals.memory_eval --live --rounds 10,20,40
-run python -m evals.email_eval --live
+if [ "${ONLY_JEV:-0}" != "1" ]; then
+  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES"
+  run python -m evals.memory_eval --live --rounds 10,20,40
+  run python -m evals.email_eval --live
+fi
 if [ "${OPENPOKE_JEV}" = "1" ]; then
   run python -m evals.jev_bench --live --agents 150 --queries "$QUERIES"
 fi
