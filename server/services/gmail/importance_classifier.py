@@ -56,12 +56,33 @@ _SUMMARY_ONLY_SYSTEM_PROMPT = (
 
 _SYSTEM_PROMPT = (
     "You review incoming Gmail messages and decide whether they warrant an immediate proactive "
-    "notification to the user. Only mark an email as important if it materially affects the "
-    "user's plans, requires a prompt decision or action, is a security-sensitive OTP or login "
-    "notice, or contains high-priority updates (e.g. interviews, meeting changes). Ignore "
-    "order confirmations, routine marketing, newsletters, generic receipts, and low-impact "
-    "status notifications. When important, craft a brief summary that will be forwarded to the "
-    "user describing what happened and why it matters."
+    "notification to the user. Judge the message by what it is about and who it is from, not by "
+    "its formatting.\n\n"
+    "Mark important=true for:\n"
+    "- a person replying to or writing to the user directly, including short or casual replies "
+    "that confirm, decline or move a plan (lunch, a call, a meeting), ask the user for something, "
+    "or answer something the user asked;\n"
+    "- money and account alerts: low balance, declined or failed payment, unusual or suspicious "
+    "activity, fraud, payroll errors, a bill or invoice due, an overdue amount;\n"
+    "- job and recruiter outreach addressed to the user (a hiring manager, recruiter or "
+    "applicant-tracking system proposing a role, an interview or a next step);\n"
+    "- government, immigration, legal, tax, medical or insurance status changes, appointments "
+    "and decisions about the user's own case or application;\n"
+    "- security codes, one-time passcodes and sign-in notices;\n"
+    "- deadlines, decisions the user must make, and changes to meetings, interviews, "
+    "appointments, flights or bookings the user already has;\n"
+    "- outages or incidents on systems the user is responsible for.\n\n"
+    "Mark important=false for: order and shipping confirmations, receipts, routine statements "
+    "that need no action, marketing and sales, newsletters and digests, social-network "
+    "notifications, product update announcements, surveys, mass recruiting campaigns that are not "
+    "addressed to the user personally, and low-impact status notifications.\n\n"
+    "An unsubscribe, opt-out or manage-preferences footer does NOT make a message promotional "
+    "when the body is about the user's own account, application, money, appointment or case, or "
+    "comes from a person writing to the user. Decide on the body. Examples: 'Re: coffee?' with "
+    "'Tuesday 10 works, see you then' is important; 'Your card ending 2210 was declined at Shell' "
+    "with a preferences footer is important; 'You appeared in 5 searches this week' is not.\n\n"
+    "When important, write a brief 2-3 sentence summary for the user: who it is from, what "
+    "happened, and what action or decision it needs."
 )
 
 
@@ -193,7 +214,8 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
                 "Importance tool marked email important without summary",
                 extra={"message_id": email.id},
             )
-            return None
+            # Jev already decided this one matters: never drop it for want of prose.
+            return _fallback_summary(email) if jev_decided else None
 
         return summary.strip()
 
@@ -201,7 +223,16 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
         "Importance classification produced no tool call",
         extra={"message_id": email.id},
     )
-    return None
+    return _fallback_summary(email) if jev_decided else None
+
+
+def _fallback_summary(email: ProcessedEmail) -> str:
+    """A serviceable notification when the summary model returned nothing usable."""
+    sender = (email.sender or "an unknown sender").strip()
+    subject = (email.subject or "(no subject)").strip()
+    body = " ".join((email.clean_text or "").split())
+    snippet = (body[:157] + "…") if len(body) > 160 else body
+    return f"{sender}: {subject}." + (f" {snippet}" if snippet else "")
 
 
 def _coerce_arguments(raw: Any) -> Optional[Dict[str, Any]]:
