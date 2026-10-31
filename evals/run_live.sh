@@ -11,6 +11,7 @@
 # Optional: OPENPOKE_STRONG_MODEL / OPENPOKE_CHEAP_MODEL / TYPESAFE_MODEL to pin model IDs.
 #           ONLY_JEV=1 bash evals/run_live.sh   -> run just the Jev bench (Claude evals already done)
 #           ROUTING_STRATEGIES=budgeted ONLY_ROUTING=1 bash evals/run_live.sh -> re-run routing only
+#           ROUTING_EXTRA_ARGS="" bash evals/run_live.sh -> round-one style (no history, sampled kinds, one seed)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -54,6 +55,8 @@ fi
 export OPENPOKE_JEV=1
 
 QUERIES="${QUERIES:-40}"
+# Round two: give both arms the conversation history, draw equal query kinds, pool 3 seeds.
+ROUTING_EXTRA_ARGS="${ROUTING_EXTRA_ARGS:---history --stratified --seeds 7,8,9}"
 mkdir -p evals/out
 
 if [ ! -d .venv ]; then python3 -m venv .venv; fi
@@ -63,12 +66,12 @@ pip install -q -r server/requirements.txt pytest pytest-asyncio matplotlib
 
 echo "== discovering model IDs on ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1} =="
 python - <<'PY'
-import json, os, re, sys, urllib.request
+import json, os, re, sys
+import httpx  # uses certifi, unlike urllib on a python.org build without system certs
 base = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
 key = os.environ["OPENROUTER_API_KEY"]
-req = urllib.request.Request(f"{base}/models", headers={"Authorization": f"Bearer {key}", "x-api-key": key, "anthropic-version": "2023-06-01"})
 try:
-    data = json.load(urllib.request.urlopen(req, timeout=20))
+    data = httpx.get(f"{base}/models", headers={"Authorization": f"Bearer {key}", "x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=20).json()
     ids = [m.get("id", "") for m in (data.get("data") or data.get("models") or [])]
 except Exception as exc:
     print("could not list models:", exc); ids = []
@@ -78,7 +81,7 @@ def pick(patterns, fallback):
             if re.search(pat, i): return i
     return fallback
 strong = os.environ.get("OPENPOKE_STRONG_MODEL") or pick([r"claude-sonnet-4-5", r"claude-sonnet-4(?!.*haiku)", r"claude-3-7-sonnet", r"claude.*sonnet"], "claude-sonnet-4-5" if "anthropic.com" in base else "anthropic/claude-sonnet-4")
-cheap  = os.environ.get("OPENPOKE_CHEAP_MODEL")  or pick([r"claude-haiku-4-5", r"claude-3-5-haiku", r"claude.*haiku"], strong)
+cheap  = os.environ.get("OPENPOKE_CHEAP_MODEL")  or pick([r"claude-haiku-4-5", r"claude-3-5-haiku", r"claude.*haiku"], "claude-haiku-4-5" if "anthropic.com" in base else strong)
 jev    = os.environ.get("TYPESAFE_MODEL") or pick([r"^jev-latest$", r"jev", r"typesafe"], "jev-latest")
 print(f"strong={strong}\ncheap={cheap}\njev={jev}")
 print("claude/jev models seen:", [i for i in ids if re.search(r"claude|jev|typesafe", i)][:20])
@@ -120,11 +123,13 @@ run() { echo; echo "================ $* ================"; PYTHONUNBUFFERED=1 "$
 
 : > evals/out/live_log.txt
 if [ "${ONLY_ROUTING:-0}" = "1" ]; then
-  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES" --strategies "${ROUTING_STRATEGIES:-budgeted}"
+  # shellcheck disable=SC2086
+  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES" --strategies "${ROUTING_STRATEGIES:-budgeted}" $ROUTING_EXTRA_ARGS
   echo; echo "done (routing only). results: evals/out/live_routing_results*.json"; exit 0
 fi
 if [ "${ONLY_JEV:-0}" != "1" ]; then
-  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES" --strategies "${ROUTING_STRATEGIES:-all,budgeted}"
+  # shellcheck disable=SC2086
+  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES" --strategies "${ROUTING_STRATEGIES:-all,budgeted}" $ROUTING_EXTRA_ARGS
   run python -m evals.memory_eval --live --rounds 10,20,40
   run python -m evals.email_eval --live
 fi

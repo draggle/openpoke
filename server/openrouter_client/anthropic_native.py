@@ -12,6 +12,7 @@ reads at 10% and the eval can confirm caching actually happened.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from typing import Any, Dict, List, Optional
@@ -21,6 +22,12 @@ import httpx
 ANTHROPIC_BASE_URL = "https://api.anthropic.com"
 ANTHROPIC_VERSION = "2023-06-01"
 DEFAULT_MAX_TOKENS = 4096
+
+# Transient failures (dropped connection, overloaded, rate limited) are retried with
+# exponential backoff; client errors (4xx other than 408/429) are not.
+_MAX_ATTEMPTS = 4
+_RETRY_BACKOFF_S = 1.0
+_RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 529}
 
 
 class AnthropicError(RuntimeError):
@@ -189,20 +196,25 @@ async def request_messages(
         payload["tools"] = converted_tools
 
     url = f"{(base_url or os.getenv('ANTHROPIC_BASE_URL') or ANTHROPIC_BASE_URL).rstrip('/')}/v1/messages"
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                url,
-                headers={"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json"},
-                json=payload,
-                timeout=60.0,
-            )
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise AnthropicError(f"Anthropic request failed ({exc.response.status_code}): {exc.response.text[:300]}") from exc
-        except httpx.HTTPError as exc:
-            raise AnthropicError(f"Anthropic request failed: {exc}") from exc
-    return convert_response(response.json())
+    headers = {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json"}
+    last_error: Optional[Exception] = None
+    for attempt in range(_MAX_ATTEMPTS):
+        if attempt:
+            await asyncio.sleep(_RETRY_BACKOFF_S * (2 ** (attempt - 1)))
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(url, headers=headers, json=payload, timeout=60.0)
+                response.raise_for_status()
+                return convert_response(response.json())
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                last_error = AnthropicError(f"Anthropic request failed ({status}): {exc.response.text[:300]}")
+                if status not in _RETRYABLE_STATUS:
+                    raise last_error from exc
+            except httpx.HTTPError as exc:  # transport errors: dropped connection, timeout
+                last_error = AnthropicError(f"Anthropic request failed: {exc}")
+    assert last_error is not None
+    raise last_error
 
 
 __all__ = ["AnthropicError", "convert_messages", "convert_response", "convert_system", "convert_tools", "request_messages"]

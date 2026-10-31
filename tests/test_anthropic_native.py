@@ -95,3 +95,92 @@ async def test_native_prefers_anthropic_key_env(monkeypatch):
     monkeypatch.setattr(httpx, "AsyncClient", lambda: FakeClient())
     await native.request_messages(model="m", messages=[{"role": "user", "content": "hi"}], api_key="sk-or-openrouter")
     assert captured["headers"]["x-api-key"] == "sk-ant-real"
+
+
+async def test_native_retries_transient_errors(monkeypatch):
+    """A dropped connection or an overloaded (529/429/5xx) reply is retried with backoff."""
+    import httpx
+    from server.openrouter_client import anthropic_native as native
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    monkeypatch.setattr(native, "_RETRY_BACKOFF_S", 0.0)
+    attempts = {"n": 0}
+
+    class Overloaded:
+        status_code = 529
+        text = "overloaded"
+
+        def raise_for_status(self):
+            raise httpx.HTTPStatusError("529", request=None, response=self)
+
+    class Good:
+        status_code = 200
+
+        def raise_for_status(self): pass
+        def json(self): return {"content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def post(self, url, *, headers, json, timeout):
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise httpx.ReadError("connection dropped")
+            if attempts["n"] == 2:
+                return Overloaded()
+            return Good()
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda: FakeClient())
+    out = await native.request_messages(model="m", messages=[{"role": "user", "content": "hi"}])
+    assert out["choices"][0]["message"]["content"] == "ok"
+    assert attempts["n"] == 3
+
+
+async def test_native_gives_up_after_max_attempts(monkeypatch):
+    import httpx
+    import pytest
+    from server.openrouter_client import anthropic_native as native
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    monkeypatch.setattr(native, "_RETRY_BACKOFF_S", 0.0)
+    attempts = {"n": 0}
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def post(self, url, *, headers, json, timeout):
+            attempts["n"] += 1
+            raise httpx.ReadError("down")
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda: FakeClient())
+    with pytest.raises(native.AnthropicError):
+        await native.request_messages(model="m", messages=[{"role": "user", "content": "hi"}])
+    assert attempts["n"] == native._MAX_ATTEMPTS
+
+
+async def test_native_does_not_retry_client_errors(monkeypatch):
+    import httpx
+    import pytest
+    from server.openrouter_client import anthropic_native as native
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    attempts = {"n": 0}
+
+    class Bad:
+        status_code = 400
+        text = "invalid request"
+
+        def raise_for_status(self):
+            raise httpx.HTTPStatusError("400", request=None, response=self)
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def post(self, url, *, headers, json, timeout):
+            attempts["n"] += 1
+            return Bad()
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda: FakeClient())
+    with pytest.raises(native.AnthropicError):
+        await native.request_messages(model="m", messages=[{"role": "user", "content": "hi"}])
+    assert attempts["n"] == 1
