@@ -173,3 +173,21 @@ async def test_cache_skipped_for_short_prompts_or_flag_off(router, ledger, monke
     monkeypatch.setenv("OPENPOKE_PROMPT_CACHE", "0")
     await complete(role=ROLE_INTERACTION, messages=[], system="s" * 5000)
     assert all(isinstance(x, str) for x in seen)
+
+
+async def test_unrelated_400_propagates_and_keeps_cache(router, ledger, monkeypatch):
+    """A 400 that is not about cache_control must not disable caching or trigger a retry."""
+    from server.services.llm import gateway
+    monkeypatch.setattr(gateway, "_CACHE_SUPPORTED", True)
+    monkeypatch.setattr(router, "strong_model", "anthropic/claude-sonnet-4-5")
+    calls = []
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        calls.append(system)
+        raise RuntimeError("OpenRouter request failed (400): context_length_exceeded: prompt is too long")
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    with pytest.raises(RuntimeError):
+        await complete(role=ROLE_INTERACTION, messages=[], system="s" * 5000)
+    assert len(calls) == 1
+    assert gateway._CACHE_SUPPORTED is True

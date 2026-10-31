@@ -9,6 +9,7 @@ estimated cost.
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 
@@ -63,7 +64,7 @@ async def complete(
             tools=tools,
         )
     except Exception as exc:
-        if system_payload is not system and "400" in str(exc):
+        if system_payload is not system and _is_cache_rejection(exc):
             logger.warning(f"prompt caching not supported by endpoint; disabling ({str(exc)[:120]})")
             _CACHE_SUPPORTED = False
             response = await _openrouter.request_chat_completion(
@@ -74,6 +75,17 @@ async def complete(
 
     _record_usage(role, resolved_model, messages, system, tools, response, tag)
     return response
+
+
+_CACHE_REJECTION_RE = re.compile(
+    r"cache_control|system.*(content|array|list|block)|content\[\d+\]|invalid.*system", re.I
+)
+
+
+def _is_cache_rejection(exc: Exception) -> bool:
+    """True only for an error about the block-formatted system prompt, not any 400."""
+    text = str(exc)
+    return "400" in text and bool(_CACHE_REJECTION_RE.search(text))
 
 
 def _record_usage(
