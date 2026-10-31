@@ -211,3 +211,20 @@ async def test_decide_applies_guard(tmp_path, monkeypatch):
     assert decision.guard_fired
     assert decision.first_pick == other.name
     assert decision.agent is not None and "Bob" in decision.agent
+
+
+def test_session_probe_report_shape():
+    from evals.session_probe import report
+
+    by_role = {
+        "interaction": {"calls": 4, "prompt_tokens": 20000, "completion_tokens": 200, "cost_usd": 0.02,
+                        "cached_tokens": 16000, "cache_write_tokens": 0},
+        "execution": {"calls": 2, "prompt_tokens": 8000, "completion_tokens": 300, "cost_usd": 0.03,
+                      "cached_tokens": 4000, "cache_write_tokens": 2000},
+    }
+    out = report(by_role, early_exit=True, turns=3)
+    assert out["early_exit"] is True and out["turns"] == 3
+    assert out["total"]["calls"] == 6 and out["calls_per_turn"] == 2.0
+    assert out["by_role"]["interaction"]["cached_share"] == 0.8
+    assert out["by_role"]["execution"]["calls_per_turn"] == round(2 / 3, 2)
+    assert round(out["total"]["cost_usd"], 4) == 0.05
