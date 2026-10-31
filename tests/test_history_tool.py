@@ -139,3 +139,15 @@ def test_raw_match_carries_the_request_it_answered(tmp_path):
                if m["tag"] == "tool_response_raw")
     assert "REF-22222" in hit["text"]
     assert "$182" in hit["context"] and hit["context"].startswith("Ask Hannah")
+
+
+def test_snippet_window_covers_the_most_query_tokens(tmp_path):
+    """'Hannah' appears in the sender field at the top of a long payload and 'reference' near
+    the end; the window must sit where most query tokens are, not at the first hit."""
+    from server.agents.execution_agent.tools.history import _window
+
+    payload = ('{"sender": "Hannah <h@x.com>", "clean_text": "' + "Per our earlier thread, here is the status update. " * 30
+               + 'Our internal reference is REF-29252. Regards, Hannah"}')
+    assert len(payload) > 900
+    snippet = _window(payload, "deposit $2532 Hannah reference number", ["deposit", "2532", "hannah", "reference", "number"])
+    assert "REF-29252" in snippet

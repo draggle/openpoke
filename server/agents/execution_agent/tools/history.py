@@ -8,6 +8,7 @@ itself beats fixed top-k lookups on trajectory-style memory).
 
 from __future__ import annotations
 
+import re
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
@@ -140,7 +141,15 @@ def _window(payload: str, query: str, query_tokens: List[str]) -> str:
     lowered = payload.lower()
     position = lowered.find(query.lower())
     if position < 0:
-        position = min((p for p in (lowered.find(t) for t in query_tokens) if p >= 0), default=0)
+        # No exact hit: put the window where the most distinct query tokens fall, not at the
+        # first one ("Hannah" in a sender field at the top; the reference code at the bottom).
+        hits = [(m.start(), t) for t in set(query_tokens) for m in re.finditer(re.escape(t), lowered)]
+        best, best_count = 0, -1
+        for start_pos, _t in hits:
+            covered = {t for p, t in hits if start_pos <= p < start_pos + _SNIPPET_CHARS}
+            if len(covered) > best_count:
+                best, best_count = start_pos, len(covered)
+        position = best
     start = max(0, position - _SNIPPET_CHARS // 3)
     end = min(len(payload), start + _SNIPPET_CHARS)
     start = max(0, end - _SNIPPET_CHARS)

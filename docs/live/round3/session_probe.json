@@ -1,0 +1,95 @@
+{
+  "what": "three-turn reminder session through the in-process app; ledger reset per run",
+  "turns": [
+    "Set a reminder for tomorrow at 9am to send Alice the lunch invoice. Important: never cc her manager on any emails related to this.",
+    "Change the reminder time from 9am to 10am tomorrow.",
+    "What reminders do I have set?"
+  ],
+  "with_early_exit": {
+    "early_exit": true,
+    "turns": 3,
+    "calls_per_turn": 4.0,
+    "cached_share": 0.73,
+    "total": {
+      "calls": 12,
+      "prompt_tokens": 55221,
+      "completion_tokens": 1292,
+      "cached_tokens": 40344,
+      "cache_write_tokens": 3576,
+      "cost_usd": 0.0788
+    },
+    "by_role": {
+      "execution": {
+        "calls": 6,
+        "calls_per_turn": 2.0,
+        "prompt_tokens": 27959,
+        "completion_tokens": 689,
+        "cached_tokens": 17880,
+        "cached_share": 0.64,
+        "cost_usd": 0.0486
+      },
+      "interaction": {
+        "calls": 6,
+        "calls_per_turn": 2.0,
+        "prompt_tokens": 27262,
+        "completion_tokens": 603,
+        "cached_tokens": 22464,
+        "cached_share": 0.82,
+        "cost_usd": 0.0302
+      }
+    },
+    "replies": [
+      "on it \u2013 setting that reminder for 9am tomorrow. noted about keeping her manager off these emails.",
+      "all set \u2013 you'll get reminded tomorrow at 9am. and don't worry, her manager stays off the email chain.",
+      "shifting it to 10am",
+      "done \u2013 moved to 10am",
+      "let me check",
+      "you've got one reminder set for tomorrow (nov 1st) at 10am \u2013 it's to send alice the lunch invoice, and it has the note to never cc her manager."
+    ]
+  },
+  "without_early_exit": {
+    "early_exit": false,
+    "turns": 3,
+    "calls_per_turn": 6.0,
+    "cached_share": 0.75,
+    "total": {
+      "calls": 18,
+      "prompt_tokens": 83391,
+      "completion_tokens": 1330,
+      "cached_tokens": 62828,
+      "cache_write_tokens": 3580,
+      "cost_usd": 0.1032
+    },
+    "by_role": {
+      "execution": {
+        "calls": 6,
+        "calls_per_turn": 2.0,
+        "prompt_tokens": 27556,
+        "completion_tokens": 656,
+        "cached_tokens": 17900,
+        "cached_share": 0.65,
+        "cost_usd": 0.0469
+      },
+      "interaction": {
+        "calls": 12,
+        "calls_per_turn": 4.0,
+        "prompt_tokens": 55835,
+        "completion_tokens": 674,
+        "cached_tokens": 44928,
+        "cached_share": 0.8,
+        "cost_usd": 0.0563
+      }
+    },
+    "replies": [
+      "Got it \u2013 setting that reminder for 9am tomorrow. I'll make sure to never cc her manager on anything related to this.",
+      "changing it to 10am",
+      "done \u2013 10am tomorrow",
+      "let me check",
+      "just the one \u2013 tomorrow at 10am to send Alice the lunch invoice (and I've got the note to never cc her manager)"
+    ]
+  },
+  "saving": {
+    "calls": 6,
+    "cost_share": 0.236
+  }
+}

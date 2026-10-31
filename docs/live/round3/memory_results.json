@@ -1,22 +1,5 @@
 [
   {
-    "rounds": 5,
-    "entries": 16,
-    "upstream_chars": 2641,
-    "compacted_chars": 2890,
-    "ratio": 1.0942824687618327,
-    "retention": {
-      "buried": 0.0,
-      "changed_current": 1.0,
-      "commitment": 1.0,
-      "constraint": 1.0,
-      "surface": 1.0,
-      "stale": 0.0,
-      "recoverable": 1.0
-    },
-    "compactions": 0
-  },
-  {
     "rounds": 10,
     "entries": 34,
     "upstream_chars": 6181,
@@ -66,22 +49,5 @@
       "recoverable": 1.0
     },
     "compactions": 1
-  },
-  {
-    "rounds": 80,
-    "entries": 274,
-    "upstream_chars": 50393,
-    "compacted_chars": 14732,
-    "ratio": 0.292342190383585,
-    "retention": {
-      "buried": 0.0,
-      "changed_current": 0.42857142857142855,
-      "commitment": 1.0,
-      "constraint": 1.0,
-      "surface": 0.6285714285714286,
-      "stale": 0.0,
-      "recoverable": 1.0
-    },
-    "compactions": 2
   }
 ]

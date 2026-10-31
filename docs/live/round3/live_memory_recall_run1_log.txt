@@ -1,0 +1,27 @@
+rounds entries upstream_tok compacted_tok  ratio compactions  retention
+    10      34         1545          1608   1.04           0  buried=0.00 changed_current=1.00 commitment=1.00 constraint=1.00 surface=1.00 stale=0.00 recoverable=1.00
+    20      68         3009          3110   1.03           0  buried=0.00 changed_current=1.00 commitment=1.00 constraint=1.00 surface=1.00 stale=0.00 recoverable=1.00
+    40     136         6220          2628   0.42           1  buried=0.00 changed_current=1.00 commitment=1.00 constraint=1.00 surface=1.00 stale=0.29 recoverable=1.00
+[buried ] search=Y returned=Y MISS want REF-80639  got 'I can see multiple reference numbers in the result' q=['Hannah refund $182 reference number', '$182 refund internal reference']
+[buried ] search=Y returned=n MISS want REF-94407  got 'Let me search for the actual email content or thre' q=['deposit $454 Hannah reference number', '454 Dec 17']
+[buried ] search=Y returned=Y MISS want REF-29252  got 'Let me search for "reference" to find any referenc' q=['deposit $2532 reference number Hannah', '2532 Dec 16']
+[buried ] search=Y returned=Y MISS want REF-93866  got 'Let me search for the exact correspondence about t' q=['$3401 refund reference number', '3401 REF-']
+[surface] search=Y returned=Y OK  want $182       got '$182' q=['refund Nov 1']
+[surface] search=Y returned=Y OK  want $454       got '$454' q=['deposit settled by Dec 17']
+[surface] search=Y returned=Y OK  want $2532      got '$2532' q=['deposit settled by Dec 16']
+[surface] search=Y returned=Y OK  want $3401      got '$3401' q=['refund Dec 28']
+{
+ "buried": {
+  "n": 4,
+  "call_rate": 1.0,
+  "accuracy": 0.0,
+  "search_returned_answer": 0.75
+ },
+ "surface": {
+  "n": 4,
+  "call_rate": 1.0,
+  "accuracy": 1.0,
+  "search_returned_answer": 1.0
+ }
+}
+RERUN_DONE
