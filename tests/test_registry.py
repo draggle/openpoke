@@ -266,3 +266,21 @@ def test_roster_is_ordered_most_recent_first(tmp_path, clock):
     reg.register("Tara Flight", "Tara's flight details")
     names = reg.select("nudge tara again").names()
     assert names[:3] == ["Tara Flight", "Tara Conference Talk", "Tara October Invoice"]
+
+
+# ---- round two: consolidation needs evidence from the instructions ----------------------
+
+
+@pytest.mark.parametrize("existing,existing_instr,new,instr,expect", [
+    ("Alice lunch invoice reconciliation", "reconcile the lunch invoice with Alice", "Alice lunch", "schedule lunch with Alice", False),
+    ("Alice Smith Lunch", "lunch with Alice Smith on Friday", "Alice Lunch", "move the lunch with Alice Smith to Thursday", True),
+    ("Alice Lunch Invite", "schedule lunch with Alice next week", "Alice Lunch Reschedule", "move the lunch with Alice to Thursday", True),
+    ("Email to Bob about dinner", "book dinner with Bob on Saturday", "Bob Dinner Cancellation", "cancel the dinner with Bob on Saturday", True),
+    ("Tara October Invoice", "chase Tara for the October invoice", "Tara November Invoice", "chase Tara for the November invoice", False),
+    ("Dinner Plans with Bob", "book dinner with Bob", "Dinner Plans with Alice", "book dinner with Alice", False),
+    ("Flight Confirmation with Liam", "find Liam's flight confirmation", "Liam Flight Cancellation", "cancel Liam's flight booking", True),
+])
+def test_consolidation_table(tmp_path, clock, existing, existing_instr, new, instr, expect):
+    reg = make_registry(tmp_path, clock)
+    reg.register(existing, existing_instr)
+    assert (reg.find_duplicate(new, instr) is not None) is expect

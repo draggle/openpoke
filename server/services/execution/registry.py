@@ -71,7 +71,9 @@ class RegistryConfig:
     recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
-    consolidate_min_overlap: float = 0.75  # fraction of the new name's tokens found in the existing one
+    consolidate_min_overlap: float = 0.75  # name-token overlap required in *both* directions
+    consolidate_instruction_overlap: float = 0.5  # or: shared name token + this much instruction overlap
+    consolidate_max_unexplained: float = 0.5  # existing-name tokens the new request never mentions
 
     @classmethod
     def from_env(cls) -> "RegistryConfig":
@@ -174,8 +176,26 @@ _STOPWORDS = frozenset(
 )
 
 
+_POSSESSIVE_RE = re.compile(r"(?<=\w)[\u2019']s\b")
+_CAPITALISED_RE = re.compile(r"\b[A-Z][a-z]+")
+_PERIOD_TOKENS = frozenset(
+    "january february march april may june july august september october november december "
+    "jan feb mar apr jun jul aug sep sept oct nov dec q1 q2 q3 q4 monday tuesday wednesday thursday "
+    "friday saturday sunday".split()
+)
+
+
 def tokenize(text: str) -> List[str]:
+    text = _POSSESSIVE_RE.sub("", text)
     return [tok for tok in _TOKEN_RE.findall(text.lower()) if tok not in _STOPWORDS]
+
+
+def _entities(text: str) -> set:
+    """Capitalised words that do not start the text: in instructions these are people and dates."""
+    text = _POSSESSIVE_RE.sub("", text)
+    return {
+        m.group(0).lower() for m in _CAPITALISED_RE.finditer(text) if m.start() > 0
+    } - _STOPWORDS
 
 
 # --------------------------------------------------------------------------------------
@@ -287,15 +307,20 @@ class AgentRegistry:
         """Return a live agent that ``name`` would duplicate, if any.
 
         The Interaction Agent names agents freely ("Email to Alice about lunch" today,
-        "Alice Lunch" tomorrow). If a *new* name's content tokens are (nearly) all present in
-        an existing non-archived agent's name, and the instructions don't point elsewhere, the
-        existing agent should take the work: that is where the context lives.
+        "Alice Lunch" tomorrow). A new agent is redirected to an existing non-archived one when
+        either the names agree in both directions, or they share a token and the *instructions*
+        overlap the existing agent's recorded work. Three guards stop wrong merges: the names
+        name different periods ("October" vs "November"), the instructions name different
+        people ("Alice" vs "Bob"), or the existing name carries topic words the new request never
+        mentions ("Alice lunch" must not land on "Alice lunch invoice reconciliation").
         """
         if not self.config.consolidate or name in self._records:
             return None
         new_tokens = set(tokenize(name)) - _NAME_NOISE
         if len(new_tokens) < 2:
             return None  # too little signal to merge on
+        instr_tokens = set(tokenize(instructions)) - _NAME_NOISE
+        new_entities = _entities(instructions)
         now = self._clock()
         best: Optional[Tuple[float, AgentRecord]] = None
         for record in self._records.values():
@@ -304,12 +329,32 @@ class AgentRegistry:
             existing_tokens = set(tokenize(record.name)) - _NAME_NOISE
             if not existing_tokens:
                 continue
-            overlap = len(new_tokens & existing_tokens) / len(new_tokens)
-            # require the overlap to be mutual enough that "Alice lunch" doesn't swallow
-            # "Alice lunch invoice reconciliation" (different topic words on the old side)
-            reverse = len(new_tokens & existing_tokens) / len(existing_tokens)
-            if overlap >= self.config.consolidate_min_overlap and reverse >= 0.5:
-                score = overlap + reverse + 0.01 * (record.last_used_at / max(now, 1.0))
+            shared = new_tokens & existing_tokens
+            if not shared:
+                continue
+            # Guard 1: different periods in the names ("October invoice" vs "November invoice").
+            if (new_tokens & _PERIOD_TOKENS) and (existing_tokens & _PERIOD_TOKENS) and not (
+                new_tokens & existing_tokens & _PERIOD_TOKENS
+            ):
+                continue
+            # Guard 2: the requests name different people/dates and none in common.
+            existing_text = " ".join([record.description, *record.recent_requests])
+            existing_entities = _entities(existing_text)
+            if new_entities and existing_entities and not (new_entities & existing_entities):
+                continue
+            # Guard 3: the existing agent is about something the new request never mentions.
+            unexplained = existing_tokens - new_tokens - instr_tokens
+            if len(unexplained) / len(existing_tokens) >= self.config.consolidate_max_unexplained:
+                continue
+            overlap = len(shared) / len(new_tokens)
+            reverse = len(shared) / len(existing_tokens)
+            symmetric = (
+                overlap >= self.config.consolidate_min_overlap and reverse >= self.config.consolidate_min_overlap
+            )
+            existing_all = set(tokenize(record.retrieval_text()))
+            instr_overlap = (len(instr_tokens & existing_all) / len(instr_tokens)) if instr_tokens else 0.0
+            if symmetric or instr_overlap >= self.config.consolidate_instruction_overlap:
+                score = overlap + reverse + instr_overlap + 0.01 * (record.last_used_at / max(now, 1.0))
                 if best is None or score > best[0]:
                     best = (score, record)
         return best[1] if best else None
