@@ -156,3 +156,28 @@ def test_camel_thread_id_kept():
                                    "snippet": "x" * 600}}}, "error": None})
     out = compact_tool_payload(raw, limit=500)
     assert "18f3thread" in out
+
+
+def test_execution_static_block_is_cacheable_and_history_is_not(monkeypatch, tmp_path):
+    from server.agents.execution_agent import agent as agent_module
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    monkeypatch.setattr(agent_module, "get_execution_agent_logs", lambda: store)
+
+    class Mem:
+        def render_history(self, name):
+            return store.load_transcript(name)
+
+    monkeypatch.setattr(agent_module, "get_agent_memory", lambda: Mem())
+    agent = agent_module.ExecutionAgent("Email to Priya")
+    blocks = agent.build_system_blocks()
+    assert len(blocks) == 1 and blocks[0]["cacheable"] is True and "Email to Priya" in blocks[0]["text"]
+
+    store.record_request("Email to Priya", "chase the invoice")
+    blocks = agent.build_system_blocks()
+    assert len(blocks) == 2
+    assert blocks[0]["cacheable"] is True and "chase the invoice" not in blocks[0]["text"]
+    assert blocks[1].get("cacheable", False) is False and "chase the invoice" in blocks[1]["text"]
+    # the legacy string form is the blocks joined
+    assert agent.build_system_prompt_with_history() == blocks[0]["text"] + "\n\n" + blocks[1]["text"]

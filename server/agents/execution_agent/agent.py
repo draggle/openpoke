@@ -60,15 +60,31 @@ class ExecutionAgent:
             agent_purpose=agent_purpose
         )
 
+    # Static instructions (cacheable) and the per-run history (not) as separate blocks, so the
+    # prompt cache can hit on the part that never changes. Anthropic caches the prefix
+    # tools -> system -> messages up to the marked block, so the static block must come first.
+    def build_system_blocks(self) -> List[Dict[str, Any]]:
+        """Return system content blocks: ``[static (cacheable), history]`` or ``[static]``."""
+        blocks: List[Dict[str, Any]] = [
+            {"type": "text", "text": self.build_system_prompt(), "cacheable": True}
+        ]
+        history = self._history_block()
+        if history:
+            blocks.append({"type": "text", "text": history})
+        return blocks
+
     # Combine base system prompt with conversation history, applying conversation limits
     def build_system_prompt_with_history(self) -> str:
         """
-        Build system prompt including agent history.
+        Build system prompt including agent history (string form of ``build_system_blocks``).
 
         Returns:
             System prompt with embedded history transcript
         """
-        base_prompt = self.build_system_prompt()
+        return "\n\n".join(block["text"] for block in self.build_system_blocks())
+
+    def _history_block(self) -> str:
+        """The "# Execution History" section, or "" for an agent with no history."""
 
         # Load history: structured memory + recent raw tail once the agent has been
         # compacted, otherwise the full transcript (identical to upstream for young agents).
@@ -93,9 +109,9 @@ class ExecutionAgent:
                                 break
                     transcript = '\n'.join(lines[cutoff_index:])
 
-            return f"{base_prompt}\n\n# Execution History\n\n{transcript}"
+            return f"# Execution History\n\n{transcript}"
 
-        return base_prompt
+        return ""
 
     # Format current instruction as user message for LLM consumption
     def build_messages_for_llm(self, current_instruction: str) -> List[Dict[str, str]]:

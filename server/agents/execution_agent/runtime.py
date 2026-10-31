@@ -45,8 +45,8 @@ class ExecutionAgentRuntime:
     async def execute(self, instructions: str) -> ExecutionResult:
         """Execute the agent with given instructions."""
         try:
-            # Build system prompt with history
-            system_prompt = self.agent.build_system_prompt_with_history()
+            # Static instructions + history as separate system blocks (the static one is cacheable)
+            system_prompt = self.agent.build_system_blocks()
 
             # Start conversation with the instruction
             messages = [{"role": "user", "content": instructions}]
@@ -160,7 +160,7 @@ class ExecutionAgentRuntime:
             logger.warning(f"[{self.agent.name}] memory compaction skipped: {exc}")
 
     # Execute OpenRouter API call with system prompt, messages, and optional tool schemas
-    async def _make_llm_call(self, system_prompt: str, messages: List[Dict], with_tools: bool) -> Dict:
+    async def _make_llm_call(self, system_prompt: Any, messages: List[Dict], with_tools: bool) -> Dict:
         """Make an LLM call."""
         tools_to_send = self.tool_schemas if with_tools else None
         logger.info(f"[{self.agent.name}] Calling LLM with model: {self.model}, tools: {len(tools_to_send) if tools_to_send else 0}")

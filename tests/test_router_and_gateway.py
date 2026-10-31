@@ -214,3 +214,39 @@ async def test_gateway_records_cache_write_tokens(router, ledger, monkeypatch):
     [rec] = ledger.records()
     assert rec.cache_write_tokens == 500
     assert rec.cost_usd == pytest.approx((500 * 1.0 + 500 * 1.0 * 1.25 + 10 * 2.0) / 1_000_000)
+
+
+async def test_gateway_marks_only_cacheable_blocks(router, ledger, monkeypatch):
+    from server.services.llm import gateway
+    monkeypatch.setattr(gateway, "_CACHE_SUPPORTED", True)
+    monkeypatch.setattr(router, "strong_model", "anthropic/claude-sonnet-4-5")
+    seen = {}
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        seen["system"] = system
+        return {"choices": [{"message": {"content": "ok"}}], "usage": {"prompt_tokens": 1, "completion_tokens": 1}}
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    blocks = [{"type": "text", "text": "s" * 3000, "cacheable": True}, {"type": "text", "text": "history"}]
+    await complete(role=ROLE_INTERACTION, messages=[{"role": "user", "content": "hi"}], system=blocks)
+    sent = seen["system"]
+    assert isinstance(sent, list) and len(sent) == 2
+    assert sent[0].get("cache_control") == {"type": "ephemeral"} and "cacheable" not in sent[0]
+    assert "cache_control" not in sent[1] and "cacheable" not in sent[1]
+
+
+async def test_openai_path_gets_joined_text_when_cache_off(router, ledger, monkeypatch):
+    monkeypatch.setenv("OPENPOKE_PROMPT_CACHE", "0")
+    monkeypatch.setattr(router, "strong_model", "anthropic/claude-sonnet-4-5")
+    seen = {}
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        seen["system"] = system
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    blocks = [{"type": "text", "text": "static", "cacheable": True}, {"type": "text", "text": "history"}]
+    await complete(role=ROLE_INTERACTION, messages=[{"role": "user", "content": "hi"}], system=blocks)
+    assert seen["system"] == "static\n\nhistory"
+    [rec] = ledger.records()
+    assert rec.estimated is True and rec.prompt_tokens > 0

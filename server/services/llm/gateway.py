@@ -26,27 +26,62 @@ _CACHE_SUPPORTED = True
 _MIN_CACHE_CHARS = 2048  # Anthropic ignores cache markers on prefixes shorter than ~1k tokens
 
 
-def _cache_enabled(model: str, system: Optional[str]) -> bool:
+def _cache_enabled(model: str, system: Any) -> bool:
     if os.getenv("OPENPOKE_PROMPT_CACHE", "1") == "0" or not _CACHE_SUPPORTED:
         return False
-    return bool(system) and len(system) >= _MIN_CACHE_CHARS and "claude" in model.lower()
+    cacheable_chars = len(_cacheable_text(system))
+    return cacheable_chars >= _MIN_CACHE_CHARS and "claude" in model.lower()
 
 
-def _cached_system(system: str) -> List[Dict[str, Any]]:
-    return [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+def _cacheable_text(system: Any) -> str:
+    """The text that would be cached: a plain string, or the blocks flagged ``cacheable``."""
+    if isinstance(system, str):
+        return system
+    if isinstance(system, list):
+        return "".join(b.get("text", "") for b in system if isinstance(b, dict) and b.get("cacheable"))
+    return ""
+
+
+def _system_text(system: Any) -> str:
+    """All system text joined, for token estimation and for the uncached form."""
+    if isinstance(system, str):
+        return system
+    if isinstance(system, list):
+        return "\n\n".join(b.get("text", "") for b in system if isinstance(b, dict))
+    return ""
+
+
+def _cached_system(system: Any) -> List[Dict[str, Any]]:
+    """Block form with ``cache_control`` on the cacheable blocks only (``cacheable`` stripped)."""
+    if isinstance(system, str):
+        return [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+    out: List[Dict[str, Any]] = []
+    for block in system:
+        if not isinstance(block, dict):
+            continue
+        item: Dict[str, Any] = {"type": "text", "text": block.get("text", "")}
+        if block.get("cacheable"):
+            item["cache_control"] = {"type": "ephemeral"}
+        out.append(item)
+    return out
 
 
 async def complete(
     *,
     role: str,
     messages: List[Dict[str, Any]],
-    system: Optional[str] = None,
+    system: Any = None,
     tools: Optional[List[Dict[str, Any]]] = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
     tag: str = "",
 ) -> Dict[str, Any]:
-    """Run a chat completion for ``role``; ``model`` overrides routing when given."""
+    """Run a chat completion for ``role``; ``model`` overrides routing when given.
+
+    ``system`` is a string, or a list of ``{"type": "text", "text": ..., "cacheable": bool}``
+    blocks; only cacheable blocks get a ``cache_control`` marker, and when caching is off the
+    blocks are joined into one string.
+    """
 
     router = get_model_router()
     resolved_model = model or router.model_for(role)
@@ -54,7 +89,8 @@ async def complete(
     # Resolve the function at call time so monkeypatching ``request_chat_completion`` on
     # the client module (what tests/evals do) is honoured.
     global _CACHE_SUPPORTED
-    system_payload: Any = _cached_system(system) if _cache_enabled(resolved_model, system) else system
+    plain_system: Optional[str] = _system_text(system) or None
+    system_payload: Any = _cached_system(system) if _cache_enabled(resolved_model, system) else plain_system
     try:
         response = await _openrouter.request_chat_completion(
             model=resolved_model,
@@ -64,16 +100,16 @@ async def complete(
             tools=tools,
         )
     except Exception as exc:
-        if system_payload is not system and _is_cache_rejection(exc):
+        if system_payload is not plain_system and _is_cache_rejection(exc):
             logger.warning(f"prompt caching not supported by endpoint; disabling ({str(exc)[:120]})")
             _CACHE_SUPPORTED = False
             response = await _openrouter.request_chat_completion(
-                model=resolved_model, messages=messages, system=system, api_key=api_key, tools=tools
+                model=resolved_model, messages=messages, system=plain_system, api_key=api_key, tools=tools
             )
         else:
             raise
 
-    _record_usage(role, resolved_model, messages, system, tools, response, tag)
+    _record_usage(role, resolved_model, messages, plain_system, tools, response, tag)
     return response
 
 
