@@ -22,11 +22,14 @@ from typing import Dict, List
 from server.services.gmail.prefilter import prefilter
 from server.services.gmail.processing import ProcessedEmail
 
-FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "emails.json"
+FIXTURE_DIR = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
+FIXTURES = FIXTURE_DIR / "emails.json"  # the dev set the prefilter rules and prompt were written against
 
 
-def load_fixtures() -> List[Dict]:
-    return json.loads(FIXTURES.read_text())["emails"]
+def load_fixtures(name: str = "emails") -> List[Dict]:
+    """``emails`` is the 46-row dev set; ``emails_heldout`` the 14-row set written before the
+    round-three prompt change and never used to tune it."""
+    return json.loads((FIXTURE_DIR / f"{name}.json").read_text())["emails"]
 
 
 def to_processed(row: Dict) -> ProcessedEmail:
@@ -86,24 +89,33 @@ async def eval_live(rows: List[Dict]) -> Dict[str, float]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--set", default="both", choices=["dev", "heldout", "both"],
+                        help="dev = 46-row emails.json (tuned on); heldout = 14-row emails_heldout.json (never tuned on)")
     parser.add_argument("--out", default="evals/out")
     args = parser.parse_args()
-    rows = load_fixtures()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    pre = eval_prefilter(rows)
-    print("prefilter (rules only):")
-    for k, v in pre.items():
-        print(f"  {k:<24} {v:.2f}" if isinstance(v, float) else f"  {k:<24} {v}")
-    results = {"prefilter": pre}
-    if args.live:
-        live = asyncio.run(eval_live(rows))
-        print("\nprefilter + LLM classifier:")
-        for k, v in live.items():
+    sets = {"dev": "emails", "heldout": "emails_heldout"}
+    chosen = ["dev", "heldout"] if args.set == "both" else [args.set]
+    results: Dict[str, Dict] = {}
+    for label in chosen:
+        rows = load_fixtures(sets[label])
+        pre = eval_prefilter(rows)
+        print(f"[{label}] prefilter (rules only):")
+        for k, v in pre.items():
             print(f"  {k:<24} {v:.2f}" if isinstance(v, float) else f"  {k:<24} {v}")
-        results["live"] = live
-    (out / "email_results.json").write_text(json.dumps(results, indent=2))
+        results[label] = {"prefilter": pre}
+        if args.live:
+            live = asyncio.run(eval_live(rows))
+            print(f"\n[{label}] prefilter + LLM classifier:")
+            for k, v in live.items():
+                print(f"  {k:<24} {v:.2f}" if isinstance(v, float) else f"  {k:<24} {v}")
+            results[label]["live"] = live
+    # Backwards-compatible top level: the dev set's results, as round two wrote them.
+    flat = dict(results["dev"]) if "dev" in results else {}
+    flat["sets"] = results
+    (out / "email_results.json").write_text(json.dumps(flat, indent=2))
 
 
 if __name__ == "__main__":

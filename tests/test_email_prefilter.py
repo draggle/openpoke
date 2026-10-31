@@ -51,3 +51,19 @@ def test_marketing_digest_with_here_colon_is_skipped():
 def test_missing_body_never_raises():
     row = {"id": "x", "sender": "news@shop.com", "subject": "Sale", "body": None, "labels": ["CATEGORY_PROMOTIONS"]}
     assert prefilter(to_processed(row)).skip is False
+
+
+# ---- round three: held-out set (written before the classifier prompt changed) ------------
+
+HELDOUT = load_fixtures("emails_heldout")
+
+
+def test_heldout_set_shape():
+    assert len(HELDOUT) == 14
+    assert {r["id"][0] for r in HELDOUT} == {"h"}
+    assert 5 <= sum(r["important"] for r in HELDOUT) <= 9
+
+
+@pytest.mark.parametrize("row", [r for r in HELDOUT if r["important"]], ids=lambda r: r["id"])
+def test_heldout_important_reach_model(row):
+    assert prefilter(to_processed(row)).skip is False, row["note"]
