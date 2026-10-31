@@ -70,6 +70,7 @@ class RegistryConfig:
     recent_requests_kept: int = 3
     recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
     transcript_boost: float = 1.0  # added to the score of agents named in the recent conversation
+    pinned_slots: int = 3  # roster slots reserved for the most recent agents that own reminders
     fuzzy: bool = False  # trigram fallback when no token matches (misspelt names); off by default
     fuzzy_min_similarity: float = 0.4
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
@@ -88,6 +89,7 @@ class RegistryConfig:
             min_score=_env_float("OPENPOKE_ROSTER_MIN_SCORE", 0.0),
             recency_weight=_env_float("OPENPOKE_ROSTER_RECENCY_WEIGHT", 0.6),
             transcript_boost=_env_float("OPENPOKE_ROSTER_TRANSCRIPT_BOOST", 1.0),
+            pinned_slots=_env_int("OPENPOKE_ROSTER_PINNED_SLOTS", 3),
             fuzzy=os.getenv("OPENPOKE_ROSTER_FUZZY", "0") == "1",
             consolidate=os.getenv("OPENPOKE_AGENT_CONSOLIDATE", "1") != "0",
             active_ttl_s=_env_float("OPENPOKE_AGENT_ACTIVE_TTL_S", 48 * 3600),
@@ -542,7 +544,7 @@ class AgentRegistry:
 
         # 0) agents that own pending reminders: always reachable, up to half the budget, most
         #    recent first. Hiding one leads to a duplicate agent *and* a duplicate reminder.
-        pinned_budget = max(1, self.config.max_roster // 2)
+        pinned_budget = max(0, min(self.config.pinned_slots, self.config.max_roster // 2))
         pinned_live = [r for r in sorted(live, key=lambda r: -r.last_used_at) if pinned(r.name)]
         for record in pinned_live[:pinned_budget]:
             chosen[record.name] = RosterEntry(record, statuses[record.name], True, "pinned")
