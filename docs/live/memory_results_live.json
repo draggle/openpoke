@@ -1,0 +1,41 @@
+[
+  {
+    "rounds": 10,
+    "entries": 40,
+    "upstream_chars": 9156,
+    "compacted_chars": 3922,
+    "ratio": 0.42835299257317605,
+    "retention": {
+      "buried": 1.0,
+      "commitment": 1.0,
+      "surface": 1.0
+    },
+    "compactions": 1
+  },
+  {
+    "rounds": 20,
+    "entries": 80,
+    "upstream_chars": 17930,
+    "compacted_chars": 6056,
+    "ratio": 0.3377579475738985,
+    "retention": {
+      "buried": 1.0,
+      "commitment": 1.0,
+      "surface": 1.0
+    },
+    "compactions": 2
+  },
+  {
+    "rounds": 40,
+    "entries": 160,
+    "upstream_chars": 35884,
+    "compacted_chars": 10512,
+    "ratio": 0.2929439304425371,
+    "retention": {
+      "buried": 1.0,
+      "commitment": 1.0,
+      "surface": 1.0
+    },
+    "compactions": 4
+  }
+]

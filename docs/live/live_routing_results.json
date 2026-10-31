@@ -1,0 +1,28 @@
+{
+  "all": {
+    "accuracy": 0.625,
+    "by_kind": {
+      "keyword": 0.9444444444444444,
+      "name_only": 0.375,
+      "topic_only": 0.4,
+      "recency": 0.0
+    },
+    "spawned_new_agent": 0,
+    "no_delegation": 8,
+    "prompt_tokens_per_query": 8491.25,
+    "usd_total": 1.10223
+  },
+  "budgeted": {
+    "accuracy": 0.85,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 0.75,
+      "topic_only": 0.6,
+      "recency": 1.0
+    },
+    "spawned_new_agent": 0,
+    "no_delegation": 1,
+    "prompt_tokens_per_query": 4944.775,
+    "usd_total": 0.692778
+  }
+}

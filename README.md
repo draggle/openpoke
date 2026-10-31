@@ -12,7 +12,30 @@ adds the cheap wins around them, and ships the tests and evaluators to show what
 
 ## Results at a glance
 
-All numbers from `python -m evals.run_all` (offline, deterministic, no API key needed).
+### Live (real Claude Sonnet 4.5 via the Anthropic API — `bash evals/run_live.sh`)
+
+Raw outputs in [`docs/live/`](docs/live/), including the per-query log.
+
+| What | Upstream | This fork |
+|---|---|---|
+| Interaction model picks the **correct existing agent** (150 agents, 40 follow-ups) | 62.5% | **85%** |
+| …on keyword-free follow-ups ("did she reply?", "ok send it") | 0% | **100%** |
+| …on "what did X say about Y" | 94% | **100%** |
+| Turns where the model gave up and didn't delegate | 8 / 40 | **1 / 40** |
+| Prompt tokens per query (whole turn incl. tool loop) | 8,491 | **4,945** |
+| Cost of the 40-query run | $1.10 | **$0.69** |
+| Execution-agent history in prompt, 160 log entries (LLM extractor) | 8,971 tokens | **2,628 tokens** (29%) |
+| Facts surviving compaction — surface / buried in tool payloads / reminders | n/a | **100% / 100% / 100%** |
+| Email importance, pre-filter + LLM on the 40 labelled emails | — | precision 1.00, recall 0.94, F1 0.97, 20 model calls instead of 40 |
+
+The offline eval predicted a small recall *loss* from hiding agents; live, the budgeted roster is
+**more** accurate than showing everything. Upstream's bare name list gives the model nothing to
+reason with — it confuses "Tara Conference Talk" with "Tara October Invoice" and, 8 times in 40,
+simply doesn't delegate. Status, last-used time and a one-line summary fix that. The 6 remaining
+misses are all the ambiguous case where one person has several live threads and the query
+names only the person.
+
+### Offline (deterministic, no API key — `python -m evals.run_all`)
 
 | What | Upstream | This fork |
 |---|---|---|
@@ -172,6 +195,7 @@ python -m evals.run_all          # all offline evals -> evals/out/*.json + chart
 | `evals.cost_eval` | $/user/day under upstream / routing-only / context-only / both, from measured token savings and a printed call-mix assumption | no |
 | `evals.jev_bench` | email gating and routing: calls, $, latency model (offline) or real P/R, accuracy, p50/p95 latency (`--live`) | no (`--live` needs TypeSafe + OpenRouter keys) |
 | `evals.live_routing_eval` | the **real Interaction model** choosing an agent from the real prompt: accuracy, new-agent spawns, prompt tokens, $ — upstream vs budgeted + `search_agents` | yes |
+| `evals/run_live.sh` | one command for every live evaluator; accepts an Anthropic, OpenRouter, OpenCode Zen or Vercel key and auto-discovers model IDs | yes |
 
 The synthetic workload (`evals/synthetic.py`) is seeded and deliberately adversarial: the same
 person recurs across topics, the same topic across people, agent names come from the five name
@@ -187,8 +211,8 @@ words at all.
   100% (they are promoted to facts), but ordinary surface facts decay once the 40-episode
   timeline cap bites (62% at 160 entries, 32% at 320) and facts that only ever appeared inside
   raw tool payloads are mostly lost (4%). The heuristic is a fallback; the runtime default is
-  the LLM extractor, which is asked to lift amounts, dates and addresses into facts — `--live`
-  measures it.
+  the LLM extractor, which — measured live — keeps 100% of all three needle types at 160
+  entries while cutting the prompt to 29%.
 - The cost model's assumptions are editable in `evals/cost_eval.py` and printed with the
   result. The takeaway that survives any reasonable assumption: **per-agent history is the
   biggest line item**, bigger than the roster the explainer focuses on.
@@ -219,7 +243,8 @@ Flagged, not built (what I'd do next, in order):
    a plain notification; today role = execution = strong.
 4. **Cross-agent facts.** When two agents share an entity, link their fact stores — the point at
    which a graph starts paying for itself.
-5. **Live A/B on a real inbox** with `/meta/usage` before/after; the offline numbers are a model.
+5. **Live A/B on a real inbox** with `/meta/usage` before/after; the live evals above use a
+   synthetic workload, and the cost model is still a model.
 6. **Retire the dead `Settings.*_model` fields** — model choice now lives in the router; the
    fields are kept only so upstream call sites still import cleanly.
 
