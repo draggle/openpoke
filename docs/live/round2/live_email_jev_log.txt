@@ -1,0 +1,63 @@
+prefilter (rules only):
+  emails                   46
+  skipped                  12
+  skip_rate                0.26
+  skip_precision           1.00
+  noise_caught_by_rules    0.48
+  wrongly_skipped_ids      []
+2026-10-31 05:14:18 - openpoke.server - WARNING - Importance tool marked email important without summary
+
+prefilter + LLM classifier:
+  model_calls              34
+  tp                       17
+  fp                       0
+  fn                       4
+  tn                       25
+  precision                1.00
+  recall                   0.81
+  f1                       0.89
+  fn_ids                   ['i01', 'a01', 'a04', 'a05']
+  fp_ids                   []
+================
+2026-10-31 05:15:28 - openpoke.server - WARNING - Importance tool marked email important without summary
+
+EMAIL importance
+  before: LLM classifier
+      emails                                     34
+      precision                                  1.0
+      recall                                     0.905
+      f1                                         0.95
+      p50_latency_s                              1.081
+      p95_latency_s                              1.373
+      usd_per_120_emails                         0.1582
+  after: Jev decision only
+      emails                                     34
+      precision                                  1.0
+      recall                                     0.857
+      f1                                         0.923
+      p50_latency_s                              0.158
+      p95_latency_s                              0.184
+      usd_per_120_emails                         0.0033
+  after: Jev gate + LLM summary
+      emails                                     34
+      precision                                  1.0
+      recall                                     0.81
+      f1                                         0.895
+      p50_latency_s                              1.133
+      p95_latency_s                              1.667
+      usd_per_120_emails                         0.0912
+
+AGENT routing
+  before: LLM over budgeted roster
+      accuracy                                   0.875
+      p50_latency_s                              2.427
+      p95_latency_s                              5.409
+      usd_per_decision                           0.006969
+  after: Jev choice
+      accuracy                                   0.425
+      p50_latency_s                              0.151
+      p95_latency_s                              0.195
+      usd_per_decision                           4e-05
+      abstained                                  17
+
+json: evals/out/jev_bench_live.json

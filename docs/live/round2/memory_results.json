@@ -1,0 +1,87 @@
+[
+  {
+    "rounds": 5,
+    "entries": 16,
+    "upstream_chars": 2923,
+    "compacted_chars": 3102,
+    "ratio": 1.0612384536435169,
+    "retention": {
+      "buried": 1.0,
+      "changed_current": 1.0,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 1.0,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 0
+  },
+  {
+    "rounds": 10,
+    "entries": 34,
+    "upstream_chars": 7027,
+    "compacted_chars": 7210,
+    "ratio": 1.026042407855415,
+    "retention": {
+      "buried": 1.0,
+      "changed_current": 1.0,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 1.0,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 0
+  },
+  {
+    "rounds": 20,
+    "entries": 68,
+    "upstream_chars": 13589,
+    "compacted_chars": 13923,
+    "ratio": 1.0245787033630143,
+    "retention": {
+      "buried": 1.0,
+      "changed_current": 1.0,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 1.0,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 0
+  },
+  {
+    "rounds": 40,
+    "entries": 136,
+    "upstream_chars": 28290,
+    "compacted_chars": 11411,
+    "ratio": 0.4033580770590315,
+    "retention": {
+      "buried": 0.20833333333333334,
+      "changed_current": 0.7142857142857143,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 0.8823529411764706,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 1
+  },
+  {
+    "rounds": 80,
+    "entries": 274,
+    "upstream_chars": 57351,
+    "compacted_chars": 8876,
+    "ratio": 0.15476626388380324,
+    "retention": {
+      "buried": 0.061224489795918366,
+      "changed_current": 0.2857142857142857,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 0.37142857142857144,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 3
+  }
+]

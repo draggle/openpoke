@@ -1,0 +1,194 @@
+[
+  {
+    "strategy": "all",
+    "n_agents": 10,
+    "roster_tokens_mean": 112,
+    "roster_entries_mean": 10,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 0
+  },
+  {
+    "strategy": "budgeted",
+    "n_agents": 10,
+    "roster_tokens_mean": 420,
+    "roster_entries_mean": 10,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 0
+  },
+  {
+    "strategy": "all",
+    "n_agents": 25,
+    "roster_tokens_mean": 280,
+    "roster_entries_mean": 25,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 51
+  },
+  {
+    "strategy": "budgeted",
+    "n_agents": 25,
+    "roster_tokens_mean": 500.64,
+    "roster_entries_mean": 12,
+    "recall_shown": 0.83,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 0.8016528925619835,
+      "name_only": 0.819047619047619,
+      "recency": 1.0,
+      "topic_only": 0.8431372549019608
+    },
+    "archived_targets": 51
+  },
+  {
+    "strategy": "all",
+    "n_agents": 50,
+    "roster_tokens_mean": 555,
+    "roster_entries_mean": 50,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 32
+  },
+  {
+    "strategy": "budgeted",
+    "n_agents": 50,
+    "roster_tokens_mean": 508.61,
+    "roster_entries_mean": 12,
+    "recall_shown": 0.8933333333333333,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 0.860655737704918,
+      "name_only": 0.9489795918367347,
+      "recency": 1.0,
+      "topic_only": 0.8214285714285714
+    },
+    "archived_targets": 32
+  },
+  {
+    "strategy": "all",
+    "n_agents": 100,
+    "roster_tokens_mean": 1120,
+    "roster_entries_mean": 100,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 21
+  },
+  {
+    "strategy": "budgeted",
+    "n_agents": 100,
+    "roster_tokens_mean": 518.6033333333334,
+    "roster_entries_mean": 12,
+    "recall_shown": 0.93,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 0.891156462585034,
+      "name_only": 0.9333333333333333,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 21
+  },
+  {
+    "strategy": "all",
+    "n_agents": 200,
+    "roster_tokens_mean": 2245,
+    "roster_entries_mean": 200,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 12
+  },
+  {
+    "strategy": "budgeted",
+    "n_agents": 200,
+    "roster_tokens_mean": 514.88,
+    "roster_entries_mean": 12,
+    "recall_shown": 0.9566666666666667,
+    "recall_with_search": 0.9966666666666667,
+    "recall_live": 0.9965277777777778,
+    "by_kind": {
+      "keyword": 0.9291338582677166,
+      "name_only": 0.958904109589041,
+      "recency": 1.0,
+      "topic_only": 0.9855072463768116
+    },
+    "archived_targets": 12
+  },
+  {
+    "strategy": "all",
+    "n_agents": 400,
+    "roster_tokens_mean": 4476,
+    "roster_entries_mean": 400,
+    "recall_shown": 1.0,
+    "recall_with_search": 1.0,
+    "recall_live": 1.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 1.0,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 17
+  },
+  {
+    "strategy": "budgeted",
+    "n_agents": 400,
+    "roster_tokens_mean": 507.28,
+    "roster_entries_mean": 12,
+    "recall_shown": 0.93,
+    "recall_with_search": 0.9866666666666667,
+    "recall_live": 0.9858657243816255,
+    "by_kind": {
+      "keyword": 0.8802816901408451,
+      "name_only": 0.948051948051948,
+      "recency": 1.0,
+      "topic_only": 1.0
+    },
+    "archived_targets": 17
+  }
+]

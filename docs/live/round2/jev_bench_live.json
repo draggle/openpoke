@@ -1,0 +1,51 @@
+{
+  "latency_model_s": {
+    "llm_classify": 1.8,
+    "llm_summarise": 1.8,
+    "jev": 0.15
+  },
+  "email": {
+    "before: LLM classifier": {
+      "emails": 34,
+      "precision": 1.0,
+      "recall": 0.905,
+      "f1": 0.95,
+      "p50_latency_s": 1.081,
+      "p95_latency_s": 1.373,
+      "usd_per_120_emails": 0.1582
+    },
+    "after: Jev decision only": {
+      "emails": 34,
+      "precision": 1.0,
+      "recall": 0.857,
+      "f1": 0.923,
+      "p50_latency_s": 0.158,
+      "p95_latency_s": 0.184,
+      "usd_per_120_emails": 0.0033
+    },
+    "after: Jev gate + LLM summary": {
+      "emails": 34,
+      "precision": 1.0,
+      "recall": 0.81,
+      "f1": 0.895,
+      "p50_latency_s": 1.133,
+      "p95_latency_s": 1.667,
+      "usd_per_120_emails": 0.0912
+    }
+  },
+  "routing": {
+    "before: LLM over budgeted roster": {
+      "accuracy": 0.875,
+      "p50_latency_s": 2.427,
+      "p95_latency_s": 5.409,
+      "usd_per_decision": 0.006969
+    },
+    "after: Jev choice": {
+      "accuracy": 0.425,
+      "p50_latency_s": 0.151,
+      "p95_latency_s": 0.195,
+      "usd_per_decision": 4e-05,
+      "abstained": 17
+    }
+  }
+}
