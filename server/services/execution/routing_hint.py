@@ -46,6 +46,10 @@ async def compute_routing_hint(
     registry: AgentRegistry, selection: RosterSelection, message: str
 ) -> Optional[RoutingHint]:
     """Ask Jev which shown agent (if any) the message belongs to. None when disabled/unsure."""
+    # Off by default: the live benchmark (docs/live/jev_bench_live.json) showed Jev abstaining
+    # on half the queries and trailing the LLM when it did answer. Opt in to experiment.
+    if os.getenv("OPENPOKE_JEV_ROUTING", "0") != "1":
+        return None
     client = get_jev_client()
     if client is None or not selection.shown or not message.strip():
         return None

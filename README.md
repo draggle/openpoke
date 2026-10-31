@@ -27,6 +27,8 @@ Raw outputs in [`docs/live/`](docs/live/), including the per-query log.
 | Execution-agent history in prompt, 160 log entries (LLM extractor) | 8,971 tokens | **2,628 tokens** (29%) |
 | Facts surviving compaction — surface / buried in tool payloads / reminders | n/a | **100% / 100% / 100%** |
 | Email importance, pre-filter + LLM on the 40 labelled emails | — | precision 1.00, recall 0.94, F1 0.97, 20 model calls instead of 40 |
+| Email importance decided by Jev (typed classifier) instead of the LLM | recall 0.875, 2.2 s, $0.49/120 emails | **recall 1.00, 0.17 s, $0.003/120 emails** |
+| Jev as agent router | LLM 80% | 32.5% — **rejected by the benchmark, off by default** |
 
 The offline eval predicted a small recall *loss* from hiding agents; live, the budgeted roster is
 **more** accurate than showing everything. Upstream's bare name list gives the model nothing to
@@ -151,27 +153,27 @@ it is both faster and thresholdable. With `OPENPOKE_JEV=1` and `TYPESAFE_API_KEY
   A confident answer is injected as `<routing_hint agent=… confidence=…>` ahead of the user
   message; the Interaction Agent still decides, but the hard part is pre-answered.
 
-`python -m evals.jev_bench` compares before/after. Offline (oracle Jev, stated latency model):
+`python -m evals.jev_bench --live` ran against the real Jev API and Claude Sonnet 4.5
+([`docs/live/jev_bench_live.json`](docs/live/jev_bench_live.json)). The verdict is split, and
+the defaults follow the data:
 
-| | before | after (Jev) |
-|---|---|---|
-| Email: LLM calls/day at a realistic 10% important rate | 60 | **6** |
-| Email: decision latency (model) | ~1.8 s | **~0.15 s** |
-| Email: $/day | $0.067 | $0.011 |
-| Routing: $ per decision | $0.011 (one extra LLM reasoning call) | **$0.00002** |
-| Routing: candidates contain target (200 agents) | — | 97% |
+| Decision | LLM (before) | Jev (after) | Verdict |
+|---|---|---|---|
+| Email importance — precision / recall | 1.00 / 0.875 | **1.00 / 1.00** | **keep** (on by default with `OPENPOKE_JEV=1`) |
+| Email importance — p50 latency | 2.23 s | **0.17 s** (13×) | |
+| Email importance — $ per 120 emails | $0.49 | **$0.003** (150×) | |
+| Agent routing — accuracy (150 agents, 40 queries) | **80%** | 32.5% (abstained on 21; 68% when it answered) | **off by default** (`OPENPOKE_JEV_ROUTING=1` to experiment) |
+| Agent routing — p50 latency | 2.5 s | 0.17 s | |
 
-**Status:** integration and offline benchmark complete; the live accuracy run is pending vendor
-access (Jev's direct API is waitlisted and, as of this writing, neither OpenRouter nor Vercel's
-free tier serve the classifier — OpenRouter lists only `typesafe/jev-router`). Add
-`TYPESAFE_API_KEY` to `.env` and run `ONLY_JEV=1 bash evals/run_live.sh` once a key arrives.
+Reading it: a yes/no about one email is squarely Jev's job and it beats the chat model on every
+axis. Picking one agent out of twelve from one-line summaries is not — with a 0.6 confidence
+floor it declines half the time and, when it answers, trails the LLM that can read the whole
+conversation. The first live run also exposed a design flaw: the summary LLM was re-deciding
+importance after Jev and vetoed one email (recall 1.00 → 0.94). Jev now owns the decision and
+the LLM only writes the summary.
 
-What offline can't tell you is **accuracy** — that's `--live`, which runs both configurations
-on the labelled emails and the synthetic routing workload and reports precision/recall, routing
-accuracy, p50/p95 wall-clock and $ side by side. The email dollar saving is small because the
-classifier was already on the cheap tier; the case for Jev there is latency and a tunable
-threshold. The routing case is the stronger one if live accuracy holds up. Both are behind a
-flag so they can be removed in one line if they don't earn their place.
+Offline (`python -m evals.jev_bench`, oracle Jev, stated latency model) at a realistic 10%
+important-email rate: 60 → 6 LLM calls/day, decision latency ~1.8 s → ~0.15 s.
 
 ## Tests and evaluators
 
@@ -179,7 +181,7 @@ flag so they can be removed in one line if they don't earn their place.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 69 tests, < 1s, no network
+python -m pytest                 # 71 tests, < 2s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 ```
 
@@ -198,7 +200,7 @@ python -m evals.run_all          # all offline evals -> evals/out/*.json + chart
 | `evals.memory_eval` | prompt size and needle retention (surface facts, facts buried in tool payloads, reminder commitments) across 20–320 log entries | no (`--live` for the LLM extractor) |
 | `evals.email_eval` | pre-filter skip rate and skip precision | no (`--live` for pipeline P/R/F1) |
 | `evals.cost_eval` | $/user/day under upstream / routing-only / context-only / both, from measured token savings and a printed call-mix assumption | no |
-| `evals.jev_bench` | email gating and routing: calls, $, latency model (offline) or real P/R, accuracy, p50/p95 latency (`--live`) | no (`--live` needs TypeSafe + OpenRouter keys) |
+| `evals.jev_bench` | email gating and routing: calls, $, latency model (offline) or real P/R, accuracy, p50/p95 latency (`--live`) | no (`--live` needs a TypeSafe key + an Anthropic/OpenRouter key) |
 | `evals.live_routing_eval` | the **real Interaction model** choosing an agent from the real prompt: accuracy, new-agent spawns, prompt tokens, $ — upstream vs budgeted + `search_agents` | yes |
 | `evals/run_live.sh` | one command for every live evaluator; accepts an Anthropic, OpenRouter, OpenCode Zen or Vercel key and auto-discovers model IDs | yes |
 
@@ -235,7 +237,7 @@ Fixed in this fork:
   reminders. Registry pins agents with active triggers; trigger fires re-activate them.
 - **No per-agent memory** — see above; it dominates cost.
 - **Classifier on every email** — pre-filter.
-- **Zero tests** — 69 now, plus six evaluators.
+- **Zero tests** — 71 now, plus six evaluators.
 
 Flagged, not built (what I'd do next, in order):
 1. **Duplicate-agent consolidation.** The Interaction Agent still *can* create "Email to Alice"
@@ -269,6 +271,6 @@ server/agents/execution_agent/{agent,runtime}.py  memory-backed history, compact
 server/services/trigger_scheduler.py              touch agent on fire
 server/services/gmail/importance_watcher.py       prefilter before classify
 server/routes/meta.py                             /meta/usage, /meta/agents
-tests/                                            69 tests + labelled email fixtures
+tests/                                            71 tests + labelled email fixtures
 evals/                                            6 evaluators + synthetic workload
 ```

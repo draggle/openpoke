@@ -47,6 +47,13 @@ _TOOL_SCHEMA: Dict[str, Any] = {
     },
 }
 
+_SUMMARY_ONLY_SYSTEM_PROMPT = (
+    "A fast classifier has already determined that this Gmail message warrants an immediate "
+    "proactive notification to the user. Do not second-guess that decision: call the tool with "
+    "important=true and write a brief 2-3 sentence summary describing who it is from, what "
+    "happened, and why it matters or what action is needed."
+)
+
 _SYSTEM_PROMPT = (
     "You review incoming Gmail messages and decide whether they warrant an immediate proactive "
     "notification to the user. Only mark an email as important if it materially affects the "
@@ -131,6 +138,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
     if probability is not None and probability < _jev_threshold():
         logger.debug(f"Jev dismissed {email.id} (p={probability:.2f})")
         return None
+    jev_decided = probability is not None  # Jev said important: the LLM only summarises
 
     user_payload = _format_email_payload(email)
     messages = [{"role": "user", "content": user_payload}]
@@ -139,7 +147,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
         response = await llm_complete(
             role=ROLE_EMAIL_CLASSIFIER,
             messages=messages,
-            system=_SYSTEM_PROMPT,
+            system=_SUMMARY_ONLY_SYSTEM_PROMPT if jev_decided else _SYSTEM_PROMPT,
             api_key=api_key,
             tools=[_TOOL_SCHEMA],
             tag=email.id or "",
@@ -175,7 +183,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
             )
             return None
 
-        important = bool(arguments.get("important"))
+        important = bool(arguments.get("important")) or jev_decided
         summary = arguments.get("summary")
 
         if not important:

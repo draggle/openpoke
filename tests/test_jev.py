@@ -121,7 +121,8 @@ async def test_threshold_env(jev_scripted, llm_calls, monkeypatch):
 
 
 @pytest.fixture
-def registry(tmp_path):
+def registry(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENPOKE_JEV_ROUTING", "1")
     reg = AgentRegistry(tmp_path / "r.json", config=RegistryConfig(max_roster=5))
     reg.register("Invoice from Priya", "Chase Priya for the October invoice")
     reg.register("Lunch with Alice", "Invite Alice to lunch")
@@ -161,3 +162,30 @@ async def test_no_hint_when_jev_disabled(registry, monkeypatch):
     monkeypatch.delenv("OPENPOKE_JEV", raising=False)
     monkeypatch.setattr(agent_module, "get_agent_registry", lambda: registry)
     assert await agent_module.build_routing_hint("is alice coming") is None
+
+
+async def test_routing_hint_off_by_default(jev_scripted, tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENPOKE_JEV_ROUTING", raising=False)
+    jev_scripted(choice_answer=lambda s, opts: ("Lunch with Alice", 0.99))
+    reg = AgentRegistry(tmp_path / "r2.json", config=RegistryConfig(max_roster=5))
+    reg.register("Lunch with Alice", "Invite Alice to lunch")
+    assert await compute_routing_hint(reg, reg.select("alice lunch"), "alice lunch") is None
+
+
+async def test_llm_cannot_veto_jev_decision(jev_scripted, monkeypatch):
+    """After Jev says important, the LLM only writes the summary."""
+    from server.openrouter_client import client as oc
+    jev_scripted(prob_by_state=lambda s: 0.9)
+    seen = {}
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        seen["system"] = system
+        return {"choices": [{"message": {"content": "", "tool_calls": [{
+            "id": "c1", "type": "function",
+            "function": {"name": "mark_email_importance",
+                         "arguments": json.dumps({"important": False, "summary": "Priya's invoice is overdue."})}}]}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", fake)
+    out = await classify_email_importance(to_processed(ROWS["i04"]))
+    assert out == "Priya's invoice is overdue."
+    assert "already determined" in seen["system"]
