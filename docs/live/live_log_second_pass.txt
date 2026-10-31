@@ -1,0 +1,57 @@
+[budgeted] OK  keyword    what did elena say about the lunch invite?    -> 'Email to Elena about lunch' (want 'Email to Elena about lunch')
+[budgeted] OK  name_only  nudge tara again                              -> 'Tara October Invoice' (want 'Tara October Invoice')
+[budgeted] OK  name_only  anything from Omar?                           -> 'Reminder: reference letter (Omar)' (want 'Reminder: reference letter (Omar)')
+[budgeted] OK  name_only  anything from sofia?                          -> 'Birthday Gift Ideas with Sofia' (want 'Birthday Gift Ideas with Sofia')
+[budgeted] OK  keyword    cancel the gym thing with Marcus              -> 'Marcus Gym Membership' (want 'Marcus Gym Membership')
+[budgeted] OK  keyword    did Bob get back to me about the dinner plans -> 'Dinner Plans with Bob' (want 'Dinner Plans with Bob')
+[budgeted] OK  name_only  nudge Sofia again                             -> 'Birthday Gift Ideas with Sofia' (want 'Birthday Gift Ideas with Sofia')
+[budgeted] OK  keyword    did Fatima get back to me about the payroll d -> 'Fatima Payroll Discrepancy' (want 'Fatima Payroll Discrepancy')
+[budgeted] OK  keyword    cancel the car service thing with Priya       -> 'Car Service Booking with Priya' (want 'Car Service Booking with Priya')
+[budgeted] OK  name_only  what's the latest with yuki                   -> 'Yuki Car Service Booking' (want 'Yuki Car Service Booking')
+[budgeted] OK  name_only  anything from Tara?                           -> 'Tara October Invoice' (want 'Tara October Invoice')
+[budgeted] OK  name_only  what's the latest with greta                  -> 'Reminder: warranty (Greta)' (want 'Reminder: warranty (Greta)')
+[budgeted] OK  keyword    any update on the contract with Priya         -> 'Consulting Contract with Priya' (want 'Consulting Contract with Priya')
+[budgeted] OK  name_only  did Elena reply?                              -> 'Email to Elena about job offer' (want 'Email to Elena about job offer')
+[budgeted] MISS name_only  nudge Rosa again                              -> 'Email to Rosa about contract' (want 'Rosa Flight Confirmation')
+[budgeted] OK  keyword    any update on the tuition with Alice          -> 'Alice Tuition Refund' (want 'Alice Tuition Refund')
+[budgeted] OK  name_only  did Fatima reply?                             -> 'Fatima Payroll Discrepancy' (want 'Fatima Payroll Discrepancy')
+[budgeted] OK  keyword    cancel the dinner thing with alice            -> 'Dinner Plans with Alice' (want 'Dinner Plans with Alice')
+[budgeted] OK  keyword    cancel the lunch thing with Alice             -> 'Alice Lunch Invite' (want 'Alice Lunch Invite')
+[budgeted] OK  keyword    remind me what we told Hugo about the apartme -> 'Apartment Viewing with Hugo' (want 'Apartment Viewing with Hugo')
+[budgeted] OK  name_only  what's the latest with Amara                  -> 'Reminder: flight (Amara)' (want 'Reminder: flight (Amara)')
+[budgeted] OK  topic_only is the tuition sorted yet                     -> 'Reminder: tuition (Tomasz)' (want 'Reminder: tuition (Tomasz)')
+[budgeted] OK  keyword    what did bob say about the apartment viewing? -> 'Bob Apartment Viewing' (want 'Bob Apartment Viewing')
+[budgeted] OK  keyword    cancel the rent thing with noor               -> 'Follow up with Noor - rent' (want 'Follow up with Noor - rent')
+[budgeted] OK  keyword    cancel the lunch thing with Keith             -> 'Email to Keith about lunch' (want 'Email to Keith about lunch')
+[budgeted] OK  topic_only where are we on the dinner plans              -> 'Reminder: dinner (Jonah)' (want 'Reminder: dinner (Jonah)')
+[budgeted] MISS recency    did she reply?                                -> None (want 'Dentist Appointment with Alice')
+[budgeted] OK  name_only  what's the latest with Sofia                  -> 'Birthday Gift Ideas with Sofia' (want 'Birthday Gift Ideas with Sofia')
+[budgeted] MISS topic_only where are we on the dentist appointment       -> None (want 'Dentist Appointment with Alice')
+[budgeted] OK  keyword    did Zoe get back to me about the lunch invite -> 'Email to Zoe about lunch' (want 'Email to Zoe about lunch')
+[budgeted] OK  keyword    remind me what we told liam about the flight  -> 'Flight Confirmation with Liam' (want 'Flight Confirmation with Liam')
+[budgeted] MISS name_only  what's the latest with priya                  -> 'Priya October Invoice' (want 'Reminder: dinner (Priya)')
+[budgeted] OK  keyword    any update on the lunch with Rosa             -> 'Reminder: lunch (Rosa)' (want 'Reminder: lunch (Rosa)')
+[budgeted] OK  keyword    what did Keith say about the wedding RSVP?    -> 'Follow up with Keith - wedding' (want 'Follow up with Keith - wedding')
+[budgeted] OK  name_only  what's the latest with Noor                   -> 'Reminder: dinner (Noor)' (want 'Reminder: dinner (Noor)')
+[budgeted] OK  topic_only where are we on the laptop warranty           -> 'Follow up with Bob - warranty' (want 'Follow up with Bob - warranty')
+[budgeted] OK  name_only  did Fatima reply?                             -> 'Fatima Payroll Discrepancy' (want 'Fatima Payroll Discrepancy')
+[budgeted] OK  name_only  what's the latest with tara                   -> 'Tara October Invoice' (want 'Tara October Invoice')
+[budgeted] OK  topic_only is the wedding sorted yet                     -> 'Follow up with Sharanjeet - wedding' (want 'Follow up with Sharanjeet - wedding')
+[budgeted] OK  keyword    what did omar say about the reference letter  -> 'Reminder: reference letter (Omar)' (want 'Reminder: reference letter (Omar)')
+
+{
+  "budgeted": {
+    "accuracy": 0.9,
+    "cached_tokens_per_query": 0.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 0.875,
+      "topic_only": 0.8,
+      "recency": 0.0
+    },
+    "spawned_new_agent": 0,
+    "no_delegation": 2,
+    "prompt_tokens_per_query": 5158.65,
+    "usd_total": 0.712038
+  }
+}

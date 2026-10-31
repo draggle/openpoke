@@ -1,0 +1,16 @@
+{
+  "budgeted": {
+    "accuracy": 0.9,
+    "cached_tokens_per_query": 0.0,
+    "by_kind": {
+      "keyword": 1.0,
+      "name_only": 0.875,
+      "topic_only": 0.8,
+      "recency": 0.0
+    },
+    "spawned_new_agent": 0,
+    "no_delegation": 2,
+    "prompt_tokens_per_query": 5158.65,
+    "usd_total": 0.712038
+  }
+}

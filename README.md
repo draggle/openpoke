@@ -18,10 +18,10 @@ Raw outputs in [`docs/live/`](docs/live/), including the per-query log.
 
 | What | Upstream | This fork |
 |---|---|---|
-| Interaction model picks the **correct existing agent** (150 agents, 40 follow-ups) | 62.5% | **85%** |
+| Interaction model picks the **correct existing agent** (150 agents, 40 follow-ups) | 62.5% | **85%** → **90%** after consolidation + recency ordering |
 | …on keyword-free follow-ups ("did she reply?", "ok send it") | 0% | **100%** |
 | …on "what did X say about Y" | 94% | **100%** |
-| Turns where the model gave up and didn't delegate | 8 / 40 | **1 / 40** |
+| Turns where the model didn't delegate | 8 / 40 (gave up) | **1 / 40** (2 / 40 in the second pass — both times it answered the user from the roster summary instead of waking an agent whose thread was already closed) |
 | Prompt tokens per query (whole turn incl. tool loop) | 8,491 | **4,945** |
 | Cost of the 40-query run | $1.10 | **$0.69** |
 | Execution-agent history in prompt, 160 log entries (LLM extractor) | 8,971 tokens | **2,628 tokens** (29%) |
@@ -175,9 +175,15 @@ the LLM only writes the summary.
 Offline (`python -m evals.jev_bench`, oracle Jev, stated latency model) at a realistic 10%
 important-email rate: 60 → 6 LLM calls/day, decision latency ~1.8 s → ~0.15 s.
 
-### 6. Second-pass optimisations (flag-controlled, awaiting one more live run)
+### 6. Second-pass optimisations (flag-controlled, measured)
 
-Built after the first live run, each targeting something it exposed:
+Built after the first live run, each targeting something it exposed. Re-running the budgeted
+routing eval ([`docs/live/live_routing_results_second_pass.json`](docs/live/live_routing_results_second_pass.json))
+moved accuracy **85% → 90%**: four of the six "nudge Tara again" misses are fixed; the two new
+misses are the model answering directly instead of delegating to a thread its summary shows as
+closed — a judgement call, not a routing error. Prompt caching reported **0 cached tokens** on
+Anthropic's OpenAI-compatible endpoint, so it is on but unverified there (OpenRouter honours the
+same block format).
 
 | Change | Why | Flag |
 |---|---|---|
@@ -188,9 +194,8 @@ Built after the first live run, each targeting something it exposed:
 | **Concurrent email classification** (bounded, default 4) | a burst of N emails took N × classifier latency | `OPENPOKE_CLASSIFIER_CONCURRENCY` |
 | **Trigger wake-ups get their own routing role** | reminder-driven runs can be routed cheaply without touching user-initiated execution | `OPENPOKE_TIER_EXECUTION_TRIGGER=cheap` |
 
-Re-run `ROUTING_STRATEGIES=budgeted ONLY_ROUTING=1 bash evals/run_live.sh` to measure the
-first two against the 85% baseline; `cached_tokens_per_query` in the output shows whether
-caching took effect on your endpoint.
+`ROUTING_STRATEGIES=budgeted ONLY_ROUTING=1 bash evals/run_live.sh` re-runs the measurement;
+`cached_tokens_per_query` in its output shows whether caching takes effect on your endpoint.
 
 ## Tests and evaluators
 
