@@ -1,6 +1,7 @@
 """Interaction Agent Runtime - handles LLM calls for user and agent turns."""
 
 import json
+import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
@@ -78,7 +79,7 @@ class InteractionAgentRuntime:
             )
 
             logger.info("Processing user message through interaction agent")
-            summary = await self._run_interaction_loop(system_prompt, messages)
+            summary = await self._run_interaction_loop(system_prompt, messages, message_type="user")
 
             final_response = self._finalize_response(summary)
 
@@ -114,7 +115,7 @@ class InteractionAgentRuntime:
             )
 
             logger.info("Processing execution agent results")
-            summary = await self._run_interaction_loop(system_prompt, messages)
+            summary = await self._run_interaction_loop(system_prompt, messages, message_type="agent")
 
             final_response = self._finalize_response(summary)
 
@@ -136,10 +137,37 @@ class InteractionAgentRuntime:
             )
 
     # Core interaction loop that handles LLM calls and tool executions until completion
+    # Tool sets after which another LLM call would produce nothing the user sees. The final
+    # reply is always the last send_message_to_user (see _finalize_response), so once the user
+    # has been told and the work dispatched, the follow-up call is pure cost.
+    _USER_FACING_TOOLS = frozenset({"send_message_to_user", "send_draft", "wait"})
+
+    @staticmethod
+    def _early_exit_enabled() -> bool:
+        return os.getenv("OPENPOKE_INTERACTION_EARLY_EXIT", "1") != "0"
+
+    def _turn_is_complete(self, message_type: str, iteration_tools: List[str], summary: _LoopSummary) -> bool:
+        """True when this iteration's tool calls settled the turn.
+
+        User turn: the agent was dispatched *and* the user has been told (this iteration or an
+        earlier one). An iteration that only tells the user keeps looping: the model may
+        delegate next ("Always let the user know before calling this tool").
+        Agent turn: the user was answered and nothing was dispatched.
+        Any search_agents call means the model is still deciding.
+        """
+        if not self._early_exit_enabled() or "search_agents" in iteration_tools:
+            return False
+        told_user = any(name in self._USER_FACING_TOOLS for name in iteration_tools)
+        delegated = "send_message_to_agent" in iteration_tools
+        if message_type == "user":
+            return delegated and (told_user or bool(summary.user_messages))
+        return told_user and not delegated
+
     async def _run_interaction_loop(
         self,
         system_prompt: str,
         messages: List[Dict[str, Any]],
+        message_type: str = "user",
     ) -> _LoopSummary:
         """Iteratively query the LLM until it issues a final response."""
 
@@ -167,8 +195,11 @@ class InteractionAgentRuntime:
             if not parsed_tool_calls:
                 break
 
+            iteration_tools: List[str] = []
+            iteration_ok: List[bool] = []
             for tool_call in parsed_tool_calls:
                 summary.tool_names.append(tool_call.name)
+                iteration_tools.append(tool_call.name)
 
                 if tool_call.name == "send_message_to_agent":
                     agent_name = tool_call.arguments.get("agent_name")
@@ -176,6 +207,7 @@ class InteractionAgentRuntime:
                         summary.execution_agents.add(agent_name)
 
                 result = self._execute_tool(tool_call)
+                iteration_ok.append(result.success)
 
                 if result.user_message:
                     summary.user_messages.append(result.user_message)
@@ -186,6 +218,14 @@ class InteractionAgentRuntime:
                     "content": self._format_tool_result(tool_call, result),
                 }
                 messages.append(tool_message)
+
+            # A failed dispatch (e.g. the routing guard's did-you-mean) must be answered.
+            dispatch_failed = any(
+                name == "send_message_to_agent" and not ok for name, ok in zip(iteration_tools, iteration_ok)
+            )
+            if not dispatch_failed and self._turn_is_complete(message_type, iteration_tools, summary):
+                logger.debug("Interaction turn settled; skipping the follow-up LLM call")
+                break
         else:
             raise RuntimeError("Reached tool iteration limit without final response")
 

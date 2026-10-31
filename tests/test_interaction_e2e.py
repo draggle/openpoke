@@ -247,3 +247,72 @@ def test_send_message_guard_flag_off(monkeypatch, tmp_path):
         assert first.success
 
     asyncio.run(run())
+
+
+# ---- round three: the turn ends once the user is told and the agent dispatched ------------
+
+
+def _loop_fixture(monkeypatch, tmp_path, script):
+    reg = AgentRegistry(tmp_path / "l.json", config=RegistryConfig(max_roster=12))
+    reg.register("Alice Lunch", "schedule lunch with Alice")
+    monkeypatch.setattr(agent_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+    conversation = StubConversationLog()
+    monkeypatch.setattr(tools_module, "get_conversation_log", lambda: conversation)
+
+    async def fake_execute_agent(agent_name, instructions):
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+    calls = {"n": 0}
+
+    async def scripted_llm(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        calls["n"] += 1
+        step = script[min(calls["n"], len(script)) - 1]
+        return {"choices": [{"message": {"content": "", "tool_calls": step}}]} if step else \
+            {"choices": [{"message": {"content": ""}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", scripted_llm)
+    runtime = InteractionAgentRuntime()
+    runtime.conversation_log = conversation
+    return runtime, calls
+
+
+ANNOUNCE = tool_call("send_message_to_user", {"message": "on it"}, "u1")
+DELEGATE = tool_call("send_message_to_agent", {"agent_name": "Alice Lunch", "instructions": "move lunch"}, "a1")
+
+
+async def test_early_exit_after_announce_and_delegate(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENPOKE_INTERACTION_EARLY_EXIT", raising=False)
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[ANNOUNCE, DELEGATE], None])
+    result = await runtime.execute("move lunch with alice to thursday")
+    assert result.success and result.response == "on it"
+    assert calls["n"] == 1
+
+
+async def test_no_early_exit_after_announce_only(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENPOKE_INTERACTION_EARLY_EXIT", raising=False)
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[ANNOUNCE], [DELEGATE], None])
+    result = await runtime.execute("move lunch with alice to thursday")
+    assert result.success and result.execution_agents_used == 1
+    assert calls["n"] == 2  # announce (keep going) -> delegate (exit); the empty third call is skipped
+
+
+async def test_agent_turn_exits_after_reply(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENPOKE_INTERACTION_EARLY_EXIT", raising=False)
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[ANNOUNCE], None])
+    result = await runtime.handle_agent_message("[SUCCESS] Alice Lunch: moved to Thursday")
+    assert result.success and result.response == "on it"
+    assert calls["n"] == 1
+
+
+async def test_early_exit_flag_off_keeps_upstream_loop(monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENPOKE_INTERACTION_EARLY_EXIT", "0")
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[ANNOUNCE, DELEGATE], None])
+    result = await runtime.execute("move lunch with alice to thursday")
+    assert result.success
+    assert calls["n"] == 2
