@@ -214,12 +214,14 @@ class AgentRegistry:
         clock: Callable[[], float] = time.time,
         has_pending_triggers: Optional[Callable[[str], bool]] = None,
         legacy_roster_path: Optional[Path] = None,
+        log_dir: Optional[Path] = None,
     ) -> None:
         self._path = path
         self.config = config or RegistryConfig.from_env()
         self._clock = clock
         self._has_pending_triggers = has_pending_triggers or (lambda _name: False)
         self._legacy_roster_path = legacy_roster_path
+        self._log_dir = log_dir  # per-agent log files; their mtime dates a migrated agent
         self._records: Dict[str, AgentRecord] = {}
         self.load()
 
@@ -253,12 +255,27 @@ class AgentRegistry:
         for name in names:
             name = str(name)
             if name and name not in self._records:
+                last_used = self._legacy_last_used(name, now)
                 self._records[name] = AgentRecord(
-                    name=name, created_at=now, last_used_at=now, last_reason="migrated"
+                    name=name, created_at=last_used, last_used_at=last_used, last_reason="migrated"
                 )
                 changed = True
         if changed:
             self.save()
+
+    def _legacy_last_used(self, name: str, fallback: float) -> float:
+        """Date a migrated agent by its log file's mtime, so upgrade keeps real recency."""
+        if self._log_dir is None:
+            return fallback
+        try:
+            from .log_store import _slugify  # local import: avoid cycles at module load
+
+            log = self._log_dir / f"{_slugify(name)}.log"
+            if log.exists():
+                return float(log.stat().st_mtime)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"could not date legacy agent {name}: {exc}")
+        return fallback
 
     def save(self) -> None:
         payload = {"version": 1, "agents": [r.to_json() for r in self._records.values()]}
@@ -481,9 +498,17 @@ class AgentRegistry:
 
         chosen: Dict[str, RosterEntry] = {}
 
+        # 0) agents that own pending reminders: always reachable, up to half the budget, most
+        #    recent first. Hiding one leads to a duplicate agent *and* a duplicate reminder.
+        pinned_budget = max(1, self.config.max_roster // 2)
+        pinned_live = [r for r in sorted(live, key=lambda r: -r.last_used_at) if pinned(r.name)]
+        for record in pinned_live[:pinned_budget]:
+            chosen[record.name] = RosterEntry(record, statuses[record.name], True, "pinned")
+
         # 1) hot cache: most recently used live agents
         for record in sorted(live, key=lambda r: -r.last_used_at)[: self.config.hot_cache_size]:
-            chosen[record.name] = RosterEntry(record, statuses[record.name], pinned(record.name), "hot")
+            if record.name not in chosen:
+                chosen[record.name] = RosterEntry(record, statuses[record.name], pinned(record.name), "hot")
 
         # 2) retrieval: relevance to the current message
         if query.strip():
@@ -618,6 +643,7 @@ def get_agent_registry() -> AgentRegistry:
             _REGISTRY_PATH,
             has_pending_triggers=_agent_has_pending_triggers,
             legacy_roster_path=_LEGACY_ROSTER_PATH,
+            log_dir=_DATA_DIR / "execution_agents",
         )
     return _registry
 

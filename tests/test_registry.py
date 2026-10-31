@@ -284,3 +284,53 @@ def test_consolidation_table(tmp_path, clock, existing, existing_instr, new, ins
     reg = make_registry(tmp_path, clock)
     reg.register(existing, existing_instr)
     assert (reg.find_duplicate(new, instr) is not None) is expect
+
+
+# ---- round two: pinned agents are always shown; migration keeps real recency -----------
+
+
+def test_pinned_agents_are_always_in_roster(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, pinned={"Reminder: dentist (Alice)"}, max_roster=6, hot_cache_size=2)
+    reg.register("Reminder: dentist (Alice)", "remind me about the dentist")
+    clock.advance(10 * DAY)
+    for i in range(30):
+        clock.advance(HOUR)
+        reg.register(f"Agent {i}", f"topic {i}")
+    sel = reg.select("")
+    entry = next((e for e in sel.shown if e.record.name == "Reminder: dentist (Alice)"), None)
+    assert entry is not None and entry.reason == "pinned" and entry.pinned is True
+
+
+def test_pinned_reserve_half_the_budget_most_recent_first(tmp_path, clock):
+    """Five old reminder agents, three brand-new agents, budget 4: two most recent pinned +
+    the hot/recent new ones. Pinned agents never crowd out all current work."""
+    names = [f"Reminder {i}" for i in range(5)]
+    reg = make_registry(tmp_path, clock, pinned=set(names), max_roster=4, hot_cache_size=1)
+    for n in names:
+        clock.advance(HOUR)
+        reg.register(n, "remind me")
+    clock.advance(5 * DAY)
+    for i in range(3):
+        clock.advance(HOUR)
+        reg.register(f"New {i}", f"fresh task {i}")
+    sel = reg.select("")
+    assert len(sel.shown) == 4
+    assert set(sel.names()) == {"Reminder 4", "Reminder 3", "New 2", "New 1"}
+
+
+def test_migration_uses_log_mtime(tmp_path, clock):
+    import os
+    from server.services.execution.log_store import _slugify
+
+    legacy = tmp_path / "roster.json"
+    legacy.write_text(json.dumps(["Old Agent", "Fresh Agent"]))
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    log = logs / f"{_slugify('Old Agent')}.log"
+    log.write_text("<agent_request>x</agent_request>\n")
+    five_days_ago = clock() - 5 * DAY
+    os.utime(log, (five_days_ago, five_days_ago))
+    reg = AgentRegistry(tmp_path / "registry.json", config=RegistryConfig(), clock=clock,
+                        legacy_roster_path=legacy, log_dir=logs)
+    assert reg.get("Old Agent").last_used_at == pytest.approx(five_days_ago, abs=1)
+    assert reg.get("Fresh Agent").last_used_at == pytest.approx(clock(), abs=1)
