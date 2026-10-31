@@ -129,7 +129,7 @@ if [ "${ONLY_JEV:-0}" != "1" ]; then
   run python -m evals.email_eval --live
 fi
 if [ "${OPENPOKE_JEV}" = "1" ]; then
-  run python -m evals.jev_bench --live --agents 150 --queries "$QUERIES"
+  OPENPOKE_JEV_ROUTING=1 run python -m evals.jev_bench --live --agents 150 --queries "$QUERIES"
 fi
 
 echo

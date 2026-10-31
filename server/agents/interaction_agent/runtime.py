@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
-from .agent import build_routing_hint, build_system_prompt, prepare_message_with_history
+from .agent import build_routing_hint, build_system_prompt, prepare_message_with_history, select_roster
 from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
@@ -70,9 +70,11 @@ class InteractionAgentRuntime:
             self.conversation_log.record_user_message(user_message)
 
             system_prompt = build_system_prompt()
-            routing_hint = await build_routing_hint(user_message)
+            selection = select_roster(user_message, transcript_before)
+            routing_hint = await build_routing_hint(user_message, selection)
             messages = prepare_message_with_history(
-                user_message, transcript_before, message_type="user", routing_hint=routing_hint
+                user_message, transcript_before, message_type="user",
+                routing_hint=routing_hint, selection=selection,
             )
 
             logger.info("Processing user message through interaction agent")

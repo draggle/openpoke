@@ -129,3 +129,27 @@ async def test_all_strategy_prompt_matches_upstream_shape(monkeypatch, tmp_path)
     monkeypatch.setattr(agent_module, "get_agent_registry", lambda: reg)
     content = agent_module.prepare_message_with_history("hi", "", "user")[0]["content"]
     assert '<active_agents>\n<agent name="Alpha" />\n<agent name="Beta" />\n</active_agents>' in content
+
+
+async def test_single_roster_selection_per_turn(monkeypatch, registry):
+    """The roster is selected once per user turn; the routing-hint path reuses it."""
+    monkeypatch.setattr(agent_module, "get_agent_registry", lambda: registry)
+    conversation = StubConversationLog()
+    calls = {"select": 0}
+    real_select = registry.select
+
+    def counting_select(*a, **k):
+        calls["select"] += 1
+        return real_select(*a, **k)
+
+    monkeypatch.setattr(registry, "select", counting_select)
+
+    async def scripted_llm(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        return {"choices": [{"message": {"content": "hello"}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", scripted_llm)
+    runtime = InteractionAgentRuntime()
+    runtime.conversation_log = conversation
+    result = await runtime.execute("hi there")
+    assert result.success
+    assert calls["select"] == 1

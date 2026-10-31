@@ -189,3 +189,12 @@ async def test_llm_cannot_veto_jev_decision(jev_scripted, monkeypatch):
     out = await classify_email_importance(to_processed(ROWS["i04"]))
     assert out == "Priya's invoice is overdue."
     assert "already determined" in seen["system"]
+
+
+async def test_offline_oracle_routing_is_nonzero(tmp_path, monkeypatch):
+    """The offline bench must exercise the hint path even though routing is off by default."""
+    from evals.jev_bench import routing_offline
+    monkeypatch.delenv("OPENPOKE_JEV_ROUTING", raising=False)
+    result = await routing_offline(50, 20, tmp_path)
+    assert result["oracle_hint_correct"] > 0.5, result
+    assert result["jev_tokens_per_decision"] > 0

@@ -162,11 +162,21 @@ async def routing_offline(n_agents: int, n_queries: int, out_dir: Path) -> Dict[
     ledger = UsageLedger()
     set_usage_ledger(ledger)
     covered = hinted = 0
-    for q in workload.queries:
-        sel = registry.select(q.text, now=workload.now)
-        covered += q.target in sel.names()
-        hint = await compute_routing_hint(registry, sel, q.text)
-        hinted += hint is not None and hint.agent_name == q.target
+    # The hint is off by default in the runtime (it lost the live benchmark); the bench
+    # exists to measure it, so enable it for the duration of this function only.
+    previous = os.environ.get("OPENPOKE_JEV_ROUTING")
+    os.environ["OPENPOKE_JEV_ROUTING"] = "1"
+    try:
+        for q in workload.queries:
+            sel = registry.select(q.text, now=workload.now)
+            covered += q.target in sel.names()
+            hint = await compute_routing_hint(registry, sel, q.text)
+            hinted += hint is not None and hint.agent_name == q.target
+    finally:
+        if previous is None:
+            os.environ.pop("OPENPOKE_JEV_ROUTING", None)
+        else:
+            os.environ["OPENPOKE_JEV_ROUTING"] = previous
     jev_tokens = ledger.totals()["total"]["prompt_tokens"] / len(workload.queries)
     set_usage_ledger(None)
     set_jev_client(None)
@@ -204,6 +214,7 @@ async def routing_live(n_agents: int, n_queries: int, out_dir: Path) -> Dict[str
 
     # AFTER: Jev choice over the same candidates
     os.environ["OPENPOKE_JEV"] = "1"
+    os.environ["OPENPOKE_JEV_ROUTING"] = "1"  # the bench measures the hint; the runtime default is off
     set_jev_client(JevClient())
     ledger = UsageLedger(); set_usage_ledger(ledger)
     lat, ok, abstain = [], 0, 0
