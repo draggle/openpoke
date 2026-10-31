@@ -11,6 +11,7 @@ from .client import execute_gmail_tool, get_active_gmail_user_id
 from .processing import EmailTextCleaner, ProcessedEmail, parse_gmail_fetch_response
 from .seen_store import GmailSeenStore
 from .importance_classifier import classify_email_importance
+from .prefilter import prefilter
 from ...logging_config import logger
 from ...utils.timezones import convert_to_user_timezone
 
@@ -198,6 +199,12 @@ class ImportantEmailWatcher:
         processed_ids: List[str] = [email.id for email in aged_emails]
 
         for email in eligible_emails:
+            decision = prefilter(email)
+            if decision.skip:
+                # Obvious bulk mail: no model call needed.
+                logger.debug(f"prefilter skipped {email.id} ({decision.reason})")
+                processed_ids.append(email.id)
+                continue
             summary = await classify_email_importance(email)
             processed_ids.append(email.id)
             if not summary:

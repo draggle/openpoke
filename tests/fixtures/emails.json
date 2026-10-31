@@ -1,0 +1,469 @@
+{
+  "description": "Labelled emails for the importance pipeline. 'important'=True means the user should be proactively notified.",
+  "emails": [
+    {
+      "id": "i01",
+      "sender": "Alice Chen <alice@acme.com>",
+      "subject": "Re: lunch Friday?",
+      "body": "Friday works! 12:30 at the usual place? Let me know if that still suits.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": "human reply"
+    },
+    {
+      "id": "i02",
+      "sender": "Google <no-reply@accounts.google.com>",
+      "subject": "Security alert",
+      "body": "A new sign-in on Windows. If this wasn't you, secure your account now.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": "security from noreply"
+    },
+    {
+      "id": "i03",
+      "sender": "Chase <no-reply@chase.com>",
+      "subject": "Your one-time passcode",
+      "body": "Your OTP is 482913. It expires in 10 minutes.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": true,
+      "note": "OTP"
+    },
+    {
+      "id": "i04",
+      "sender": "Priya Nair <priya@studio.design>",
+      "subject": "October invoice - overdue",
+      "body": "Hi, the October invoice (#1042, $2,400) is now 10 days overdue. Could you confirm when payment will be made?",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i05",
+      "sender": "Recruiting <recruiting@vercel.com>",
+      "subject": "Interview: Thursday 2pm",
+      "body": "We'd like to schedule your onsite for Thursday at 2pm PT. Please confirm.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i06",
+      "sender": "Dr. Patel's Office <frontdesk@smilecare.com>",
+      "subject": "Appointment reschedule needed",
+      "body": "We need to move your 14th appointment. Please call to rebook.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i07",
+      "sender": "Marcus <marcus@gmail.com>",
+      "subject": "Fwd: contract signed",
+      "body": "Here's the countersigned contract. Can you upload it today? Thanks",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i08",
+      "sender": "Delta <DeltaAirLines@e.delta.com>",
+      "subject": "Your flight DL214 has been cancelled",
+      "body": "Your flight tomorrow has been cancelled. Please rebook or request a refund.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": true,
+      "note": "automated but urgent"
+    },
+    {
+      "id": "i09",
+      "sender": "Landlord <jim.r@outlook.com>",
+      "subject": "Rent",
+      "body": "Hey, rent hasn't come through this month - can you check on your side?",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i10",
+      "sender": "Calendar <calendar-notification@google.com>",
+      "subject": "Invitation: Planning sync @ Mon 10am",
+      "body": "You have been invited to Planning sync. Yes / No / Maybe",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": "calendar invite"
+    },
+    {
+      "id": "i11",
+      "sender": "Stripe <notifications@stripe.com>",
+      "subject": "Payment failed for your subscription",
+      "body": "We couldn't process your payment. Update your card to avoid interruption.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i12",
+      "sender": "Elena Russo <elena@uni.edu>",
+      "subject": "Reference letter deadline",
+      "body": "The portal closes Friday - could you submit the letter by then? Sorry for the rush.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i13",
+      "sender": "Sharanjeet <sharan@proton.me>",
+      "subject": "quick q",
+      "body": "are you still coming tonight? need a headcount by 5",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i14",
+      "sender": "Ops <alerts@pagerduty.com>",
+      "subject": "[P1] Production API down",
+      "body": "Triggered: API latency > 5s. Acknowledge within 15 min.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": "alert but critical"
+    },
+    {
+      "id": "i15",
+      "sender": "HR <hr@company.com>",
+      "subject": "Action required: benefits enrollment closes tomorrow",
+      "body": "Enrollment closes at midnight tomorrow. Log in to complete.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "i16",
+      "sender": "Keith <keith@fastmail.com>",
+      "subject": "Re: Re: book club",
+      "body": "Changing my vote to the Le Guin. Also can you host next time?",
+      "labels": [
+        "INBOX"
+      ],
+      "important": true,
+      "note": ""
+    },
+    {
+      "id": "n01",
+      "sender": "Medium Daily Digest <noreply@medium.com>",
+      "subject": "Your daily digest",
+      "body": "Top stories for you today... Unsubscribe | Manage preferences",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n02",
+      "sender": "Nike <nike@official.nike.com>",
+      "subject": "FLASH SALE: 40% off ends tonight",
+      "body": "Don't miss out. Shop now. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n03",
+      "sender": "LinkedIn <notifications-noreply@linkedin.com>",
+      "subject": "You appeared in 9 searches this week",
+      "body": "See who's looking. Unsubscribe from these emails.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_SOCIAL"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n04",
+      "sender": "Substack <no-reply@substack.com>",
+      "subject": "This week in AI",
+      "body": "Five things that happened... To unsubscribe click here",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n05",
+      "sender": "Uber Eats <uber@uber.com>",
+      "subject": "We miss you! Here's $10 off",
+      "body": "Come back for a treat. Manage your email preferences.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n06",
+      "sender": "GitHub <noreply@github.com>",
+      "subject": "[repo] Weekly digest",
+      "body": "Activity this week: 3 PRs merged. Unsubscribe from this digest.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n07",
+      "sender": "Twitter <info@twitter.com>",
+      "subject": "New follower",
+      "body": "Someone followed you. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_SOCIAL"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n08",
+      "sender": "Spotify <no-reply@spotify.com>",
+      "subject": "Your weekly playlist is ready",
+      "body": "Fresh tracks picked for you. Manage preferences",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n09",
+      "sender": "Coursera <no-reply@m.coursera.org>",
+      "subject": "Webinar: Learn Python in 2026",
+      "body": "Join our free webinar. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n10",
+      "sender": "Amazon <store-news@amazon.com>",
+      "subject": "New arrivals in Electronics",
+      "body": "Check out what's new. Opt out of marketing emails.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n11",
+      "sender": "Airbnb <automated@airbnb.com>",
+      "subject": "Earn points with Airbnb this winter",
+      "body": "Exclusive offer for members. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n12",
+      "sender": "Quora Digest <digest-noreply@quora.com>",
+      "subject": "What is the fastest animal?",
+      "body": "Top answers. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n13",
+      "sender": "Notion <team@makenotion.com>",
+      "subject": "Product update: new templates",
+      "body": "We shipped templates. Manage email preferences",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n14",
+      "sender": "Lottery Winner <win@lucky-prize.biz>",
+      "subject": "You have WON",
+      "body": "Claim your prize",
+      "labels": [
+        "SPAM"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n15",
+      "sender": "Amazon <auto-confirm@amazon.com>",
+      "subject": "Your order has shipped",
+      "body": "Your package will arrive Tuesday. Track your package.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": "routine shipping; model should dismiss"
+    },
+    {
+      "id": "n16",
+      "sender": "Slack <feedback@slack.com>",
+      "subject": "How was your experience?",
+      "body": "Take our 2-minute survey. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n17",
+      "sender": "Duolingo <hello@duolingo.com>",
+      "subject": "Your daily reminder",
+      "body": "Keep your streak alive! Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": "says reminder; keep-signal sends to model"
+    },
+    {
+      "id": "n18",
+      "sender": "Bob <bob@gmail.com>",
+      "subject": "lol",
+      "body": "haha that meme",
+      "labels": [
+        "INBOX"
+      ],
+      "important": false,
+      "note": "human but trivial; model should dismiss"
+    },
+    {
+      "id": "n19",
+      "sender": "Dropbox <no-reply@dropbox.com>",
+      "subject": "Your weekly Dropbox summary",
+      "body": "You added 3 files. Manage preferences",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n20",
+      "sender": "Eventbrite <noreply@eventbrite.com>",
+      "subject": "Last chance: tickets selling fast",
+      "body": "Limited time. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n21",
+      "sender": "Yelp <no-reply@yelp.com>",
+      "subject": "Special offer near you",
+      "body": "Deals this week. Opt-out",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n22",
+      "sender": "Mailer <mailer-daemon@googlemail.com>",
+      "subject": "Delivery Status Notification (Delay)",
+      "body": "Message delayed, will retry.",
+      "labels": [
+        "INBOX"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n23",
+      "sender": "IKEA <news@ikea.com>",
+      "subject": "Your weekly inspiration",
+      "body": "New ideas for your home. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": ""
+    },
+    {
+      "id": "n24",
+      "sender": "Reddit <noreply@redditmail.com>",
+      "subject": "Top posts this week",
+      "body": "Trending in r/python. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": false,
+      "note": ""
+    }
+  ]
+}

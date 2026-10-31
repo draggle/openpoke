@@ -7,7 +7,7 @@ results so they can be argued with.
 
 Configurations:
     upstream        strong model everywhere, full roster, full per-agent history
-    routing_only    cheap tier for mechanical roles; context unchanged
+    routing_only    cheap tier for mechanical roles + email pre-filter; context unchanged
     context_only    budgeted roster + tiered memory; strong model everywhere
     both            everything on (this repo's defaults)
 
@@ -55,6 +55,7 @@ ASSUMPTIONS: Dict[str, float] = {
     "summaries_per_day": 1,
     "summary_prompt_tokens": 8000,
     "summary_completion_tokens": 600,
+    "prefilter_skip_rate": 0.50,  # measured on tests/fixtures/emails.json (evals/email_eval.py)
     "compactions_per_day": 6,  # only when tiered memory is on
     "compaction_prompt_tokens": 4000,
     "compaction_completion_tokens": 400,
@@ -83,7 +84,8 @@ def _load_measurement(path: Path, key: str, match: Dict[str, object], default: f
 
 
 def estimate(router: ModelRouter, *, roster_tokens: float, history_tokens: float,
-             tiered_memory: bool, a: Dict[str, float] = ASSUMPTIONS) -> ConfigCost:
+             tiered_memory: bool, prefilter: bool = False,
+             a: Dict[str, float] = ASSUMPTIONS) -> ConfigCost:
     by_role: Dict[str, float] = {}
     tokens_total = 0
 
@@ -103,7 +105,8 @@ def estimate(router: ModelRouter, *, roster_tokens: float, history_tokens: float
         a["execution_base_prompt_tokens"] + history_tokens, a["execution_completion_tokens"])
     add(ROLE_EXECUTION_SEARCH, turns * a["email_searches_per_user_turn"] * a["email_search_calls"],
         a["email_search_prompt_tokens"], a["email_search_completion_tokens"])
-    add(ROLE_EMAIL_CLASSIFIER, a["emails_classified_per_day"],
+    classified = a["emails_classified_per_day"] * ((1 - a["prefilter_skip_rate"]) if prefilter else 1.0)
+    add(ROLE_EMAIL_CLASSIFIER, classified,
         a["classifier_prompt_tokens"], a["classifier_completion_tokens"])
     add(ROLE_SUMMARIZER, a["summaries_per_day"], a["summary_prompt_tokens"], a["summary_completion_tokens"])
     if tiered_memory:
@@ -129,9 +132,9 @@ def run(agents: int, history_entries: int, out_dir: Path) -> List[ConfigCost]:
     tiered = ModelRouter(mode="tiered")
     rows = [
         ("upstream", estimate(strong_only, roster_tokens=roster_all, history_tokens=hist_full, tiered_memory=False)),
-        ("routing_only", estimate(tiered, roster_tokens=roster_all, history_tokens=hist_full, tiered_memory=False)),
+        ("routing_only", estimate(tiered, roster_tokens=roster_all, history_tokens=hist_full, tiered_memory=False, prefilter=True)),
         ("context_only", estimate(strong_only, roster_tokens=roster_budgeted, history_tokens=hist_tiered, tiered_memory=True)),
-        ("both", estimate(tiered, roster_tokens=roster_budgeted, history_tokens=hist_tiered, tiered_memory=True)),
+        ("both", estimate(tiered, roster_tokens=roster_budgeted, history_tokens=hist_tiered, tiered_memory=True, prefilter=True)),
     ]
     results = []
     for name, cost in rows:
