@@ -18,7 +18,7 @@ def test_important_emails_always_reach_the_model(row):
 def test_prefilter_dismisses_a_useful_share_of_noise():
     metrics = eval_prefilter(ROWS)
     assert metrics["skip_precision"] == 1.0
-    assert metrics["noise_caught_by_rules"] >= 0.6, metrics
+    assert metrics["noise_caught_by_rules"] >= 0.3, metrics
 
 
 def test_otp_from_noreply_is_kept():
@@ -29,4 +29,25 @@ def test_otp_from_noreply_is_kept():
 def test_fraud_alert_from_alerts_sender_reaches_model():
     row = {"id": "x", "sender": "Bank <alerts@bank.com>", "subject": "Unusual activity on your card",
            "body": "We noticed a charge of $900. If this wasn't you call us. Opt-out of alerts.", "labels": ["INBOX"]}
+    assert prefilter(to_processed(row)).skip is False
+
+
+@pytest.mark.parametrize("row_id", ["a01", "a02", "a03", "a04", "a05"])
+def test_alert_style_mail_with_footers_reaches_model(row_id):
+    row = next(r for r in ROWS if r["id"] == row_id)
+    assert prefilter(to_processed(row)).skip is False, row["note"]
+
+
+def test_only_spam_and_promotions_are_hard_skips():
+    reasons = {prefilter(to_processed(r)).reason for r in ROWS if prefilter(to_processed(r)).skip}
+    assert reasons <= {"label:spam", "label:promotions+unsubscribe"}, reasons
+
+
+def test_marketing_digest_with_here_colon_is_skipped():
+    row = next(r for r in ROWS if r["id"] == "a06")
+    assert prefilter(to_processed(row)).skip is True
+
+
+def test_missing_body_never_raises():
+    row = {"id": "x", "sender": "news@shop.com", "subject": "Sale", "body": None, "labels": ["CATEGORY_PROMOTIONS"]}
     assert prefilter(to_processed(row)).skip is False

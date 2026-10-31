@@ -464,6 +464,78 @@
       ],
       "important": false,
       "note": ""
+    },
+    {
+      "id": "a01",
+      "sender": "Chase Alerts <no-reply@alerts.chase.com>",
+      "subject": "Low balance alert",
+      "body": "Your checking balance fell below $100. To manage your email preferences visit settings.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": true,
+      "note": "bank alert from a no-reply sender with a preferences footer: must reach the model"
+    },
+    {
+      "id": "a02",
+      "sender": "eng-team <eng-team@googlegroups.com>",
+      "subject": "[eng-team] Prod database is down",
+      "body": "DB primary unreachable since 09:12, failover pending. -- You received this message because you are subscribed to the Google Groups eng-team group. To unsubscribe, send an email.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_FORUMS"
+      ],
+      "important": true,
+      "note": "Google Groups outage thread carries CATEGORY_FORUMS and an unsubscribe footer"
+    },
+    {
+      "id": "a03",
+      "sender": "Slack <no-reply@slack.com>",
+      "subject": "Your Slack code: 123456",
+      "body": "Use this code to sign in: 123456. Unsubscribe from these emails.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": true,
+      "note": "sign-in code from a no-reply sender; 'sign in' with a space"
+    },
+    {
+      "id": "a04",
+      "sender": "LinkedIn <messages-noreply@linkedin.com>",
+      "subject": "Senior role at Acme - interested?",
+      "body": "Hi, I lead engineering at Acme and would love to talk about a senior role. Unsubscribe",
+      "labels": [
+        "INBOX",
+        "CATEGORY_SOCIAL"
+      ],
+      "important": true,
+      "note": "recruiter message delivered via a social-category sender"
+    },
+    {
+      "id": "a05",
+      "sender": "IRCC <updates@ircc.gc.ca>",
+      "subject": "Your visa application status has changed",
+      "body": "Sign in to your account to view the update. To opt out of notifications click here.",
+      "labels": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ],
+      "important": true,
+      "note": "government status update from an updates@ sender with an opt-out footer"
+    },
+    {
+      "id": "a06",
+      "sender": "Shop <news@shop.com>",
+      "subject": "Weekly digest: 20% off everything",
+      "body": "Deals of the week. Unsubscribe here: link",
+      "labels": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ],
+      "important": false,
+      "note": "marketing digest; 're:' must not match inside 'here:'"
     }
   ]
 }
