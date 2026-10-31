@@ -171,7 +171,9 @@ async def request_messages(
     base_url: Optional[str] = None,
     max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> Dict[str, Any]:
-    key = (api_key or os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENROUTER_API_KEY") or "").strip()
+    # Callers pass settings.openrouter_api_key; in native mode the Anthropic key must win,
+    # otherwise a .env with both keys sends the OpenRouter key to Anthropic and gets 401s.
+    key = (os.getenv("ANTHROPIC_API_KEY") or api_key or os.getenv("OPENROUTER_API_KEY") or "").strip()
     if not key:
         raise AnthropicError("Missing Anthropic API key")
     payload: Dict[str, Any] = {

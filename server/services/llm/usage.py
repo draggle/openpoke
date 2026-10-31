@@ -46,6 +46,7 @@ class UsageRecord:
     estimated: bool  # True when tokens were estimated rather than reported by the provider
     tag: str = ""  # free-form, e.g. agent name
     cached_tokens: int = 0  # prompt tokens served from the provider's prompt cache
+    cache_write_tokens: int = 0  # prompt tokens written to the cache (billed at a premium)
 
 
 class UsageLedger:
@@ -66,6 +67,7 @@ class UsageLedger:
         bucket["completion_tokens"] += rec.completion_tokens
         bucket["cost_usd"] += rec.cost_usd
         bucket["cached_tokens"] = bucket.get("cached_tokens", 0) + rec.cached_tokens
+        bucket["cache_write_tokens"] = bucket.get("cache_write_tokens", 0) + rec.cache_write_tokens
 
     def record(self, record: UsageRecord) -> None:
         with self._lock:

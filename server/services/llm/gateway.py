@@ -100,10 +100,12 @@ def _record_usage(
     usage = response.get("usage") if isinstance(response, dict) else None
     estimated = False
     cached_tokens = 0
+    cache_write_tokens = 0
     if isinstance(usage, dict) and usage.get("prompt_tokens") is not None:
         prompt_tokens = int(usage.get("prompt_tokens") or 0)
         completion_tokens = int(usage.get("completion_tokens") or 0)
         cached_tokens = _cached_tokens(usage)
+        cache_write_tokens = int(usage.get("cache_creation_input_tokens") or 0)
     else:
         estimated = True
         prompt_tokens = estimate_message_tokens(messages, system)
@@ -121,10 +123,11 @@ def _record_usage(
             model=model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            cost_usd=price.cost(prompt_tokens, completion_tokens, cached_tokens),
+            cost_usd=price.cost(prompt_tokens, completion_tokens, cached_tokens, cache_write_tokens),
             estimated=estimated,
             tag=tag,
             cached_tokens=cached_tokens,
+            cache_write_tokens=cache_write_tokens,
         )
     )
 

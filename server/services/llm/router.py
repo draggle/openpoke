@@ -81,13 +81,18 @@ class ModelPrice:
     output_per_million: float
 
     CACHE_READ_DISCOUNT = 0.10  # Anthropic bills cache reads at 10% of the input price
+    CACHE_WRITE_PREMIUM = 1.25  # and 5-minute cache writes at 125%
 
-    def cost(self, prompt_tokens: int, completion_tokens: int, cached_tokens: int = 0) -> float:
+    def cost(
+        self, prompt_tokens: int, completion_tokens: int, cached_tokens: int = 0, cache_write_tokens: int = 0
+    ) -> float:
         cached = min(cached_tokens, prompt_tokens)
-        uncached = prompt_tokens - cached
+        written = min(cache_write_tokens, prompt_tokens - cached)
+        uncached = prompt_tokens - cached - written
         return (
             uncached * self.input_per_million
             + cached * self.input_per_million * self.CACHE_READ_DISCOUNT
+            + written * self.input_per_million * self.CACHE_WRITE_PREMIUM
             + completion_tokens * self.output_per_million
         ) / 1_000_000
 

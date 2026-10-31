@@ -71,3 +71,27 @@ async def test_client_dispatches_to_native_when_selected(monkeypatch):
     monkeypatch.setenv("OPENPOKE_LLM_API", "anthropic")
     out = await oc.request_chat_completion(model="m", messages=[{"role": "user", "content": "hi"}], system="s", api_key="k")
     assert out["choices"][0]["message"]["content"] == "native" and seen["model"] == "m"
+
+
+async def test_native_prefers_anthropic_key_env(monkeypatch):
+    """Callers pass the OpenRouter key; in native mode ANTHROPIC_API_KEY must win."""
+    import httpx
+    from server.openrouter_client import anthropic_native as native
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-real")
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self): pass
+        def json(self): return {"content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def post(self, url, *, headers, json, timeout):
+            captured["headers"] = headers
+            return FakeResponse()
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda: FakeClient())
+    await native.request_messages(model="m", messages=[{"role": "user", "content": "hi"}], api_key="sk-or-openrouter")
+    assert captured["headers"]["x-api-key"] == "sk-ant-real"

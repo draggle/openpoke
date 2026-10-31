@@ -191,3 +191,26 @@ async def test_unrelated_400_propagates_and_keeps_cache(router, ledger, monkeypa
         await complete(role=ROLE_INTERACTION, messages=[], system="s" * 5000)
     assert len(calls) == 1
     assert gateway._CACHE_SUPPORTED is True
+
+
+def test_cache_write_billed_at_premium():
+    from server.services.llm.router import ModelPrice
+    price = ModelPrice(3.0, 15.0)
+    assert price.cost(1000, 0, 0, 1000) == pytest.approx(1000 * 3.0 * 1.25 / 1_000_000)
+    # a cached read is still 10% of input
+    assert price.cost(1000, 0, 1000, 0) == pytest.approx(1000 * 3.0 * 0.10 / 1_000_000)
+
+
+async def test_gateway_records_cache_write_tokens(router, ledger, monkeypatch):
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        return {
+            "choices": [{"message": {"role": "assistant", "content": "ok"}}],
+            "usage": {"prompt_tokens": 1000, "completion_tokens": 10, "cache_creation_input_tokens": 500,
+                      "cache_read_input_tokens": 0},
+        }
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    await complete(role=ROLE_EMAIL_CLASSIFIER, messages=[{"role": "user", "content": "hi"}])
+    [rec] = ledger.records()
+    assert rec.cache_write_tokens == 500
+    assert rec.cost_usd == pytest.approx((500 * 1.0 + 500 * 1.0 * 1.25 + 10 * 2.0) / 1_000_000)
