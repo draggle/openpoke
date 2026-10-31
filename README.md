@@ -161,6 +161,11 @@ it is both faster and thresholdable. With `OPENPOKE_JEV=1` and `TYPESAFE_API_KEY
 | Routing: $ per decision | $0.011 (one extra LLM reasoning call) | **$0.00002** |
 | Routing: candidates contain target (200 agents) | — | 97% |
 
+**Status:** integration and offline benchmark complete; the live accuracy run is pending vendor
+access (Jev's direct API is waitlisted and, as of this writing, neither OpenRouter nor Vercel's
+free tier serve the classifier — OpenRouter lists only `typesafe/jev-router`). Add
+`TYPESAFE_API_KEY` to `.env` and run `ONLY_JEV=1 bash evals/run_live.sh` once a key arrives.
+
 What offline can't tell you is **accuracy** — that's `--live`, which runs both configurations
 on the labelled emails and the synthetic routing workload and reports precision/recall, routing
 accuracy, p50/p95 wall-clock and $ side by side. The email dollar saving is small because the
