@@ -301,9 +301,9 @@ def test_pinned_agents_are_always_in_roster(tmp_path, clock):
     assert entry is not None and entry.reason == "pinned" and entry.pinned is True
 
 
-def test_pinned_reserve_half_the_budget_most_recent_first(tmp_path, clock):
-    """Five old reminder agents, three brand-new agents, budget 4: two most recent pinned +
-    the hot/recent new ones. Pinned agents never crowd out all current work."""
+def test_pinned_slots_reserved_most_recent_first(tmp_path, clock):
+    """Five old reminder agents, three brand-new agents, budget 4: min(3, 4//2)=2 most recent
+    pinned + the hot/recent new ones. Pinned agents never crowd out all current work."""
     names = [f"Reminder {i}" for i in range(5)]
     reg = make_registry(tmp_path, clock, pinned=set(names), max_roster=4, hot_cache_size=1)
     for n in names:
@@ -374,3 +374,38 @@ def test_fuzzy_fallback_matches_misspelling(tmp_path, clock):
     strict = make_registry(tmp_path / "strict", clock, fuzzy=False)
     strict.register("Email to Priya about invoice", "chase Priya for the invoice")
     assert strict.search("any word from Priyaa?") == []
+
+
+# ---- review fixes: full-name entities; transcript tier cannot crowd out retrieval ------
+
+
+@pytest.mark.parametrize("existing,existing_instr,new,instr,expect", [
+    ("Alice Wong lunch", "Email Alice Wong about lunch on Thursday.", "Alice Chen lunch", "Email Alice Chen about lunch on Friday.", False),
+    ("Alice Wong lunch", "Email Alice Wong about lunch on Thursday.", "Alice lunch", "Move the lunch with Alice Wong to Friday.", True),
+    ("Email to Bob about dinner", "Ask Bob if Saturday works. Check his reply.", "Bob Dinner Cancellation", "Draft a note to Bob cancelling dinner. Ask Bob to confirm.", True),
+    # mirror of the comment's forbidden case: a more specific new topic must not land on the generic agent
+    ("Alice lunch", "Invite Alice to lunch Friday", "Alice lunch invoice reconciliation", "Reconcile the lunch invoice with Alice", False),
+])
+def test_consolidation_full_names_and_capitalised_instructions(tmp_path, clock, existing, existing_instr, new, instr, expect):
+    reg = make_registry(tmp_path, clock)
+    reg.register(existing, existing_instr)
+    assert (reg.find_duplicate(new, instr) is not None) is expect
+
+
+def test_transcript_tier_does_not_hide_explicit_query_target(tmp_path, clock):
+    """3 pinned + 6 transcript-named + hot agents must not push out the agent the user names."""
+    pinned = {f"Reminder {i}" for i in range(3)}
+    reg = make_registry(tmp_path, clock, pinned=pinned, max_roster=12, hot_cache_size=4, retrieval_k=8)
+    reg.register("Acme invoice dispute", "chase Acme about the disputed invoice")
+    clock.advance(5 * DAY)
+    for n in sorted(pinned):
+        clock.advance(HOUR)
+        reg.register(n, "remind me")
+    recent = [f"Recent {i}" for i in range(10)]
+    for n in recent:
+        clock.advance(HOUR)
+        reg.register(n, f"generic task {n}")
+    # transcript names older than the hot four, so pinned(3) + transcript(6) + hot(4) > 12
+    sel = reg.select("what happened with the acme invoice dispute?", recent_agent_names=recent[:6])
+    assert "Acme invoice dispute" in sel.names(), sel.names()
+    assert len(sel.shown) <= 12

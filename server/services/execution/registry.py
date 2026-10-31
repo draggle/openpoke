@@ -70,12 +70,14 @@ class RegistryConfig:
     recent_requests_kept: int = 3
     recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
     transcript_boost: float = 1.0  # added to the score of agents named in the recent conversation
+    transcript_slots: int = 4  # at most this many transcript-named agents are force-included
+    retrieval_reserve: int = 3  # top retrieval hits guaranteed a slot ahead of the hot cache
     pinned_slots: int = 3  # roster slots reserved for the most recent agents that own reminders
     fuzzy: bool = False  # trigram fallback when no token matches (misspelt names); off by default
     fuzzy_min_similarity: float = 0.4
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
-    consolidate_min_overlap: float = 0.75  # name-token overlap required in *both* directions
+    consolidate_min_overlap: float = 0.75  # fraction of the new name's tokens present in the existing name
     consolidate_instruction_overlap: float = 0.5  # or: shared name token + this much instruction overlap
     consolidate_max_unexplained: float = 0.5  # existing-name tokens the new request never mentions
 
@@ -185,6 +187,9 @@ _STOPWORDS = frozenset(
 
 _POSSESSIVE_RE = re.compile(r"(?<=\w)[\u2019']s\b")
 _CAPITALISED_RE = re.compile(r"\b[A-Z][a-z]+")
+# Runs of capitalised words ("Alice Wong") are one entity; a sentence-initial word is skipped.
+_ENTITY_RUN_RE = re.compile(r"(?<![.!?]\s)(?<!^)\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*")
+_SENTENCE_START_RE = re.compile(r"(?:^|[.!?]\s+)([A-Z][a-z]+)")
 _PERIOD_TOKENS = frozenset(
     "january february march april may june july august september october november december "
     "jan feb mar apr jun jul aug sep sept oct nov dec q1 q2 q3 q4 monday tuesday wednesday thursday "
@@ -198,11 +203,29 @@ def tokenize(text: str) -> List[str]:
 
 
 def _entities(text: str) -> set:
-    """Capitalised words that do not start the text: in instructions these are people and dates."""
-    text = _POSSESSIVE_RE.sub("", text)
-    return {
-        m.group(0).lower() for m in _CAPITALISED_RE.finditer(text) if m.start() > 0
-    } - _STOPWORDS
+    """Capitalised runs that do not start a sentence: people ("Alice Wong") and dates.
+
+    A full name is one entity, so "Alice Wong" and "Alice Chen" do not share one.
+    Sentence-initial words ("Ask", "Check", "Draft") are skipped.
+    """
+    text = _POSSESSIVE_RE.sub("", " ".join(text.split()))
+    starts = {m.start(1) for m in _SENTENCE_START_RE.finditer(text)}
+    out: set = set()
+    for m in re.finditer(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", text):
+        run = m.group(0)
+        words = run.split()
+        if m.start() in starts:  # drop the sentence-initial word, keep the rest of the run
+            words = words[1:]
+        if not words:
+            continue
+        entity = " ".join(w.lower() for w in words)
+        if entity not in _STOPWORDS:
+            out.add(entity)
+    return out
+
+
+def _full_names(entities: set) -> set:
+    return {e for e in entities if " " in e}
 
 
 # --------------------------------------------------------------------------------------
@@ -361,21 +384,32 @@ class AgentRegistry:
                 new_tokens & existing_tokens & _PERIOD_TOKENS
             ):
                 continue
-            # Guard 2: the requests name different people/dates and none in common.
+            # Guard 2: the requests name different people/dates and none in common; and a full
+            # name on either side that the other never mentions ("Alice Wong" vs "Alice Chen").
             existing_text = " ".join([record.description, *record.recent_requests])
             existing_entities = _entities(existing_text)
             if new_entities and existing_entities and not (new_entities & existing_entities):
                 continue
-            # Guard 3: the existing agent is about something the new request never mentions.
+            new_full, existing_full = _full_names(new_entities), _full_names(existing_entities)
+            if new_full and existing_full and not (new_full & existing_full):
+                continue
+            # Guard 3: the existing agent is about something the new request never mentions,
+            # or the new name is about something the existing agent's record never mentions.
             unexplained = existing_tokens - new_tokens - instr_tokens
             if len(unexplained) / len(existing_tokens) >= self.config.consolidate_max_unexplained:
                 continue
+            existing_all = set(tokenize(record.retrieval_text()))
+            new_unexplained = new_tokens - existing_all
+            if len(new_unexplained) / len(new_tokens) >= self.config.consolidate_max_unexplained:
+                continue
             overlap = len(shared) / len(new_tokens)
             reverse = len(shared) / len(existing_tokens)
-            symmetric = (
-                overlap >= self.config.consolidate_min_overlap and reverse >= self.config.consolidate_min_overlap
+            # Name agreement: nearly all of the new name's tokens in the existing one, and at least
+            # half of the existing name's tokens in the new one. The guards above already block
+            # different periods, different people and unexplained topic words.
+            symmetric = (overlap >= self.config.consolidate_min_overlap and reverse >= 0.5) or (
+                reverse >= 1.0 and overlap >= 0.5  # existing name fully contained in the new one
             )
-            existing_all = set(tokenize(record.retrieval_text()))
             instr_overlap = (len(instr_tokens & existing_all) / len(instr_tokens)) if instr_tokens else 0.0
             if symmetric or instr_overlap >= self.config.consolidate_instruction_overlap:
                 score = overlap + reverse + instr_overlap + 0.01 * (record.last_used_at / max(now, 1.0))
@@ -542,42 +576,59 @@ class AgentRegistry:
 
         chosen: Dict[str, RosterEntry] = {}
 
-        # 0) agents that own pending reminders: always reachable, up to half the budget, most
-        #    recent first. Hiding one leads to a duplicate agent *and* a duplicate reminder.
+        # 0) agents that own pending reminders: always reachable, a few slots, most recent
+        #    first. Hiding one leads to a duplicate agent *and* a duplicate reminder.
         pinned_budget = max(0, min(self.config.pinned_slots, self.config.max_roster // 2))
         pinned_live = [r for r in sorted(live, key=lambda r: -r.last_used_at) if pinned(r.name)]
         for record in pinned_live[:pinned_budget]:
             chosen[record.name] = RosterEntry(record, statuses[record.name], True, "pinned")
 
-        # 1) agents the conversation just mentioned, most recent mention first
+        # 1) agents the conversation just mentioned, most recent mention first (capped so they
+        #    cannot crowd out the agent the user is explicitly asking about)
         live_by_name = {r.name: r for r in live}
+        added = 0
         for name in recent_agent_names:
             record = live_by_name.get(name)
             if record is None or name in chosen or len(chosen) >= self.config.max_roster:
                 continue
+            if added >= self.config.transcript_slots:
+                break
             chosen[name] = RosterEntry(record, statuses[name], pinned(name), "transcript")
+            added += 1
 
-        # 2) hot cache: most recently used live agents
+        # 2) retrieval: relevance to the current message. The top hits get slots *before* the
+        #    hot cache, so an explicit query always surfaces its agent; the rest fill after.
+        hits = []
+        if query.strip():
+            hits = self.search(
+                query, limit=self.config.retrieval_k, include_archived=False, statuses=statuses,
+                recent_agent_names=recent_agent_names,
+            )
+
+        def take_hits(limit: int) -> None:
+            taken = 0
+            for record, score in hits:
+                if taken >= limit or len(chosen) >= self.config.max_roster:
+                    break
+                if record.name in chosen:
+                    chosen[record.name].score = max(chosen[record.name].score, score)
+                    continue
+                chosen[record.name] = RosterEntry(
+                    record, statuses[record.name], pinned(record.name), "retrieved", score
+                )
+                taken += 1
+
+        take_hits(self.config.retrieval_reserve)
+
+        # 3) hot cache: most recently used live agents
         for record in sorted(live, key=lambda r: -r.last_used_at)[: self.config.hot_cache_size]:
             if record.name not in chosen and len(chosen) < self.config.max_roster:
                 chosen[record.name] = RosterEntry(record, statuses[record.name], pinned(record.name), "hot")
 
-        # 3) retrieval: relevance to the current message
-        if query.strip():
-            for record, score in self.search(
-                query, limit=self.config.retrieval_k, include_archived=False, statuses=statuses,
-                recent_agent_names=recent_agent_names,
-            ):
-                if record.name in chosen:
-                    chosen[record.name].score = max(chosen[record.name].score, score)
-                    continue
-                if len(chosen) >= self.config.max_roster:
-                    break
-                chosen[record.name] = RosterEntry(
-                    record, statuses[record.name], pinned(record.name), "retrieved", score
-                )
+        # 4) remaining retrieval hits
+        take_hits(self.config.retrieval_k)
 
-        # 4) fill any remaining budget with the next most recent live agents
+        # 5) fill any remaining budget with the next most recent live agents
         if len(chosen) < self.config.max_roster:
             for record in sorted(live, key=lambda r: -r.last_used_at):
                 if len(chosen) >= self.config.max_roster:
