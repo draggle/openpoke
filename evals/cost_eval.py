@@ -72,15 +72,37 @@ class ConfigCost:
 
 
 def _load_measurement(path: Path, key: str, match: Dict[str, object], default: float) -> float:
+    """Value of ``key`` in the row matching ``match``; for ``entries`` the nearest row wins."""
     if not path.exists():
         return default
     try:
-        for row in json.loads(path.read_text()):
-            if all(row.get(k) == v for k, v in match.items()):
-                return float(row[key])
+        rows = json.loads(path.read_text())
+        exact = [r for r in rows if all(r.get(k) == v for k, v in match.items())]
+        if exact:
+            return float(exact[0][key])
+        if "entries" in match:
+            others = {k: v for k, v in match.items() if k != "entries"}
+            near = [r for r in rows if all(r.get(k) == v for k, v in others.items()) and "entries" in r]
+            if near:
+                best = min(near, key=lambda r: abs(int(r["entries"]) - int(match["entries"])))
+                return float(best[key])
     except Exception:
         pass
     return default
+
+
+_LIVE_MEMORY = Path(__file__).resolve().parent.parent / "docs" / "live" / "memory_results_live.json"
+
+
+def _history_measurements(out_dir: Path, history_entries: int) -> tuple:
+    """(full, tiered) history tokens. Prefers the LLM extractor's live measurement, which is the
+    runtime default; the heuristic's smaller output would overstate the saving."""
+    source = _LIVE_MEMORY if _LIVE_MEMORY.exists() else out_dir / "memory_results.json"
+    full = _load_measurement(source, "upstream_chars", {"entries": history_entries}, default=history_entries * 224) / 4
+    tiered = _load_measurement(source, "compacted_chars", {"entries": history_entries}, default=min(full, 2600)) / 4
+    if history_entries == 0:
+        full = tiered = 0.0
+    return full, tiered, str(source)
 
 
 def estimate(router: ModelRouter, *, roster_tokens: float, history_tokens: float,
@@ -123,10 +145,7 @@ def run(agents: int, history_entries: int, out_dir: Path) -> List[ConfigCost]:
                                    {"strategy": "all", "n_agents": agents}, default=agents * 11.2)
     roster_budgeted = _load_measurement(out_dir / "roster_results.json", "roster_tokens_mean",
                                         {"strategy": "budgeted", "n_agents": agents}, default=500.0)
-    hist_full = _load_measurement(out_dir / "memory_results.json", "upstream_chars",
-                                  {"entries": history_entries}, default=history_entries * 224) / 4
-    hist_tiered = _load_measurement(out_dir / "memory_results.json", "compacted_chars",
-                                    {"entries": history_entries}, default=7000) / 4
+    hist_full, hist_tiered, _source = _history_measurements(out_dir, history_entries)
 
     strong_only = ModelRouter(mode="strong_only")
     tiered = ModelRouter(mode="tiered")
@@ -155,6 +174,40 @@ def run(agents: int, history_entries: int, out_dir: Path) -> List[ConfigCost]:
     return results
 
 
+def sensitivity(router: ModelRouter, *, agents: int, history_entries=(0, 40, 80, 160),
+                runs_per_turn=(0.5, 1.2), out_dir: Path) -> List[Dict[str, float]]:
+    """How the headline saving moves with the two assumptions that drive it: how long the
+    typical agent's history is, and how many execution runs a user turn causes."""
+    roster_all = _load_measurement(out_dir / "roster_results.json", "roster_tokens_mean",
+                                   {"strategy": "all", "n_agents": agents}, default=agents * 11.2)
+    roster_budgeted = _load_measurement(out_dir / "roster_results.json", "roster_tokens_mean",
+                                        {"strategy": "budgeted", "n_agents": agents}, default=500.0)
+    rows: List[Dict[str, float]] = []
+    for runs in runs_per_turn:
+        a = {**ASSUMPTIONS, "execution_runs_per_user_turn": runs}
+        for entries in history_entries:
+            full, tiered, _ = _history_measurements(out_dir, entries)
+            base = estimate(router, roster_tokens=roster_all, history_tokens=full, tiered_memory=False, a=a)
+            both = estimate(router, roster_tokens=roster_budgeted, history_tokens=tiered, tiered_memory=True,
+                            prefilter=True, a=a)
+            exec_share = both.by_role.get("execution", 0.0) / max(both.usd_per_day, 1e-9)
+            rows.append({
+                "execution_runs_per_user_turn": runs, "history_entries": entries,
+                "upstream_usd_per_day": round(base.usd_per_day, 2), "both_usd_per_day": round(both.usd_per_day, 2),
+                "saving_pct": round((1 - both.usd_per_day / base.usd_per_day) * 100, 1),
+                "execution_share_after": round(exec_share * 100, 1),
+            })
+    return rows
+
+
+def print_sensitivity(rows: List[Dict[str, float]]) -> None:
+    print("\nsensitivity (saving vs upstream, both fixes):")
+    print(f"{'runs/turn':>9} {'history':>8} {'upstream $/d':>13} {'fixed $/d':>10} {'saving':>7} {'exec share':>11}")
+    for r in rows:
+        print(f"{r['execution_runs_per_user_turn']:>9} {r['history_entries']:>8} {r['upstream_usd_per_day']:>13.2f} "
+              f"{r['both_usd_per_day']:>10.2f} {r['saving_pct']:>6.0f}% {r['execution_share_after']:>10.0f}%")
+
+
 def print_table(results: List[ConfigCost]) -> None:
     base = results[0].usd_per_day
     print(f"{'config':<14} {'$/day':>8} {'$/month':>9} {'vs upstream':>12} {'tokens/day':>11}")
@@ -179,6 +232,11 @@ def main() -> None:
     print(f"inputs: {args.agents} agents, {args.history_entries}-entry agent history "
           f"(see {out_dir / 'cost_results.json'} for every assumption)\n")
     print_table(results)
+    from server.services.llm.router import get_model_router
+
+    rows = sensitivity(get_model_router(), agents=args.agents, out_dir=out_dir)
+    print_sensitivity(rows)
+    (out_dir / "cost_sensitivity.json").write_text(json.dumps(rows, indent=2))
 
 
 if __name__ == "__main__":

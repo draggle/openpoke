@@ -125,6 +125,28 @@ def evaluate(workload: Workload, registry: AgentRegistry, strategy: str) -> Stra
     )
 
 
+def evaluate_paraphrases(out_dir: Path, n_agents: int = 150, seed: int = 7) -> Dict[str, Dict[str, float]]:
+    """Recall of the hand-written paraphrase set, budgeted roster, with and without the trigram fallback."""
+    from .paraphrases import PARAPHRASES, resolve
+    from .synthetic import Query
+
+    workload = generate(n_agents, seed=seed, n_queries=1)
+    queries = [Query(text=p["text"], target=resolve(workload, p) or "", kind="paraphrase", target_age_days=0.0)
+               for p in PARAPHRASES if resolve(workload, p)]
+    out: Dict[str, Dict[str, float]] = {}
+    for label, fuzzy in (("budgeted", False), ("budgeted+fuzzy", True)):
+        registry = build_registry(workload, out_dir / "tmp", RegistryConfig(strategy="budgeted", fuzzy=fuzzy))
+        shown = search = 0
+        for q in queries:
+            selection = registry.select(q.text, now=workload.now)
+            in_roster = q.target in selection.names()
+            shown += in_roster
+            search += in_roster or q.target in {r.name for r, _ in registry.search(q.text, limit=5)}
+        out[label] = {"n": len(queries), "recall_shown": shown / len(queries), "recall_with_search": search / len(queries)}
+    (out_dir / "roster_paraphrase_results.json").write_text(json.dumps(out, indent=2))
+    return out
+
+
 def run(sizes: List[int], n_queries: int, out_dir: Path, seed: int = 7) -> List[StrategyResult]:
     out_dir.mkdir(parents=True, exist_ok=True)
     tmp = out_dir / "tmp"
@@ -198,12 +220,18 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--out", default="evals/out")
     parser.add_argument("--no-plot", action="store_true")
+    parser.add_argument("--paraphrase", action="store_true", help="also score the hand-written paraphrase set")
     args = parser.parse_args()
 
     sizes = [int(s) for s in args.sizes.split(",") if s.strip()]
     out_dir = Path(args.out)
     results = run(sizes, args.queries, out_dir, seed=args.seed)
     print_table(results)
+    if args.paraphrase:
+        para = evaluate_paraphrases(out_dir, seed=args.seed)
+        print("\nparaphrase set (150 agents):")
+        for label, m in para.items():
+            print(f"  {label:<16} n={m['n']}  in roster {m['recall_shown']:.2f}  +search {m['recall_with_search']:.2f}")
     if not args.no_plot:
         print(f"\nchart: {plot(results, out_dir)}")
     print(f"json:  {out_dir / 'roster_results.json'}")

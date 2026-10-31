@@ -89,3 +89,32 @@ def test_memory_eval_detects_stale_value():
     raw = "<agent_request>invoice $500</agent_request>\n<agent_request>now $700 not $500</agent_request>"
     r = score_retention(needles, raw, search=lambda q: [])
     assert r["changed_current"] == 1.0 and r["stale"] == 0.0
+
+
+def test_paraphrase_set_resolves_targets():
+    from evals.paraphrases import PARAPHRASES, resolve
+
+    w = generate(150, seed=7)
+    assert len(PARAPHRASES) >= 30
+    unresolved = [p["text"] for p in PARAPHRASES if resolve(w, p) is None]
+    assert unresolved == [], unresolved
+    # every paraphrase avoids the templated wording the lexical index was built from
+    banned = ("what did", "any update on", "get back to me", "cancel the", "remind me what", "did .* reply",
+              "anything from", "nudge .* again", "what's the latest", "where are we on", "sorted yet")
+    import re
+    for p in PARAPHRASES:
+        assert not any(re.search(b, p["text"].lower()) for b in banned), p["text"]
+
+
+def test_cost_sensitivity_rows(tmp_path):
+    from evals.cost_eval import sensitivity
+    from server.services.llm.router import ModelRouter
+
+    rows = sensitivity(ModelRouter(), agents=200, history_entries=(0, 40, 80, 160), runs_per_turn=(0.5, 1.2),
+                       out_dir=tmp_path)
+    assert len(rows) == 8
+    for runs in (0.5, 1.2):
+        sub = [r for r in rows if r["execution_runs_per_user_turn"] == runs]
+        savings = [r["saving_pct"] for r in sorted(sub, key=lambda r: r["history_entries"])]
+        assert savings == sorted(savings), savings  # longer history -> larger saving
+        assert all(0 <= s < 100 for s in savings)
