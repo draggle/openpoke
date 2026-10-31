@@ -23,7 +23,8 @@ Raw outputs in [`docs/live/`](docs/live/), including the per-query log.
 | …on "what did X say about Y" | 94% | **100%** |
 | Turns where the model didn't delegate | 8 / 40 (gave up) | **1 / 40** (2 / 40 in the second pass — both times it answered the user from the roster summary instead of waking an agent whose thread was already closed) |
 | Prompt tokens per query (whole turn incl. tool loop) | 8,491 | **4,945** |
-| Cost of the 40-query run | $1.10 | **$0.69** |
+| Cost of the 40-query run | $1.10 | **$0.69** → **$0.28** with prompt caching (native API) |
+| Prompt tokens served from cache (native Messages API) | 0 | **77%** (3,959 of 5,154 per query) |
 | Execution-agent history in prompt, 160 log entries (LLM extractor) | 8,971 tokens | **2,628 tokens** (29%) |
 | Facts surviving compaction — surface / buried in tool payloads / reminders | n/a | **100% / 100% / 100%** |
 | Email importance, pre-filter + LLM on the 40 labelled emails | — | precision 1.00, recall 0.94, F1 0.97, 20 model calls instead of 40 |
@@ -181,18 +182,20 @@ Built after the first live run, each targeting something it exposed. Re-running 
 routing eval ([`docs/live/live_routing_results_second_pass.json`](docs/live/live_routing_results_second_pass.json))
 moved accuracy **85% → 90%**: four of the six "nudge Tara again" misses are fixed; the two new
 misses are the model answering directly instead of delegating to a thread its summary shows as
-closed — a judgement call, not a routing error. Prompt caching reported **0 cached tokens**
-because the live run used Anthropic's OpenAI-compatible endpoint, which [does not support prompt
-caching](https://docs.anthropic.com/en/api/openai-sdk) (the markers are silently ignored). The
-block format is honoured by OpenRouter — OpenPoke's upstream provider — so the saving is real
-on the default deployment path but unmeasured here; verifying it needs an OpenRouter key or a
-native Messages-API client.
+closed — a judgement call, not a routing error. Prompt caching first reported **0 cached
+tokens** because that run used Anthropic's OpenAI-compatible endpoint, which [does not support
+prompt caching](https://docs.anthropic.com/en/api/openai-sdk). A small native Messages-API
+adapter (`server/openrouter_client/anthropic_native.py`, `OPENPOKE_LLM_API=anthropic`) fixed
+that: re-running the same 40 queries
+([`docs/live/live_routing_results_native_cached.json`](docs/live/live_routing_results_native_cached.json))
+served **77% of prompt tokens from cache** and cut the run from **$0.71 to $0.28 (−60%)** at
+identical 90% accuracy. OpenRouter honours the same block format via the OpenAI path.
 
 | Change | Why | Flag |
 |---|---|---|
 | **Duplicate-agent consolidation** — a new agent whose name tokens match a live agent's ("Alice Lunch" vs "Email to Alice about lunch") is redirected to the existing one | the Interaction Agent names agents freely, so the same thread accrues several agents and context splits | `OPENPOKE_AGENT_CONSOLIDATE=0` to disable |
 | **Recency-first roster + ambiguity rule** — roster ordered most-recent-first; prompt says to take the top match on person-only / topic-only follow-ups | all 6 live misses were "nudge Tara again" with 3 live Tara threads | (always on) |
-| **Prompt caching** — the ~3k-token system prompt is sent as a cacheable block; cache reads are recorded in the ledger and billed at 10% | the system prompt + tool schemas are identical on every call | `OPENPOKE_PROMPT_CACHE=0`; auto-disables if the endpoint rejects it; **ignored by Anthropic's OpenAI-compat endpoint**, honoured by OpenRouter |
+| **Prompt caching** — the ~3k-token system prompt is sent as a cacheable block; cache reads are recorded in the ledger and billed at 10% | the system prompt + tool schemas are identical on every call | `OPENPOKE_PROMPT_CACHE=0`; auto-disables if the endpoint rejects it. **Measured: 77% cache hit, −60% cost** on the native API (`OPENPOKE_LLM_API=anthropic`); ignored by Anthropic's OpenAI-compat shim; honoured by OpenRouter |
 | **Tool-payload compaction at write time** — keep subject/from/body/ids, drop headers/labels/history ids, before the 500-char cap | upstream kept the first 500 chars of a Gmail payload, i.e. the boilerplate | (always on) |
 | **Concurrent email classification** (bounded, default 4) | a burst of N emails took N × classifier latency | `OPENPOKE_CLASSIFIER_CONCURRENCY` |
 | **Trigger wake-ups get their own routing role** | reminder-driven runs can be routed cheaply without touching user-initiated execution | `OPENPOKE_TIER_EXECUTION_TRIGGER=cheap` |
@@ -206,7 +209,7 @@ native Messages-API client.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 83 tests, < 2s, no network
+python -m pytest                 # 88 tests, < 2s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 ```
 
@@ -262,7 +265,7 @@ Fixed in this fork:
   reminders. Registry pins agents with active triggers; trigger fires re-activate them.
 - **No per-agent memory** — see above; it dominates cost.
 - **Classifier on every email** — pre-filter.
-- **Zero tests** — 83 now, plus six evaluators.
+- **Zero tests** — 88 now, plus six evaluators.
 
 Flagged, not built (what I'd do next, in order):
 1. **Memory merge on consolidation.** Consolidation now redirects new work to the existing
@@ -288,6 +291,7 @@ server/services/execution/registry.py             AgentRegistry (new)
 server/services/execution/memory.py               AgentMemory (new)
 server/services/llm/{router,usage,gateway}.py     routing + ledger (new)
 server/services/llm/jev.py                        Jev typed-decision client (new, opt-in)
+server/openrouter_client/anthropic_native.py      native Messages-API adapter (prompt caching) (new)
 server/services/execution/routing_hint.py         Jev routing hint (new, off by default)
 server/services/execution/payloads.py             tool-payload compaction (new)
 server/services/gmail/prefilter.py                email pre-filter (new)
@@ -297,6 +301,6 @@ server/agents/execution_agent/{agent,runtime}.py  memory-backed history, compact
 server/services/trigger_scheduler.py              touch agent on fire
 server/services/gmail/importance_watcher.py       prefilter before classify
 server/routes/meta.py                             /meta/usage, /meta/agents
-tests/                                            83 tests + labelled email fixtures
+tests/                                            88 tests + labelled email fixtures
 evals/                                            6 evaluators + synthetic workload
 ```
