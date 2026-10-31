@@ -84,6 +84,21 @@ def test_memory_eval_detects_stale_value():
     assert r["changed_current"] == 1.0 and r["stale"] == 0.0
     assert r["buried"] == 0.0 and r["recoverable"] == 1.0 and r["constraint"] == 1.0
 
+    # The timeline may legitimately narrate the change ("now $700, was $500"); only the Facts
+    # block asserts what is current, so an old value there is not stale.
+    narrated = ("## Facts\n- invoice: $700\n## Timeline\n- [t] Updated: the invoice is $700 (was $500).\n\n"
+                "# Recent History (0 most recent entries, verbatim)\n")
+    r = score_retention(needles, narrated, search=lambda q: [])
+    assert r["changed_current"] == 1.0 and r["stale"] == 0.0
+
+    # A fact that carries its own correction history is current, not stale.
+    corrected = "## Facts\n- deposit: $700 (corrected from $500)\n- rent: $900, was $850\n\n# Recent History (0 most recent entries, verbatim)\n"
+    r = score_retention(needles, corrected, search=lambda q: [])
+    assert r["changed_current"] == 1.0 and r["stale"] == 0.0
+    # ...but a standalone old value in Facts is.
+    both = "## Facts\n- deposit: $700\n- deposit (old): $500\n\n# Recent History (0 most recent entries, verbatim)\n"
+    assert score_retention(needles, both, search=lambda q: [])["stale"] == 1.0
+
     # An uncompacted agent (raw transcript, no memory section) asserts nothing as current, so
     # the old value in the raw log is not "stale memory".
     raw = "<agent_request>invoice $500</agent_request>\n<agent_request>now $700 not $500</agent_request>"

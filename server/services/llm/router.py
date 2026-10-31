@@ -73,6 +73,16 @@ DEFAULT_PRICES: Dict[str, tuple[float, float]] = {
     "anthropic/claude-3.5-haiku": (0.80, 4.00),
     "anthropic/claude-3-haiku": (0.25, 1.25),
 }
+# Family prices, matched by substring when the exact id (dated native ids such as
+# claude-haiku-4-5-20251001, or OpenRouter's anthropic/claude-sonnet-4.5) is not listed.
+_FAMILY_PRICES: tuple = (
+    ("haiku-4-5", (1.00, 5.00)), ("haiku-4.5", (1.00, 5.00)),
+    ("sonnet-4-5", (3.00, 15.00)), ("sonnet-4.5", (3.00, 15.00)),
+    ("3-5-haiku", (0.80, 4.00)), ("3.5-haiku", (0.80, 4.00)),
+    ("3-haiku", (0.25, 1.25)),
+    ("sonnet-4", (3.00, 15.00)),
+    ("opus-4", (15.00, 75.00)),
+)
 
 
 @dataclass(frozen=True)
@@ -153,7 +163,12 @@ class ModelRouter:
         return self.strong_model if self.tier_for(role) == "strong" else self.cheap_model
 
     def price_for(self, model: str) -> ModelPrice:
-        pair = self.prices.get(model) or self.prices.get(self.strong_model) or (3.0, 15.0)
+        pair = self.prices.get(model)
+        if pair is None:
+            lowered = model.lower()
+            pair = next((p for needle, p in _FAMILY_PRICES if needle in lowered), None)
+        if pair is None:
+            pair = self.prices.get(self.strong_model) or (3.0, 15.0)
         return ModelPrice(*pair)
 
 

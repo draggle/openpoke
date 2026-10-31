@@ -58,6 +58,8 @@ async def eval_live(rows: List[Dict]) -> Dict[str, float]:
 
     tp = fp = fn = tn = 0
     model_calls = 0
+    fn_ids: List[str] = []
+    fp_ids: List[str] = []
     for row in rows:
         email = to_processed(row)
         if prefilter(email).skip:
@@ -70,11 +72,15 @@ async def eval_live(rows: List[Dict]) -> Dict[str, float]:
         fp += predicted and not truth
         fn += (not predicted) and truth
         tn += (not predicted) and not truth
+        if truth and not predicted:
+            fn_ids.append(row["id"])
+        if predicted and not truth:
+            fp_ids.append(row["id"])
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     return {"model_calls": model_calls, "tp": tp, "fp": fp, "fn": fn, "tn": tn,
-            "precision": precision, "recall": recall, "f1": f1}
+            "precision": precision, "recall": recall, "f1": f1, "fn_ids": fn_ids, "fp_ids": fp_ids}
 
 
 def main() -> None:

@@ -35,6 +35,7 @@ import argparse
 import asyncio
 import json
 import random
+import re
 import statistics
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -67,8 +68,19 @@ def score_retention(needles: List[Needle], compacted: str, search) -> Dict[str, 
     # Only a compacted prompt has a memory section that *asserts* values; a raw transcript
     # merely records history, so old values in it are not stale memory.
     head = compacted.split("# Recent History")[0] if "# Recent History" in compacted else ""
-    # Lines in the "Changed facts (old -> new)" block legitimately show old values.
-    head_current = "\n".join(line for line in head.splitlines() if "→" not in line)
+    # Only the Facts block asserts what is *current*. The changed-facts block and the timeline
+    # legitimately narrate old values ("$700, was $500"), so they are excluded.
+    facts_block = ""
+    if "## Facts" in head:
+        facts_block = head.split("## Facts", 1)[1]
+        for stop in ("## Changed facts", "## Open threads", "## Timeline"):
+            facts_block = facts_block.split(stop, 1)[0]
+    # Narrated corrections inside a fact ("$700 (corrected from $500)", "$900, was $850") are
+    # history the model can use, not a stale assertion.
+    head_current = re.sub(
+        r"\((?:corrected|changed|updated|revised)[^)]*\)|,?\s*(?:was|previously|formerly|not|up from|down from)\s+\$?[\d,.]+",
+        "", facts_block, flags=re.I,
+    )
     present: Dict[str, List[bool]] = {}
     stale: List[bool] = []
     recoverable: List[bool] = []

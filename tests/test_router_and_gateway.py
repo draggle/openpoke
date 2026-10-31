@@ -250,3 +250,13 @@ async def test_openai_path_gets_joined_text_when_cache_off(router, ledger, monke
     assert seen["system"] == "static\n\nhistory"
     [rec] = ledger.records()
     assert rec.estimated is True and rec.prompt_tokens > 0
+
+
+def test_prices_match_anthropic_native_ids():
+    """Dated native IDs (claude-haiku-4-5-20251001) must price as their family, not as 'unknown = strong'."""
+    from server.services.llm.router import ModelRouter
+    r = ModelRouter()
+    assert r.price_for("claude-haiku-4-5-20251001").input_per_million == 1.0
+    assert r.price_for("claude-sonnet-4-5-20250929").input_per_million == 3.0
+    assert r.price_for("anthropic/claude-sonnet-4.5").input_per_million == 3.0
+    assert r.price_for("totally-unknown").input_per_million == 3.0  # pessimistic fallback stays
