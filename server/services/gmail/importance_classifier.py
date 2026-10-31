@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from .processing import ProcessedEmail
 from ...config import get_settings
@@ -118,11 +118,29 @@ _JEV_QUESTION = noul(
 )
 
 
-def _jev_threshold() -> float:
+def _env_float(name: str, fallback: float) -> float:
     try:
-        return float(os.getenv("OPENPOKE_JEV_EMAIL_THRESHOLD", "0.5"))
+        return float(os.getenv(name, str(fallback)))
     except ValueError:
-        return 0.5
+        return fallback
+
+
+def gate_thresholds() -> Tuple[float, float]:
+    """(low, high) for the two-sided Jev gate.
+
+    p < low      -> dismissed, no chat model
+    low <= p < high -> the full classifier prompt decides (and summarises)
+    p >= high    -> summary-only prompt; the LLM cannot veto
+    Defaults keep round-two behaviour (one threshold, 0.5). ``OPENPOKE_JEV_EMAIL_THRESHOLD``
+    stays as an alias for the low edge.
+    """
+    low = _env_float("OPENPOKE_JEV_EMAIL_LOW", _env_float("OPENPOKE_JEV_EMAIL_THRESHOLD", 0.5))
+    high = _env_float("OPENPOKE_JEV_EMAIL_HIGH", low)
+    return low, max(low, high)
+
+
+def _jev_threshold() -> float:  # kept for callers that only know the one-sided gate
+    return gate_thresholds()[0]
 
 
 async def jev_importance_probability(email: ProcessedEmail) -> Optional[float]:
@@ -155,10 +173,12 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
         return None
 
     probability = await jev_importance_probability(email)
-    if probability is not None and probability < _jev_threshold():
+    low, high = gate_thresholds()
+    if probability is not None and probability < low:
         logger.debug(f"Jev dismissed {email.id} (p={probability:.2f})")
         return None
-    jev_decided = probability is not None  # Jev said important: the LLM only summarises
+    # Confident yes: the LLM only summarises. Middle band: the full classifier decides.
+    jev_decided = probability is not None and probability >= high
 
     user_payload = _format_email_payload(email)
     messages = [{"role": "user", "content": user_payload}]
@@ -250,4 +270,4 @@ def _coerce_arguments(raw: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
-__all__ = ["classify_email_importance"]
+__all__ = ["classify_email_importance", "gate_thresholds", "jev_importance_probability"]

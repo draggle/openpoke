@@ -198,3 +198,59 @@ async def test_offline_oracle_routing_is_nonzero(tmp_path, monkeypatch):
     result = await routing_offline(50, 20, tmp_path)
     assert result["oracle_hint_correct"] > 0.5, result
     assert result["jev_tokens_per_decision"] > 0
+
+
+# ---- round three: two-sided gate ----------------------------------------------------
+
+
+async def test_gate_low_equals_high_matches_round_two(jev_scripted, llm_calls, monkeypatch):
+    from server.services.gmail import importance_classifier as ic
+    monkeypatch.delenv("OPENPOKE_JEV_EMAIL_LOW", raising=False)
+    monkeypatch.delenv("OPENPOKE_JEV_EMAIL_HIGH", raising=False)
+    monkeypatch.delenv("OPENPOKE_JEV_EMAIL_THRESHOLD", raising=False)
+    assert ic.gate_thresholds() == (0.5, 0.5)
+    jev_scripted(prob_by_state=lambda s: 0.4)
+    assert await classify_email_importance(to_processed(ROWS["i01"])) is None and llm_calls == []
+    jev_scripted(prob_by_state=lambda s: 0.6)
+    assert await classify_email_importance(to_processed(ROWS["i01"])) == "Alice confirmed lunch."
+    assert len(llm_calls) == 1
+
+
+async def test_gate_middle_band_runs_full_classifier(jev_scripted, monkeypatch):
+    from server.services.gmail import importance_classifier as ic
+    monkeypatch.setenv("OPENPOKE_JEV_EMAIL_LOW", "0.2")
+    monkeypatch.setenv("OPENPOKE_JEV_EMAIL_HIGH", "0.8")
+    assert ic.gate_thresholds() == (0.2, 0.8)
+    jev_scripted(prob_by_state=lambda s: 0.5)
+    seen = {}
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        seen["system"] = system if isinstance(system, str) else system[0]["text"]
+        return {"choices": [{"message": {"content": "", "tool_calls": [{
+            "id": "c1", "type": "function",
+            "function": {"name": "mark_email_importance",
+                         "arguments": json.dumps({"important": False, "summary": "nope"})}}]}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", fake)
+    assert await classify_email_importance(to_processed(ROWS["i01"])) is None  # LLM verdict respected
+    assert "already determined" not in seen["system"]
+
+
+def test_gate_sweep_counts():
+    from evals.jev_bench import gate_sweep
+    rows = [
+        {"p": 0.05, "llm_important": False, "truth": False},
+        {"p": 0.30, "llm_important": True, "truth": True},
+        {"p": 0.55, "llm_important": False, "truth": False},
+        {"p": 0.70, "llm_important": True, "truth": True},
+        {"p": 0.90, "llm_important": True, "truth": True},
+        {"p": 0.95, "llm_important": False, "truth": True},  # Jev right, LLM wrong
+    ]
+    table = gate_sweep(rows, lows=(0.1, 0.5), highs=(0.5, 0.8))
+    by = {(r["low"], r["high"]): r for r in table}
+    # low=high=0.5: everything >= 0.5 is important (summary only), below is dropped
+    r = by[(0.5, 0.5)]
+    assert r["llm_calls"] == 4 and r["recall"] == 0.75 and r["precision"] == 0.75
+    # low 0.1, high 0.8: 0.05 dropped (no LLM); 0.3/0.55/0.7 LLM decides; 0.9/0.95 summary only
+    r = by[(0.1, 0.8)]
+    assert r["llm_calls"] == 5 and r["recall"] == 1.0 and r["precision"] == 1.0

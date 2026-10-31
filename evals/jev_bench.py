@@ -86,29 +86,88 @@ async def email_offline() -> Dict[str, Dict]:
     return out
 
 
+def gate_sweep(rows: List[Dict], *, lows=(0.1, 0.2, 0.3, 0.4, 0.5), highs=(0.5, 0.6, 0.7, 0.8, 0.9, 0.95)) -> List[Dict]:
+    """Recall / precision / LLM calls of a two-sided gate over recorded per-email rows.
+
+    Each row: ``p`` (Jev P(important)), ``llm_important`` (what the full classifier said when
+    it ran), ``truth``. Below ``low`` the mail is dropped with no LLM call; at or above ``high``
+    it is surfaced (summary-only LLM call, cannot veto); in between the LLM verdict decides.
+    """
+    table: List[Dict] = []
+    for low in lows:
+        for high in highs:
+            if high < low:
+                continue
+            tp = fp = fn = llm = 0
+            for r in rows:
+                p = r["p"]
+                if p < low:
+                    predicted = False
+                elif p >= high:
+                    predicted = True
+                    llm += 1
+                else:
+                    predicted = bool(r["llm_important"])
+                    llm += 1
+                tp += predicted and r["truth"]
+                fp += predicted and not r["truth"]
+                fn += (not predicted) and r["truth"]
+            precision = tp / (tp + fp) if tp + fp else 0.0
+            recall = tp / (tp + fn) if tp + fn else 0.0
+            table.append({"low": low, "high": high, "recall": round(recall, 3), "precision": round(precision, 3),
+                          "llm_calls": llm, "f1": round(2 * precision * recall / (precision + recall), 3) if precision + recall else 0.0})
+    return table
+
+
+def best_gate(table: List[Dict], floor_recall: float) -> Optional[Dict]:
+    """The cheapest (fewest LLM calls) gate whose recall meets ``floor_recall`` at precision 1.0;
+    ties broken by recall, then by the narrower band."""
+    ok = [r for r in table if r["recall"] >= floor_recall and r["precision"] >= 0.999]
+    if not ok:
+        return None
+    return min(ok, key=lambda r: (r["llm_calls"], -r["recall"], r["high"] - r["low"]))
+
+
 async def email_live() -> Dict[str, Dict]:
     from server.services.gmail.importance_classifier import classify_email_importance, jev_importance_probability
 
     rows = [r for r in load_fixtures() if not prefilter(to_processed(r)).skip]
     results: Dict[str, Dict] = {}
 
-    # BEFORE: chat-model classifier alone (Jev disabled)
+    # BEFORE: chat-model classifier alone (Jev disabled). Keep each verdict for the sweep.
     set_jev_client(None)
     os.environ["OPENPOKE_JEV"] = "0"
-    results["before: LLM classifier"] = await _email_live_config(rows, lambda e: classify_email_importance(e))
+    llm_verdicts: Dict[str, bool] = {}
 
-    # AFTER: Jev gate (+ LLM summary for positives)
+    async def llm_only(e):
+        verdict = (await classify_email_importance(e)) is not None
+        llm_verdicts[e.id] = verdict
+        return verdict
+
+    results["before: LLM classifier"] = await _email_live_config(rows, llm_only)
+
+    # AFTER: Jev gate (+ LLM summary for positives). Keep each probability for the sweep.
     os.environ["OPENPOKE_JEV"] = "1"
     set_jev_client(JevClient())
     threshold = float(os.getenv("OPENPOKE_JEV_EMAIL_THRESHOLD", "0.5"))
+    probabilities: Dict[str, float] = {}
 
     async def jev_only(e):
         p = await jev_importance_probability(e)
+        probabilities[e.id] = -1.0 if p is None else p
         return p is not None and p >= threshold
 
     results["after: Jev decision only"] = await _email_live_config(rows, jev_only)
     results["after: Jev gate + LLM summary"] = await _email_live_config(rows, lambda e: classify_email_importance(e))
     set_jev_client(None)
+
+    per_email = [{"id": r["id"], "truth": bool(r["important"]), "p": probabilities.get(r["id"], -1.0),
+                  "llm_important": llm_verdicts.get(r["id"], False)} for r in rows]
+    sweep = gate_sweep([r for r in per_email if r["p"] >= 0])
+    results["per_email"] = {"rows": per_email}
+    results["gate_sweep"] = {"table": sweep,
+                             "best_at_llm_recall": best_gate(sweep, results["before: LLM classifier"]["recall"]),
+                             "note": "chosen on the dev set; check it on the held-out set before trusting it"}
     return results
 
 
@@ -247,6 +306,12 @@ def _route_summary(ok, lat, ledger, n) -> Dict:
 def _print(title: str, table: Dict[str, Dict]) -> None:
     print(f"\n{title}")
     for config, metrics in table.items():
+        if config == "per_email":
+            continue
+        if config == "gate_sweep":
+            best = metrics.get("best_at_llm_recall")
+            print(f"  gate sweep: {len(metrics['table'])} (low, high) pairs; best at LLM recall: {best}")
+            continue
         print(f"  {config}")
         for k, v in metrics.items():
             print(f"      {k:<42} {v}")
