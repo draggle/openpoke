@@ -8,6 +8,7 @@ from typing import Any, Optional
 from ...logging_config import logger
 from ...services.conversation import get_conversation_log
 from ...services.execution import (
+    get_agent_memory,
     get_agent_registry,
     get_agent_roster,
     get_execution_agent_logs,
@@ -157,6 +158,11 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
         roster.add_agent(agent_name)
 
     get_execution_agent_logs().record_request(agent_name, instructions)
+    try:
+        # Reminders and rules in the request are kept verbatim, outside compaction.
+        get_agent_memory().note_request(agent_name, instructions)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning(f"could not record commitments for {agent_name}: {exc}")
 
     action = "Created" if is_new else "Reused"
     logger.info(f"{action} agent: {agent_name}")

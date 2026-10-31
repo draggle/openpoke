@@ -45,6 +45,10 @@ class StubLogs:
     def record_request(self, *a, **k): pass
 
 
+class StubMemory:
+    def note_request(self, *a, **k): pass
+
+
 def tool_call(name: str, args: dict, call_id: str = "call_1") -> dict:
     return {"id": call_id, "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}
 
@@ -69,6 +73,7 @@ async def test_bounded_roster_search_fallback_and_delegation(monkeypatch, regist
     monkeypatch.setattr(tools_module, "get_agent_registry", lambda: registry)
     monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
     monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
     conversation = StubConversationLog()
     monkeypatch.setattr(tools_module, "get_conversation_log", lambda: conversation)
 

@@ -33,6 +33,7 @@ import hashlib
 import json
 import os
 import re
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Protocol, Sequence, Tuple
@@ -63,6 +64,8 @@ class MemoryConfig:
     max_episodes: int = 40
     max_facts: int = 60
     max_threads: int = 15
+    max_commitments: int = 20  # verbatim user commitments/constraints kept outside compaction
+    commitment_chars: int = 300
 
     @classmethod
     def from_env(cls) -> "MemoryConfig":
@@ -71,6 +74,7 @@ class MemoryConfig:
             budget_chars=_env_int("OPENPOKE_AGENT_MEMORY_BUDGET_CHARS", 12_000),
             tail_entries=_env_int("OPENPOKE_AGENT_MEMORY_TAIL", 12),
             max_episodes=_env_int("OPENPOKE_AGENT_MEMORY_MAX_EPISODES", 40),
+            max_commitments=_env_int("OPENPOKE_AGENT_MEMORY_MAX_COMMITMENTS", 20),
         )
 
 
@@ -107,10 +111,23 @@ class Episode:
 
 
 @dataclass
+class Commitment:
+    """A sentence the user asked for verbatim: a reminder, a rule, a constraint.
+
+    Stored at write time by regex, never passed through an extractor, never dropped by
+    compaction. Compaction studies show these are the first things summaries lose.
+    """
+
+    text: str
+    recorded_at: str
+
+
+@dataclass
 class MemoryState:
     facts: List[Fact] = field(default_factory=list)
     threads: List[Thread] = field(default_factory=list)
     episodes: List[Episode] = field(default_factory=list)
+    commitments: List[Commitment] = field(default_factory=list)
     compacted_through: int = 0  # number of log entries absorbed into memory
     compactions: int = 0
 
@@ -122,6 +139,7 @@ class MemoryState:
             "facts": [asdict(f) for f in self.facts],
             "threads": [asdict(t) for t in self.threads],
             "episodes": [asdict(e) for e in self.episodes],
+            "commitments": [asdict(c) for c in self.commitments],
             "compacted_through": self.compacted_through,
             "compactions": self.compactions,
         }
@@ -132,6 +150,7 @@ class MemoryState:
             facts=[Fact(**f) for f in data.get("facts", [])],
             threads=[Thread(**t) for t in data.get("threads", [])],
             episodes=[Episode(**e) for e in data.get("episodes", [])],
+            commitments=[Commitment(**c) for c in data.get("commitments", [])],
             compacted_through=int(data.get("compacted_through", 0)),
             compactions=int(data.get("compactions", 0)),
         )
@@ -149,6 +168,24 @@ class Extraction:
 
 class Extractor(Protocol):
     async def __call__(self, entries: Sequence[LogEntry], state: MemoryState) -> Extraction: ...
+
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_COMMITMENT_RE = re.compile(
+    r"\b(remind|reminder|every (day|week|month|morning|evening)|each (day|week|month)|"
+    r"don'?t|do not|never|always|only|must|make sure|under no circumstances)\b",
+    re.I,
+)
+
+
+def extract_commitments(text: str) -> List[str]:
+    """Sentences that read as a reminder, rule or constraint, verbatim."""
+    out: List[str] = []
+    for sentence in _SENTENCE_SPLIT_RE.split(" ".join(text.split())):
+        sentence = sentence.strip()
+        if sentence and _COMMITMENT_RE.search(sentence):
+            out.append(sentence)
+    return out
 
 
 _KEY_POSSESSIVE_RE = re.compile(r"(?<=\w)[\u2019']s\b")
@@ -239,7 +276,7 @@ Return ONLY a JSON object with keys:
   "threads": [{"subject": "...", "last_action": "...", "waiting_on": "..."}]   things still pending.
   "resolved_threads": ["subject", ...]   previously-open threads that are now closed.
   "episodes": ["...", ...]   one line per notable event, chronological, past tense, <=140 chars.
-Be concrete. Preserve names, email addresses, dates, amounts, and any commitment or reminder the user asked for verbatim. Omit tool-call mechanics."""
+Be concrete. Preserve names, email addresses, dates, amounts, and any commitment or reminder the user asked for verbatim. Omit tool-call mechanics. (Reminders and rules the user stated are also kept verbatim in a separate commitments list; you need not repeat them, but do not contradict them.)"""
 
 
 class LLMExtractor:
@@ -363,6 +400,36 @@ class AgentMemory:
                 path.unlink()
             except Exception:
                 pass
+
+    # ---- commitments -----------------------------------------------------------------
+
+    def note_request(self, agent_name: str, instructions: str) -> None:
+        """Record any reminder/rule sentences in ``instructions`` verbatim, at write time."""
+        if not self.config.enabled:
+            return
+        found = extract_commitments(instructions)
+        if not found:
+            return
+        state = self.load(agent_name)
+        known = {c.text.lower() for c in state.commitments}
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        for sentence in found:
+            text = sentence[: self.config.commitment_chars]
+            if text.lower() in known:
+                continue
+            state.commitments.append(Commitment(text=text, recorded_at=stamp))
+            known.add(text.lower())
+        state.commitments = state.commitments[-self.config.max_commitments :]
+        self.save(agent_name, state)
+
+    def _render_commitments(self, state: MemoryState) -> List[str]:
+        if not state.commitments:
+            return []
+        from html import escape
+
+        lines = ["## Commitments (verbatim)"]
+        lines.extend(f"- {escape(c.text, quote=False)} (asked {c.recorded_at})" for c in state.commitments)
+        return lines
 
     # ---- compaction ------------------------------------------------------------------
 
@@ -505,9 +572,11 @@ class AgentMemory:
         state = self.load(agent_name)
         entries = list(self._log_store.iter_entries(agent_name))
         if state.compacted_through == 0:
-            return self._log_store.load_transcript(agent_name)
+            transcript = self._log_store.load_transcript(agent_name)
+            commitments = self._render_commitments(state)
+            return "\n".join([*commitments, "", transcript]) if commitments else transcript
 
-        parts: List[str] = ["# Memory (compressed from earlier activity)"]
+        parts: List[str] = [*self._render_commitments(state), "# Memory (compressed from earlier activity)"]
         facts = state.active_facts()
         if facts:
             parts.append("## Facts")
@@ -562,6 +631,7 @@ def get_agent_memory() -> AgentMemory:
 
 __all__ = [
     "AgentMemory",
+    "Commitment",
     "Episode",
     "Extraction",
     "Fact",
@@ -570,6 +640,7 @@ __all__ = [
     "MemoryConfig",
     "MemoryState",
     "Thread",
+    "extract_commitments",
     "get_agent_memory",
     "normalise_key",
 ]

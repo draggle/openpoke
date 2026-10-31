@@ -326,3 +326,56 @@ async def test_fact_keys_normalised_for_supersession(tmp_path, store):
     active = [f for f in state.active_facts() if "email" in f.key.lower()]
     assert len(active) == 1 and active[0].value == "b@x"
     assert any(f.superseded_by == "b@x" for f in state.facts if not f.active)
+
+
+# ---- round two: commitments tier, verbatim and never re-summarised -------------------
+
+
+def test_extract_commitments():
+    from server.services.execution.memory import extract_commitments
+    text = "Remind me Friday at 9am about the crown. Also never email Bob after 6pm. Find the latest invoice from Alice."
+    assert extract_commitments(text) == [
+        "Remind me Friday at 9am about the crown.",
+        "Also never email Bob after 6pm.",
+    ]
+    assert extract_commitments("Find the latest invoice from Alice") == []
+    assert extract_commitments("Always cc my assistant on anything to the landlord") == [
+        "Always cc my assistant on anything to the landlord"
+    ]
+
+
+async def test_commitments_survive_many_compactions(tmp_path, store):
+    agent = "Landlord"
+    mem = make_memory(tmp_path, store, extractor=ScriptedExtractor())  # LLM returns nothing useful
+    mem.note_request(agent, "Remind me on the 1st to pay the rent. Do not mention the deposit dispute.")
+    store.record_request(agent, "Remind me on the 1st to pay the rent. Do not mention the deposit dispute.")
+    for _ in range(6):
+        fill_log(store, agent, rounds=6)
+        await mem.compact(agent, force=True)
+    rendered = mem.render_history(agent)
+    head = rendered.split("# Recent History")[0]
+    assert "## Commitments (verbatim)" in head
+    assert "Remind me on the 1st to pay the rent." in head
+    assert "Do not mention the deposit dispute." in head
+
+
+def test_commitment_truncated_and_escaped(tmp_path, store):
+    agent = "Long"
+    mem = make_memory(tmp_path, store)
+    sentence = "Never send <b>anything</b> to " + "x" * 600
+    mem.note_request(agent, sentence)
+    state = mem.load(agent)
+    assert len(state.commitments) == 1 and len(state.commitments[0].text) <= 300
+    store.record_request(agent, "hello")
+    rendered = mem.render_history(agent)
+    assert "&lt;b&gt;" in rendered and "<b>" not in rendered
+
+
+def test_young_agent_sees_commitments_before_transcript(tmp_path, store):
+    agent = "Young"
+    mem = make_memory(tmp_path, store)
+    mem.note_request(agent, "Always reply in French to Marie.")
+    store.record_request(agent, "Always reply in French to Marie.")
+    rendered = mem.render_history(agent)
+    assert rendered.startswith("## Commitments (verbatim)")
+    assert store.load_transcript(agent) in rendered
