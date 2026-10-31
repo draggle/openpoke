@@ -78,3 +78,52 @@ async def test_watcher_classifies_concurrently(monkeypatch):
     results = await asyncio.gather(*(one(e) for e in emails))
     elapsed = asyncio.get_event_loop().time() - t0
     assert len(results) == 8 and elapsed < 0.05 * 8 * 0.6  # clearly faster than sequential
+
+
+async def test_execution_runtime_returns_before_compaction(monkeypatch, tmp_path):
+    """Compaction is scheduled after the result is produced, never awaited on the request path."""
+    from server.agents.execution_agent import agent as agent_module
+    from server.agents.execution_agent import runtime as runtime_module
+    from server.openrouter_client import client as oc
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    monkeypatch.setattr(agent_module, "get_execution_agent_logs", lambda: store)
+
+    flag = {"compacted": False}
+
+    class SlowMemory:
+        config = type("C", (), {"enabled": True})()
+
+        def render_history(self, name):
+            return store.load_transcript(name)
+
+        def needs_compaction(self, name, state=None):
+            return True
+
+        async def compact(self, name, *, force=False):
+            await asyncio.sleep(0.2)
+            flag["compacted"] = True
+
+        def schedule_compaction(self, name):
+            if self.needs_compaction(name):
+                return asyncio.get_running_loop().create_task(self.compact(name))
+            return None
+
+    memory = SlowMemory()
+    monkeypatch.setattr(agent_module, "get_agent_memory", lambda: memory)
+    monkeypatch.setattr(runtime_module, "get_agent_memory", lambda: memory)
+
+    async def fake_llm(**kw):
+        return {"choices": [{"message": {"role": "assistant", "content": "done"}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", fake_llm)
+
+    runtime = runtime_module.ExecutionAgentRuntime("Agent X")
+    t0 = asyncio.get_event_loop().time()
+    result = await runtime.execute("do the thing")
+    assert result.success and result.response == "done"
+    assert asyncio.get_event_loop().time() - t0 < 0.15
+    assert flag["compacted"] is False
+    await asyncio.sleep(0.3)
+    assert flag["compacted"] is True

@@ -256,3 +256,48 @@ async def test_concurrent_compactions_do_not_duplicate(tmp_path, store):
     assert state.compactions == 1
     texts = [e.text for e in state.episodes]
     assert len(texts) == len(set(texts))
+
+
+# ---- round two: no silent loss, atomic save -----------------------------------------
+
+
+async def test_empty_extraction_falls_back_to_heuristic(tmp_path, store):
+    """An LLM answer with no facts/episodes must not swallow the batch: the heuristic absorbs it."""
+    class Nothing:
+        async def __call__(self, entries, state):
+            return Extraction()
+
+    fill_log(store, "a", rounds=10)
+    mem = make_memory(tmp_path, store, extractor=Nothing())
+    state = await mem.compact("a", force=True)
+    assert state is not None and state.compacted_through > 0
+    assert state.episodes, "fallback extractor should have produced the timeline"
+
+
+async def test_unextractable_batch_does_not_advance_cursor(tmp_path, store):
+    """When neither extractor finds anything, the cursor stays so the entries remain in the prompt."""
+    class Nothing:
+        async def __call__(self, entries, state):
+            return Extraction()
+
+    for i in range(10):
+        store.record_tool_response("a", "noop", "{}")  # nothing a heuristic can name
+    mem = make_memory(tmp_path, store, extractor=Nothing())
+    assert await mem.compact("a", force=True) is None
+    assert mem.load("a").compacted_through == 0
+
+
+def test_save_is_atomic(tmp_path, store, monkeypatch):
+    """A crash mid-write must never leave a truncated memory file: write to a temp file, then replace."""
+    import os
+    from server.services.execution import memory as memory_module
+
+    replaced = []
+    real_replace = os.replace
+    monkeypatch.setattr(memory_module.os, "replace", lambda src, dst: (replaced.append((src, dst)), real_replace(src, dst)))
+    fill_log(store, "a", rounds=2)
+    mem = make_memory(tmp_path, store)
+    mem.save("a", MemoryState(compactions=1))
+    assert replaced and str(replaced[0][1]).endswith("a.memory.json")
+    assert not list((tmp_path / "mem").glob("*.tmp"))
+    assert mem.load("a").compactions == 1

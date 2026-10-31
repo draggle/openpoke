@@ -283,6 +283,10 @@ def _parse_json_object(text: str) -> Dict[str, Any]:
     return data
 
 
+def _is_empty(extraction: Extraction) -> bool:
+    return not (extraction.facts or extraction.threads or extraction.resolved_threads or extraction.episodes)
+
+
 # --------------------------------------------------------------------------------------
 # Memory manager
 # --------------------------------------------------------------------------------------
@@ -330,9 +334,11 @@ class AgentMemory:
     def save(self, agent_name: str, state: MemoryState) -> None:
         try:
             self._base_dir.mkdir(parents=True, exist_ok=True)
-            self._path(agent_name).write_text(
-                json.dumps(state.to_json(), indent=2, ensure_ascii=False), encoding="utf-8"
-            )
+            path = self._path(agent_name)
+            # Atomic replace: a crash mid-write never leaves a truncated file behind.
+            tmp = path.with_suffix(f".{os.getpid()}.tmp")
+            tmp.write_text(json.dumps(state.to_json(), indent=2, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, path)
         except Exception as exc:
             logger.warning(f"Failed to save memory for {agent_name}: {exc}")
 
@@ -372,6 +378,14 @@ class AgentMemory:
                 return None
 
             extraction = await self.extractor(batch, state)
+            if _is_empty(extraction):
+                # A well-formed but empty answer ("nothing notable") would otherwise advance the
+                # cursor and hide these entries from every future prompt. Try the heuristic once;
+                # if that is empty too, leave the cursor where it is and try again next time.
+                extraction = await HeuristicExtractor()(batch, state)
+                if _is_empty(extraction):
+                    logger.warning(f"[{agent_name}] memory extraction returned nothing; cursor not advanced")
+                    return None
             now_ts = batch[-1][1] or ""
             self._merge(state, extraction, now_ts)
             state.compacted_through = cutoff
@@ -388,6 +402,20 @@ class AgentMemory:
             f"{len(state.active_facts())} facts, {len(state.threads)} threads, {len(state.episodes)} episodes"
         )
         return state
+
+    def schedule_compaction(self, agent_name: str) -> Optional["asyncio.Task[Optional[MemoryState]]"]:
+        """Run compaction in the background if the raw log is over budget.
+
+        Called by the execution runtime *after* its result is produced, so compaction (one
+        cheap-model call) never sits on the user's request path or inside the batch timeout.
+        """
+        try:
+            if not self.needs_compaction(agent_name):
+                return None
+            return asyncio.get_running_loop().create_task(self.compact(agent_name))
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"[{agent_name}] could not schedule compaction: {exc}")
+            return None
 
     def _merge(self, state: MemoryState, extraction: Extraction, now_ts: str) -> None:
         # facts: temporal invalidation on key collision

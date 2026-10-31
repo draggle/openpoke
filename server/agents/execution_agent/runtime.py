@@ -129,7 +129,7 @@ class ExecutionAgentRuntime:
                 raise RuntimeError("LLM did not return a final response")
 
             self.agent.record_response(final_response)
-            await self._maybe_compact_memory()
+            self._schedule_memory_compaction()
 
             return ExecutionResult(
                 agent_name=self.agent.name,
@@ -151,12 +151,11 @@ class ExecutionAgentRuntime:
                 error=error_msg
             )
 
-    # Compress older history into structured memory when the raw log exceeds its budget
-    async def _maybe_compact_memory(self) -> None:
+    # Compress older history into structured memory when the raw log exceeds its budget.
+    # Scheduled, not awaited: the result is already produced and must not wait on an LLM call.
+    def _schedule_memory_compaction(self) -> None:
         try:
-            memory = get_agent_memory()
-            if memory.needs_compaction(self.agent.name):
-                await memory.compact(self.agent.name)
+            get_agent_memory().schedule_compaction(self.agent.name)
         except Exception as exc:  # never let memory maintenance fail the task
             logger.warning(f"[{self.agent.name}] memory compaction skipped: {exc}")
 
