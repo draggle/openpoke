@@ -128,7 +128,9 @@ class Workload:
 
 
 def generate(n_agents: int, *, seed: int = 7, span_days: int = 21, n_queries: int = 200,
-             now: float = 1_800_000_000.0) -> Workload:
+             now: float = 1_800_000_000.0, stratified: bool = False) -> Workload:
+    """Build a workload. ``stratified`` draws equal numbers of each query kind (so a 40-query
+    live run has 10 keyword-free follow-ups, not 1) instead of sampling the 4:3:2:1 mix."""
     rng = random.Random(seed)
     agents: List[SyntheticAgent] = []
     names_taken = set()
@@ -179,8 +181,9 @@ def generate(n_agents: int, *, seed: int = 7, span_days: int = 21, n_queries: in
 
     queries: List[Query] = []
     kinds = ["keyword"] * 4 + ["name_only"] * 3 + ["topic_only"] * 2 + ["recency"] * 1
-    for _ in range(n_queries):
-        kind = rng.choice(kinds)
+    all_kinds = ["keyword", "name_only", "topic_only", "recency"]
+    for i in range(n_queries):
+        kind = all_kinds[i % 4] if stratified else rng.choice(kinds)
         if kind == "recency":
             target = most_recent
             text = rng.choice(RECENCY_QUERIES)
@@ -208,4 +211,22 @@ def generate(n_agents: int, *, seed: int = 7, span_days: int = 21, n_queries: in
     return Workload(now=now, agents=agents, queries=queries, seed=seed, span_days=span_days)
 
 
-__all__ = ["DAY", "HOUR", "Query", "SyntheticAgent", "Workload", "generate"]
+def transcript_for(workload: Workload, k: int = 6) -> str:
+    """A conversation tail both eval arms see: the last ``k`` interactions, oldest first.
+
+    Each interaction is the user's request to that agent followed by the agent's result in the
+    exact format the runtime logs ("[SUCCESS] Agent Name: summary"). It is query-independent,
+    so it cannot leak the answer; it simply restores the signal upstream's Interaction Agent
+    always had and that a roster-only eval strips.
+    """
+    recent = sorted(workload.agents, key=lambda a: a.last_used_at)[-k:]
+    lines: List[str] = []
+    for agent in recent:
+        stamp = f"{int(agent.last_used_at)}"
+        request = agent.instructions[-1] if agent.instructions else f"Handle {agent.name}"
+        lines.append(f'<user_message timestamp="{stamp}">{request}</user_message>')
+        lines.append(f'<agent_message timestamp="{stamp}">[SUCCESS] {agent.name}: {agent.summary}</agent_message>')
+    return "\n".join(lines)
+
+
+__all__ = ["DAY", "HOUR", "Query", "SyntheticAgent", "Workload", "generate", "transcript_for"]

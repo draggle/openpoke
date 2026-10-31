@@ -207,7 +207,7 @@ async def routing_live(n_agents: int, n_queries: int, out_dir: Path) -> Dict[str
     lat, ok = [], 0
     for q in workload.queries:
         t0 = time.perf_counter()
-        chosen = await llm_decide(registry, workload, q.text)
+        chosen = (await llm_decide(registry, workload, q.text)).agent
         lat.append(time.perf_counter() - t0)
         ok += chosen == q.target
     results["before: LLM over budgeted roster"] = _route_summary(ok, lat, ledger, len(workload.queries))
