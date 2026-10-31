@@ -50,3 +50,5 @@ server/plans/
 .pytest_cache/
 __pycache__/
 evals/out/
+# agent scratch workspaces
+.superpowers/
