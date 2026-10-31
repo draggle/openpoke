@@ -30,6 +30,8 @@ fi
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-$ANTHROPIC_API_KEY}"
   export OPENROUTER_BASE_URL="${OPENROUTER_BASE_URL:-https://api.anthropic.com/v1}"
+  # Native Messages API: the OpenAI-compatible shim ignores prompt caching.
+  export OPENPOKE_LLM_API="${OPENPOKE_LLM_API:-anthropic}"
 fi
 # --- map an OpenCode Zen key onto both providers -------------------------------------
 if [ -n "${OPENCODE_API_KEY:-}" ]; then

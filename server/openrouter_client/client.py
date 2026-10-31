@@ -62,6 +62,14 @@ async def request_chat_completion(
 ) -> Dict[str, Any]:
     """Request a chat completion and return the raw JSON payload."""
 
+    if os.getenv("OPENPOKE_LLM_API", "openai").lower() == "anthropic":
+        # Native Messages API (prompt caching, exact cache accounting). Same return shape.
+        from .anthropic_native import request_messages
+
+        return await request_messages(
+            model=model, messages=messages, system=system, api_key=api_key, tools=tools
+        )
+
     payload: Dict[str, object] = {
         "model": model,
         "messages": _build_messages(messages, system),
