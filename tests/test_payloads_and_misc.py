@@ -127,3 +127,32 @@ async def test_execution_runtime_returns_before_compaction(monkeypatch, tmp_path
     assert flag["compacted"] is False
     await asyncio.sleep(0.3)
     assert flag["compacted"] is True
+
+
+def _search_result(n: int) -> str:
+    emails = [{
+        "id": f"18f3a{i}b2c4d5e6f7", "thread_id": f"18f3a{i}00000000a1", "query": "from:alice",
+        "subject": f"Re: Lunch Thursday? ({i})", "sender": "Alice Smith <alice@example.com>",
+        "recipient": "me@example.com", "timestamp": "2026-10-28T10:12:00Z",
+        "label_ids": ["INBOX", "IMPORTANT"],
+        "clean_text": "Hi! Thursday works for me. Shall we do 12:30 at the usual place near the office? "
+                      "I have a meeting until 12 so slightly later is better. Let me know and I will book "
+                      "a table. Also, did you get the invoice I forwarded last week?",
+        "has_attachments": False, "attachment_count": 0, "attachment_filenames": [],
+    } for i in range(n)]
+    return json.dumps({"status": "success", "emails": emails, "message_ids": [e["id"] for e in emails]})
+
+
+def test_second_email_thread_id_survives():
+    out = compact_tool_payload(_search_result(2), limit=500)
+    assert len(out) <= 500
+    assert "18f3a000000000a1" in out and "18f3a100000000a1" in out, out
+    assert "Lunch Thursday? (0)" in out and "Lunch Thursday? (1)" in out
+
+
+def test_camel_thread_id_kept():
+    raw = json.dumps({"successful": True, "data": {"response_data": {
+        "id": "r-123", "message": {"id": "18f3abc", "threadId": "18f3thread", "labelIds": ["DRAFT"],
+                                   "snippet": "x" * 600}}}, "error": None})
+    out = compact_tool_payload(raw, limit=500)
+    assert "18f3thread" in out

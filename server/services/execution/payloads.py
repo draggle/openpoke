@@ -11,11 +11,20 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List
 
-# Keys that never help a later turn.
+# Keys that never help a later turn. ``threadId`` is NOT noise: ``gmail_reply_to_thread``
+# needs it on a later turn.
 _NOISE_KEYS = frozenset(
-    "historyId sizeEstimate internalDate labelIds mimeType partId headers raw payload parts "
-    "threadId etag kind selfLink resultSizeEstimate nextPageToken".split()
+    "historyId sizeEstimate internalDate labelIds label_ids mimeType partId headers raw payload parts "
+    "etag kind selfLink resultSizeEstimate nextPageToken has_attachments attachment_count "
+    "attachment_filenames query recipient".split()
 )
+# When a list holds several records (search results), each is projected to the fields a
+# later turn can act on, so the second and third emails survive the overall cap.
+_ITEM_KEYS = (
+    "id", "messageId", "thread_id", "threadId", "subject", "from", "sender", "to", "date", "timestamp",
+    "snippet", "clean_text", "body", "text", "status", "error",
+)
+_ITEM_STRING_LIMIT = 120
 # Keys worth keeping first, in this order, when present.
 _PRIORITY_KEYS = (
     "id", "messageId", "subject", "from", "sender", "to", "date", "snippet", "preview",
@@ -51,13 +60,27 @@ def _compact_value(value: Any, string_limit: int, depth: int = 0) -> Any:
             out[key] = _compact_value(value[key], string_limit, depth + 1)
         return out
     if isinstance(value, list):
-        items: List[Any] = [_compact_value(v, string_limit, depth + 1) for v in value[:5]]
+        items: List[Any] = [
+            _project_item(v) if isinstance(v, dict) else _compact_value(v, string_limit, depth + 1)
+            for v in value[:5]
+        ]
         if len(value) > 5:
             items.append(f"…(+{len(value) - 5} more)")
         return items
     if isinstance(value, str):
         return value if len(value) <= string_limit else value[: string_limit - 1] + "…"
     return value
+
+
+def _project_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    for key in _ITEM_KEYS:
+        if key in item and item[key] not in (None, "", [], {}):
+            value = item[key]
+            if isinstance(value, str) and len(value) > _ITEM_STRING_LIMIT:
+                value = value[: _ITEM_STRING_LIMIT - 1] + "…"
+            out[key] = value
+    return out or _compact_value(item, _ITEM_STRING_LIMIT, depth=1)
 
 
 __all__ = ["compact_tool_payload"]
