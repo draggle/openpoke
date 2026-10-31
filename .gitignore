@@ -44,3 +44,9 @@ server/venv/
 # Generated documentation / analysis artifacts
 server/repomix-output.txt
 server/plans/
+
+# local
+.venv/
+.pytest_cache/
+__pycache__/
+evals/out/
