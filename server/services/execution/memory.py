@@ -236,6 +236,11 @@ _CORRECTION_NOT_RE = re.compile(_AMOUNT + r"\s*,?\s*not\s+" + _AMOUNT, re.I)
 _CORRECTION_WAS_RE = re.compile(_AMOUNT + r"\s*(?:\(|,)?\s*(?:was|previously|formerly|up from|down from)\s+" + _AMOUNT, re.I)
 
 
+def _contains_amount(text: str, value: str) -> bool:
+    """``value`` occurs in ``text`` as a whole token ("$500" does not match "$5000")."""
+    return re.search(r"(?<![\w$.,])" + re.escape(value) + r"(?![\w.,]?\d)", text) is not None
+
+
 def extract_corrections(text: str) -> List[Tuple[str, str]]:
     """(old, new) value pairs stated as corrections in free text."""
     out: List[Tuple[str, str]] = []
@@ -356,6 +361,11 @@ class LLMExtractor:
                         for f in raw_facts if f.get("replaces") and str(f["replaces"]).strip()}
             corrections = [(str(c.get("old", "")).strip(), str(c.get("new", "")).strip())
                            for c in data.get("corrections", []) if isinstance(c, dict) and c.get("old") and c.get("new")]
+            # Corrections stated in the log are a regex fact, not a judgement call: union the
+            # deterministic ones so a correction never depends on the model noticing it.
+            for pair in extract_corrections(rendered):
+                if pair not in corrections:
+                    corrections.append(pair)
             return Extraction(
                 facts=[(str(f["key"]).strip(), str(f["value"]).strip()) for f in raw_facts],
                 replaces=replaces,
@@ -595,21 +605,24 @@ class AgentMemory:
         # corrections: "it is $700, not $500" invalidates any active fact still asserting $500,
         # provided its key shares a token with the fact that carries the new value (so an
         # unrelated $500 elsewhere is left alone).
+        # The old value may sit in the key ("Hannah refund $3579: confirmed by Nov 4"), which is
+        # how the live extractor writes amounts, so key and value are both searched. With no
+        # fact carrying the new value, every fact asserting the exact old value is retired.
         for old_value, new_value in extraction.corrections:
             old_norm = old_value.strip().lower()
+            new_norm = new_value.strip().lower()
             if not old_norm:
                 continue
             carriers = [set(normalise_key(k).split()) for k, v in extraction.facts
-                        if v.strip().lower() == new_value.strip().lower()]
+                        if new_norm and new_norm in f"{k} {v}".lower()]
             carriers += [set(normalise_key(f.key).split()) for f in state.facts
-                         if f.active and f.value.strip().lower() == new_value.strip().lower()]
+                         if f.active and new_norm and new_norm in f"{f.key} {f.value}".lower()]
             for fact in state.facts:
-                if not fact.active or old_norm not in fact.value.strip().lower():
-                    continue
-                if fact.value.strip().lower() == new_value.strip().lower():
+                text = f"{fact.key} {fact.value}".lower()
+                if not fact.active or not _contains_amount(text, old_norm) or (new_norm and new_norm in text):
                     continue
                 fact_tokens = set(normalise_key(fact.key).split())
-                if any(fact_tokens & c for c in carriers):
+                if not carriers or any(fact_tokens & c for c in carriers):
                     fact.invalidated_at = now_ts
                     fact.superseded_by = new_value
         # cap facts: drop oldest *invalidated* first; only then the oldest active ones

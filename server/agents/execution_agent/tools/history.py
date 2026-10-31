@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional
 from rank_bm25 import BM25Okapi
 
 from server.services.execution import get_execution_agent_logs
-from server.services.execution.log_store import ExecutionAgentLogStore
+from server.services.execution.log_store import ExecutionAgentLogStore, raw_key
 from server.services.execution.registry import tokenize
 
 _SNIPPET_CHARS = 600
@@ -59,8 +59,24 @@ def search_history(
     store = log_store or get_execution_agent_logs()
     entries = list(store.iter_entries(agent_name))
     # The raw sidecar holds full tool results; the log holds the compacted form that prompts
-    # render. Search both, so anything compaction dropped is still findable.
-    entries += [("tool_response_raw", ts, f"{tool}: {raw}") for ts, tool, raw in store.iter_raw_tool_responses(agent_name)]
+    # render. Search both, so anything compaction dropped is still findable. A raw result is
+    # indexed together with the request that led to it: an email body says "our reference is
+    # REF-1", the request said "the $182 refund", and the user asks about the $182 refund.
+    by_key, in_order = _request_contexts(entries)
+    raw_entries = []
+    index_text: Dict[int, str] = {}
+    unkeyed = 0
+    for ts, tool, raw, key in store.iter_raw_tool_responses_keyed(agent_name):
+        if key and by_key.get(key):
+            # Identical compacted payloads (the same boilerplate under the cap) share a key;
+            # raw rows and log entries are both in write order, so consume contexts in order.
+            context = by_key[key].pop(0)
+        else:  # rows written before round three: assume one row per tool_response, in order
+            context = in_order[unkeyed] if unkeyed < len(in_order) else ""
+            unkeyed += 1
+        index_text[len(entries) + len(raw_entries)] = f"{tool}: {raw} {context}"
+        raw_entries.append(("tool_response_raw", ts, f"{tool}: {raw}"))
+    entries += raw_entries
     query = (query or "").strip()
     try:
         limit = max(1, min(int(limit), 20))
@@ -70,15 +86,19 @@ def search_history(
         return {"query": query, "matches": [], "total_entries": len(entries)}
 
     query_tokens = tokenize(query)
-    corpus = [tokenize(payload) or ["_"] for _, _, payload in entries]
+    corpus = [tokenize(index_text.get(i, payload)) or ["_"] for i, (_, _, payload) in enumerate(entries)]
     bm25_scores = BM25Okapi(corpus).get_scores(query_tokens) if query_tokens else [0.0] * len(entries)
     max_bm = max((float(b) for b in bm25_scores), default=0.0)
     lowered = query.lower()
 
+    unique_query = set(query_tokens)
     scored = []
     for index, ((tag, ts, payload), bm) in enumerate(zip(entries, bm25_scores)):
-        score = (float(bm) / max_bm) if max_bm > 0 else 0.0
-        if lowered in payload.lower():
+        # BM25's length normalisation buries a long raw payload under the short request that
+        # mentions the same words; plain token overlap restores it (as registry.search does).
+        overlap = len(unique_query & set(corpus[index])) / len(unique_query) if unique_query else 0.0
+        score = ((float(bm) / max_bm) if max_bm > 0 else 0.0) + overlap
+        if lowered in index_text.get(index, payload).lower():
             score += _EXACT_BONUS
         if score > 0:
             scored.append((score, index, tag, ts, payload))
@@ -89,6 +109,22 @@ def search_history(
         for _, _, tag, ts, payload in scored[:limit]
     ]
     return {"query": query, "matches": matches, "total_entries": len(entries)}
+
+
+def _request_contexts(entries: List[tuple]) -> tuple:
+    """The agent request that preceded each ``tool_response`` log entry: keyed by the entry's
+    raw_key (how round-three raw rows are tied to their entry) and as a plain in-order list
+    (fallback for raw rows written before the key existed)."""
+    by_key: Dict[str, List[str]] = {}
+    in_order: List[str] = []
+    last_request = ""
+    for tag, _ts, payload in entries:
+        if tag == "agent_request":
+            last_request = payload
+        elif tag == "tool_response":
+            by_key.setdefault(raw_key(payload), []).append(last_request)
+            in_order.append(last_request)
+    return by_key, in_order
 
 
 def _window(payload: str, query: str, query_tokens: List[str]) -> str:

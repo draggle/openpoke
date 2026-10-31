@@ -39,6 +39,13 @@ def _decode_payload(payload: str) -> str:
 _ATTR_PATTERN = re.compile(r"(\w+)\s*=\s*\"([^\"]*)\"")
 
 
+def raw_key(log_payload: str) -> str:
+    """Short digest of a tool_response log payload, stored on its raw sidecar row."""
+    import hashlib
+
+    return hashlib.sha1(log_payload.encode("utf-8")).hexdigest()[:12]
+
+
 class ExecutionAgentLogStore:
     """Append-only journal for execution agents with XML-style tags."""
 
@@ -128,24 +135,32 @@ class ExecutionAgentLogStore:
         """
         self._append(agent_name, "tool_response", f"{tool_name}: {response}")
         if raw is not None and raw != response:
-            self._append_raw(agent_name, tool_name, raw)
+            self._append_raw(agent_name, tool_name, raw, key=raw_key(f"{tool_name}: {response}"))
 
     _RAW_LIMIT = 20_000
 
     def _raw_path(self, agent_name: str) -> Path:
         return self._base_dir / f"{_slugify(agent_name)}.raw.jsonl"
 
-    def _append_raw(self, agent_name: str, tool_name: str, raw: str) -> None:
+    def _append_raw(self, agent_name: str, tool_name: str, raw: str, *, key: str = "") -> None:
         import json
 
         self._ensure_directory()
-        record = {"ts": now_in_user_timezone().isoformat(), "tool": tool_name, "raw": raw[: self._RAW_LIMIT]}
+        # ``key`` ties the row to its compacted log entry (see raw_key), so search_history can
+        # index the raw result with the request that produced it.
+        record = {"ts": now_in_user_timezone().isoformat(), "tool": tool_name, "raw": raw[: self._RAW_LIMIT], "key": key}
         with self._lock_for(agent_name):
             with self._raw_path(agent_name).open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     def iter_raw_tool_responses(self, agent_name: str) -> Iterator[Tuple[str, str, str]]:
         """Yield (timestamp, tool_name, raw_result) from the sidecar journal, oldest first."""
+        for ts, tool, raw, _key in self.iter_raw_tool_responses_keyed(agent_name):
+            yield ts, tool, raw
+
+    def iter_raw_tool_responses_keyed(self, agent_name: str) -> Iterator[Tuple[str, str, str, str]]:
+        """Yield (timestamp, tool_name, raw_result, key); ``key`` is "" for rows written before
+        round three."""
         import json
 
         path = self._raw_path(agent_name)
@@ -158,7 +173,8 @@ class ExecutionAgentLogStore:
                 item = json.loads(line)
             except ValueError:
                 continue
-            yield str(item.get("ts", "")), str(item.get("tool", "")), str(item.get("raw", ""))
+            yield (str(item.get("ts", "")), str(item.get("tool", "")), str(item.get("raw", "")),
+                   str(item.get("key", "")))
 
     def record_agent_response(self, agent_name: str, response: str) -> None:
         """Record the agent's final response."""

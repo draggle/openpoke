@@ -19,6 +19,9 @@ the compacted prompt, measuring:
     retention[kind]         fraction of planted needles still present in the compacted prompt
     retention[changed_current] / [stale]   new value present / old value shown as current
     retention[recoverable]  buried needles absent from the prompt but found by search_history
+                            when searched the way a user would ("$182 refund reference"), not
+                            by the answer itself (round two searched for the code, which
+                            measured the index, not the recovery)
 
 The offline run uses the deterministic ``HeuristicExtractor``. It is expected to keep surface
 and commitment needles and to *lose buried ones* - that is the honest limitation of a
@@ -74,6 +77,7 @@ class Needle:
     text: str  # substring that must survive
     round: int
     stale: str = ""  # for ``changed``: the superseded value that must not be presented as current
+    query: str = ""  # for ``buried``: what a user would search for (never the answer itself)
 
 
 def score_retention(needles: List[Needle], compacted: str, search) -> Dict[str, float]:
@@ -105,7 +109,7 @@ def score_retention(needles: List[Needle], compacted: str, search) -> Dict[str, 
         hit = needle.text in compacted
         present.setdefault(needle.kind, []).append(hit)
         if needle.kind == "buried" and not hit:
-            matches = search(needle.text)
+            matches = search(needle.query or needle.text)
             recoverable.append(any(needle.text in (m.get("text") or "") for m in matches))
         elif needle.kind == "buried":
             recoverable.append(True)
@@ -183,7 +187,7 @@ def build_log(store: ExecutionAgentLogStore, agent: str, rounds: int, rng: rando
         else:
             store.record_agent_response(agent, f"{person} confirmed ${amount} will be paid by {date}")
         needles.append(Needle("surface", f"${amount}", i))
-        needles.append(Needle("buried", code, i))
+        needles.append(Needle("buried", code, i, query=f"${amount} {item} reference"))
     return needles
 
 

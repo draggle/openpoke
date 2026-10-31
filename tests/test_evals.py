@@ -265,3 +265,23 @@ def test_learned_selector_features_and_fit(tmp_path):
     assert set(result) >= {"learned_recall", "select_recall", "n_test", "weights", "feature_names"}
     assert 0.0 <= result["learned_recall"] <= 1.0 and 0.0 <= result["select_recall"] <= 1.0
     assert len(result["weights"]) == len(result["feature_names"])
+
+
+def test_buried_needles_are_scored_with_a_realistic_query(tmp_path):
+    """recoverable must use the question's words (amount + 'reference'), never the answer."""
+    import random
+    from evals.memory_eval import build_log, score_retention
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    needles = build_log(store, "Email to Priya", 6, random.Random(3))
+    buried = [n for n in needles if n.kind == "buried"]
+    assert buried and all(n.query and n.text not in n.query for n in buried)
+    seen = []
+
+    def search(q):
+        seen.append(q)
+        return []
+
+    score_retention(needles, "", search)
+    assert seen and all(q in {n.query for n in buried} for q in seen)

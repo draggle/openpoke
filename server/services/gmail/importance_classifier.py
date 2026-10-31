@@ -131,11 +131,13 @@ def gate_thresholds() -> Tuple[float, float]:
     p < low      -> dismissed, no chat model
     low <= p < high -> the full classifier prompt decides (and summarises)
     p >= high    -> summary-only prompt; the LLM cannot veto
-    Defaults keep round-two behaviour (one threshold, 0.5). ``OPENPOKE_JEV_EMAIL_THRESHOLD``
-    stays as an alias for the low edge.
+    Defaults (0.1, 0.5) come from the round-three sweep over recorded probabilities on the dev
+    set (recall 1.0 at precision 1.0 with 21 of 34 LLM calls) and were checked on the held-out
+    set. ``OPENPOKE_JEV_EMAIL_THRESHOLD=0.5`` alone restores the round-two one-edge gate.
     """
-    low = _env_float("OPENPOKE_JEV_EMAIL_LOW", _env_float("OPENPOKE_JEV_EMAIL_THRESHOLD", 0.5))
-    high = _env_float("OPENPOKE_JEV_EMAIL_HIGH", low)
+    legacy = os.getenv("OPENPOKE_JEV_EMAIL_THRESHOLD")
+    low = _env_float("OPENPOKE_JEV_EMAIL_LOW", float(legacy) if legacy else 0.1)
+    high = _env_float("OPENPOKE_JEV_EMAIL_HIGH", float(legacy) if legacy else 0.5)
     return low, max(low, high)
 
 

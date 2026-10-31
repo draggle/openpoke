@@ -78,6 +78,8 @@ def score(rows: Sequence[Dict]) -> Dict[str, Dict]:
         out[kind] = {"n": len(sub),
                      "call_rate": round(sum(r["called_search"] for r in sub) / len(sub), 3),
                      "accuracy": round(sum(r["correct"] for r in sub) / len(sub), 3)}
+        if any("answer_returned_by_search" in r for r in sub):
+            out[kind]["search_returned_answer"] = round(sum(bool(r.get("answer_returned_by_search")) for r in sub) / len(sub), 3)
     return out
 
 
@@ -87,6 +89,8 @@ async def _ask(agent: str, store: ExecutionAgentLogStore, system_blocks: List[Di
     messages = [{"role": "user", "content": question}]
     called = False
     text = ""
+    queries: List[str] = []
+    returned: List[str] = []
     for _ in range(3):
         response = await complete(role=ROLE_EXECUTION, messages=messages, system=system_blocks,
                                   tools=history_tool.get_schemas(), tag="recall_eval")
@@ -105,12 +109,14 @@ async def _ask(agent: str, store: ExecutionAgentLogStore, system_blocks: List[Di
                 args = {}
             if fn.get("name") == "search_history":
                 called = True
+                queries.append(str(args.get("query", "")))
                 result = history_tool.search_history(agent, args.get("query", ""), int(args.get("limit", 5) or 5), log_store=store)
+                returned.extend(m.get("text", "") for m in result.get("matches", []))
             else:
                 result = {"error": f"tool {fn.get('name')} is not available in this eval"}
             messages.append({"role": "tool", "tool_call_id": call.get("id") or "t",
                              "content": json.dumps({"tool": fn.get("name"), "status": "success", "result": result})})
-    return {"called_search": called, "text": (text or "")[:300]}
+    return {"called_search": called, "text": (text or "")[:300], "queries": queries, "returned": returned}
 
 
 async def evaluate(rounds: int, out_dir: Path, seed: int = 11, budget_chars: int = 12_000) -> Dict:
@@ -142,9 +148,11 @@ async def evaluate(rounds: int, out_dir: Path, seed: int = 11, budget_chars: int
     for q in questions:
         got = await _ask(agent, store, blocks, q["question"])
         correct = q["answer"].lower() in got["text"].lower()
-        rows.append({**q, **got, "correct": correct, "in_prompt": q["answer"] in history})
-        print(f"[{q['kind']:<7}] search={'Y' if got['called_search'] else 'n'} {'OK ' if correct else 'MISS'} "
-              f"want {q['answer']:<10} got {got['text'][:60]!r}", flush=True)
+        answer_returned = any(q["answer"] in snippet for snippet in got.pop("returned"))
+        rows.append({**q, **got, "correct": correct, "in_prompt": q["answer"] in history,
+                     "answer_returned_by_search": answer_returned})
+        print(f"[{q['kind']:<7}] search={'Y' if got['called_search'] else 'n'} returned={'Y' if answer_returned else 'n'} "
+              f"{'OK ' if correct else 'MISS'} want {q['answer']:<10} got {got['text'][:50]!r} q={got['queries'][:2]}", flush=True)
     result = {"rounds": rounds, "entries": sum(1 for _ in store.iter_entries(agent)),
               "history_chars": len(history), "scores": score(rows), "rows": rows}
     (out_dir / "recall_results_live.json").write_text(json.dumps(result, indent=2))

@@ -510,3 +510,33 @@ async def test_llm_extractor_parses_replaces_and_corrections(tmp_path, store, mo
     assert ext.facts == [("Priya invoice amount", "$700")]
     assert ext.replaces == {"Priya invoice amount": "invoice"}
     assert ext.corrections == [("$500", "$700")]
+
+
+# ---- round three, after the live run: corrections must not depend on the LLM noticing -----
+
+
+def test_merge_correction_matches_old_value_in_key(tmp_path, store):
+    """The live extractor wrote 'Hannah refund $3579: confirmed by Nov 4'; the amount sits in
+    the key, and no fact carried the new value. The correction alone must retire it."""
+    mem = make_memory(tmp_path, store)
+    state = MemoryState(facts=[Fact(key="Hannah refund $3579", value="confirmed payment by Nov 4", recorded_at="t0"),
+                               Fact(key="Bob deposit", value="$3579", recorded_at="t0")])
+    mem._merge(state, Extraction(corrections=[("$3579", "$3911")]), "t1")
+    by_key = {f.key: f for f in state.facts}
+    assert by_key["Hannah refund $3579"].active is False and by_key["Hannah refund $3579"].superseded_by == "$3911"
+    # with no carrier fact to anchor on, every fact asserting the exact old amount is retired
+    assert by_key["Bob deposit"].active is False
+
+
+async def test_llm_extractor_unions_regex_corrections(tmp_path, store, monkeypatch):
+    from server.openrouter_client import client as oc
+
+    store.record_request("a", "Hannah says the refund was wrong: it is $3911, not $3579. Update our records.")
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        return {"choices": [{"message": {"content": json.dumps({"facts": [], "corrections": [], "threads": [],
+                                                                  "resolved_threads": [], "episodes": ["Updated the refund"]})}}]}
+
+    monkeypatch.setattr(oc, "request_chat_completion", fake)
+    ext = await LLMExtractor()(list(store.iter_entries("a")), MemoryState())
+    assert ext.corrections == [("$3579", "$3911")]

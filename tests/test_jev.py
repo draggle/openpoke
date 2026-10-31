@@ -207,7 +207,7 @@ async def test_gate_low_equals_high_matches_round_two(jev_scripted, llm_calls, m
     from server.services.gmail import importance_classifier as ic
     monkeypatch.delenv("OPENPOKE_JEV_EMAIL_LOW", raising=False)
     monkeypatch.delenv("OPENPOKE_JEV_EMAIL_HIGH", raising=False)
-    monkeypatch.delenv("OPENPOKE_JEV_EMAIL_THRESHOLD", raising=False)
+    monkeypatch.setenv("OPENPOKE_JEV_EMAIL_THRESHOLD", "0.5")  # round-two: one edge
     assert ic.gate_thresholds() == (0.5, 0.5)
     jev_scripted(prob_by_state=lambda s: 0.4)
     assert await classify_email_importance(to_processed(ROWS["i01"])) is None and llm_calls == []
@@ -254,3 +254,11 @@ def test_gate_sweep_counts():
     # low 0.1, high 0.8: 0.05 dropped (no LLM); 0.3/0.55/0.7 LLM decides; 0.9/0.95 summary only
     r = by[(0.1, 0.8)]
     assert r["llm_calls"] == 5 and r["recall"] == 1.0 and r["precision"] == 1.0
+
+
+async def test_default_gate_is_the_swept_pair(monkeypatch):
+    """Chosen on the dev set by jev_bench's sweep and checked on the held-out set (round three)."""
+    from server.services.gmail import importance_classifier as ic
+    for name in ("OPENPOKE_JEV_EMAIL_LOW", "OPENPOKE_JEV_EMAIL_HIGH", "OPENPOKE_JEV_EMAIL_THRESHOLD"):
+        monkeypatch.delenv(name, raising=False)
+    assert ic.gate_thresholds() == (0.1, 0.5)
