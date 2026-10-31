@@ -334,3 +334,29 @@ def test_migration_uses_log_mtime(tmp_path, clock):
                         legacy_roster_path=legacy, log_dir=logs)
     assert reg.get("Old Agent").last_used_at == pytest.approx(five_days_ago, abs=1)
     assert reg.get("Fresh Agent").last_used_at == pytest.approx(clock(), abs=1)
+
+
+# ---- round two: agents named in the recent transcript are guaranteed and boosted --------
+
+
+def test_recent_agent_names_guarantee_inclusion(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=6, hot_cache_size=2)
+    reg.register("Dentist Appointment with Alice", "reschedule the dentist with Alice")
+    clock.advance(10 * DAY)
+    for i in range(60):
+        clock.advance(HOUR)
+        reg.register(f"Agent {i}", f"topic {i}")
+    sel = reg.select("did she reply?", recent_agent_names=["Dentist Appointment with Alice"])
+    entry = next((e for e in sel.shown if e.record.name == "Dentist Appointment with Alice"), None)
+    assert entry is not None and entry.reason == "transcript"
+    assert len(sel.shown) <= 6
+
+
+def test_transcript_names_outrank_lexical_ties(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=6, hot_cache_size=1, retrieval_k=4)
+    reg.register("Tara October Invoice", "chase Tara for the October invoice")
+    clock.advance(DAY)
+    reg.register("Tara Conference Talk", "ask Tara about the conference talk")
+    clock.advance(DAY)
+    hits = reg.search("nudge tara again", recent_agent_names=["Tara October Invoice"])
+    assert hits[0][0].name == "Tara October Invoice"

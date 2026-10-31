@@ -108,8 +108,9 @@ class InteractionAgentRuntime:
             self.conversation_log.record_agent_message(agent_message)
 
             system_prompt = build_system_prompt()
+            selection = select_roster(agent_message, transcript_before)
             messages = prepare_message_with_history(
-                agent_message, transcript_before, message_type="agent"
+                agent_message, transcript_before, message_type="agent", selection=selection
             )
 
             logger.info("Processing execution agent results")

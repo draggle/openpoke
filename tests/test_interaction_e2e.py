@@ -158,3 +158,18 @@ async def test_single_roster_selection_per_turn(monkeypatch, registry):
     result = await runtime.execute("hi there")
     assert result.success
     assert calls["select"] == 1
+
+
+def test_agent_names_in_transcript():
+    transcript = "\n".join([
+        '<user_message timestamp="t1">chase tara for the invoice</user_message>',
+        '<agent_message timestamp="t2">[SUCCESS] Tara October Invoice: sent a nudge</agent_message>',
+        '<poke_reply timestamp="t3">done</poke_reply>',
+        '<user_message timestamp="t4">book the dentist</user_message>',
+        '<agent_message timestamp="t5">[SUCCESS] Dentist Appointment with Alice: booked Thursday</agent_message>',
+    ])
+    known = ["Tara October Invoice", "Dentist Appointment with Alice", "Alice Lunch", "Tara Conference Talk"]
+    assert agent_module.agent_names_in_transcript(transcript, known) == [
+        "Dentist Appointment with Alice", "Tara October Invoice",
+    ]
+    assert agent_module.agent_names_in_transcript("", known) == []

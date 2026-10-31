@@ -2,7 +2,7 @@
 
 from html import escape
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from ...services.execution import get_agent_registry
 from ...services.execution.registry import RosterSelection
@@ -50,12 +50,28 @@ def _render_conversation_history(transcript: str) -> str:
     return f"<conversation_history>\n{history}\n</conversation_history>"
 
 
+# Agents named in the tail of the conversation, most recent first. Agent results are logged
+# as "[STATUS] Agent Name: ..." and users often repeat an agent's name, so an exact scan of
+# the last few entries against the known names is enough. This is the signal upstream relied
+# on to resolve "did she reply?".
+def agent_names_in_transcript(transcript: str, known: Iterable[str], tail_entries: int = 20) -> List[str]:
+    lines = [line for line in transcript.splitlines() if line.strip()][-tail_entries:]
+    names = sorted((n for n in known if n), key=len, reverse=True)
+    found: List[str] = []
+    for line in reversed(lines):
+        for name in names:
+            if name in line and name not in found:
+                found.append(name)
+    return found
+
+
 # Choose the roster for this turn: one registry load + selection, reused by the prompt and
 # by the routing hint.
 def select_roster(latest_text: str, transcript: str = "") -> RosterSelection:
     registry = get_agent_registry()
     registry.load()
-    return registry.select(latest_text)
+    recent = agent_names_in_transcript(transcript, registry.names()) if transcript else []
+    return registry.select(latest_text, recent_agent_names=recent)
 
 
 # Render the budgeted roster of execution agents relevant to this turn.

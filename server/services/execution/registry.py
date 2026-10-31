@@ -69,6 +69,7 @@ class RegistryConfig:
     description_chars: int = 160
     recent_requests_kept: int = 3
     recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
+    transcript_boost: float = 1.0  # added to the score of agents named in the recent conversation
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
     consolidate_min_overlap: float = 0.75  # name-token overlap required in *both* directions
@@ -84,6 +85,7 @@ class RegistryConfig:
             retrieval_k=_env_int("OPENPOKE_ROSTER_RETRIEVAL_K", 8),
             min_score=_env_float("OPENPOKE_ROSTER_MIN_SCORE", 0.0),
             recency_weight=_env_float("OPENPOKE_ROSTER_RECENCY_WEIGHT", 0.6),
+            transcript_boost=_env_float("OPENPOKE_ROSTER_TRANSCRIPT_BOOST", 1.0),
             consolidate=os.getenv("OPENPOKE_AGENT_CONSOLIDATE", "1") != "0",
             active_ttl_s=_env_float("OPENPOKE_AGENT_ACTIVE_TTL_S", 48 * 3600),
             archive_ttl_s=_env_float("OPENPOKE_AGENT_ARCHIVE_TTL_S", 14 * 24 * 3600),
@@ -436,8 +438,15 @@ class AgentRegistry:
         limit: int = 8,
         include_archived: bool = True,
         statuses: Optional[Dict[str, AgentStatus]] = None,
+        recent_agent_names: Sequence[str] = (),
     ) -> List[Tuple[AgentRecord, float]]:
-        """BM25 search over agent metadata. Returns (record, score) with score > min_score."""
+        """BM25 search over agent metadata. Returns (record, score) with score > min_score.
+
+        ``recent_agent_names`` are agents the conversation itself just mentioned; they get a
+        fixed boost so "nudge Tara again" resolves to the Tara thread on screen, not the one
+        BM25 happens to rank first.
+        """
+        recent = set(recent_agent_names)
         if include_archived:
             candidates = list(self._records.values())
         else:
@@ -467,13 +476,22 @@ class AgentRegistry:
             idle = max(0.0, now - record.last_used_at)
             recency = 0.5 ** (idle / self.config.recency_half_life_s)
             score = bm_norm + overlap / len(unique_query) + self.config.recency_weight * recency
+            if record.name in recent:
+                score += self.config.transcript_boost
             if score > self.config.min_score:
                 scored.append((record, score))
         scored.sort(key=lambda pair: (-pair[1], -pair[0].last_used_at))
         return scored[:limit]
 
-    def select(self, query: str = "", *, now: Optional[float] = None) -> RosterSelection:
-        """Pick the roster to show the Interaction Agent for this turn."""
+    def select(
+        self, query: str = "", *, now: Optional[float] = None, recent_agent_names: Sequence[str] = ()
+    ) -> RosterSelection:
+        """Pick the roster to show the Interaction Agent for this turn.
+
+        ``recent_agent_names``: agents named in the last few conversation entries, most recent
+        first. They are always shown (this is the signal upstream relied on for "did she
+        reply?") and boosted in retrieval.
+        """
         now = self._clock() if now is None else now
         records = list(self._records.values())
         total = len(records)
@@ -505,15 +523,24 @@ class AgentRegistry:
         for record in pinned_live[:pinned_budget]:
             chosen[record.name] = RosterEntry(record, statuses[record.name], True, "pinned")
 
-        # 1) hot cache: most recently used live agents
+        # 1) agents the conversation just mentioned, most recent mention first
+        live_by_name = {r.name: r for r in live}
+        for name in recent_agent_names:
+            record = live_by_name.get(name)
+            if record is None or name in chosen or len(chosen) >= self.config.max_roster:
+                continue
+            chosen[name] = RosterEntry(record, statuses[name], pinned(name), "transcript")
+
+        # 2) hot cache: most recently used live agents
         for record in sorted(live, key=lambda r: -r.last_used_at)[: self.config.hot_cache_size]:
-            if record.name not in chosen:
+            if record.name not in chosen and len(chosen) < self.config.max_roster:
                 chosen[record.name] = RosterEntry(record, statuses[record.name], pinned(record.name), "hot")
 
-        # 2) retrieval: relevance to the current message
+        # 3) retrieval: relevance to the current message
         if query.strip():
             for record, score in self.search(
-                query, limit=self.config.retrieval_k, include_archived=False, statuses=statuses
+                query, limit=self.config.retrieval_k, include_archived=False, statuses=statuses,
+                recent_agent_names=recent_agent_names,
             ):
                 if record.name in chosen:
                     chosen[record.name].score = max(chosen[record.name].score, score)
@@ -524,7 +551,7 @@ class AgentRegistry:
                     record, statuses[record.name], pinned(record.name), "retrieved", score
                 )
 
-        # 3) fill any remaining budget with the next most recent live agents
+        # 4) fill any remaining budget with the next most recent live agents
         if len(chosen) < self.config.max_roster:
             for record in sorted(live, key=lambda r: -r.last_used_at):
                 if len(chosen) >= self.config.max_roster:
