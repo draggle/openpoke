@@ -92,6 +92,30 @@ NAME_ONLY_QUERIES = ["did {person} reply?", "anything from {person}?", "nudge {p
 TOPIC_ONLY_QUERIES = ["any update on the {topic}?", "where are we on the {desc}", "is the {topic} sorted yet"]
 RECENCY_QUERIES = ["did she reply?", "did he reply?", "any news?", "ok send it", "go ahead", "what did they say", "yes do that", "and then?"]
 
+# Keyword-free follow-ups only make sense against the state of the thread the user touched
+# last: "ok send it" after a draft, "did she reply?" while awaiting, "cancel it" after a
+# reminder. Round one drew them uniformly, so a third were incoherent with the transcript and
+# both arms rightly asked the user what they meant. Each state lists the follow-ups a real user
+# could plausibly send next.
+RECENCY_BY_STATE: Dict[str, List[str]] = {
+    "draft": ["ok send it", "go ahead", "yes do that", "did she reply?", "did he reply?", "any news?", "what did they say"],
+    "awaiting": ["did she reply?", "did he reply?", "any news?", "what did they say", "nudge them again"],
+    "done": ["what did they say", "any news?", "and then?"],
+    "reminder": ["and then?", "cancel it", "move it to 10am", "yes do that"],
+}
+
+
+def recency_state(summary: str) -> str:
+    """Which follow-ups are coherent after this one-line summary (see SUMMARY_TEMPLATES)."""
+    lowered = summary.lower()
+    if lowered.startswith("sent draft"):
+        return "draft"
+    if lowered.startswith("reminder scheduled"):
+        return "reminder"
+    if "nothing pending" in lowered or "confirmed" in lowered:
+        return "done"
+    return "awaiting"
+
 
 @dataclass
 class SyntheticAgent:
@@ -113,6 +137,7 @@ class Query:
     target: str  # agent name
     kind: str  # keyword | name_only | topic_only | recency
     target_age_days: float
+    state: str = ""  # recency queries: the last thread's state the text was drawn for
 
 
 @dataclass
@@ -184,9 +209,11 @@ def generate(n_agents: int, *, seed: int = 7, span_days: int = 21, n_queries: in
     all_kinds = ["keyword", "name_only", "topic_only", "recency"]
     for i in range(n_queries):
         kind = all_kinds[i % 4] if stratified else rng.choice(kinds)
+        state = ""
         if kind == "recency":
             target = most_recent
-            text = rng.choice(RECENCY_QUERIES)
+            state = recency_state(target.summary)
+            text = rng.choice(RECENCY_BY_STATE[state])
         elif kind == "name_only":
             person = rng.choice(list(by_person))
             target = max(by_person[person], key=lambda a: a.last_used_at)
@@ -206,7 +233,7 @@ def generate(n_agents: int, *, seed: int = 7, span_days: int = 21, n_queries: in
         if rng.random() < 0.5:
             text = text.lower()
         queries.append(Query(text=text, target=target.name, kind=kind,
-                             target_age_days=(now - target.last_used_at) / DAY))
+                             target_age_days=(now - target.last_used_at) / DAY, state=state))
 
     return Workload(now=now, agents=agents, queries=queries, seed=seed, span_days=span_days)
 
@@ -229,4 +256,4 @@ def transcript_for(workload: Workload, k: int = 6) -> str:
     return "\n".join(lines)
 
 
-__all__ = ["DAY", "HOUR", "Query", "SyntheticAgent", "Workload", "generate", "transcript_for"]
+__all__ = ["DAY", "HOUR", "Query", "RECENCY_BY_STATE", "SyntheticAgent", "Workload", "generate", "recency_state", "transcript_for"]

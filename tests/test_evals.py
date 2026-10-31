@@ -151,3 +151,30 @@ def test_memory_eval_log_goes_through_runtime_payload_compaction(tmp_path):
     raw = [r for _, _, r in store.iter_raw_tool_responses("Email to Priya")]
     buried = [n.text for n in needles if n.kind == "buried"]
     assert buried and all(any(b in r for r in raw) for b in buried)
+
+
+def test_recency_queries_match_last_thread_state():
+    from evals.synthetic import RECENCY_BY_STATE, recency_state
+
+    texts = set()
+    for seed in (7, 8, 9):
+        w = generate(150, seed=seed, n_queries=40, stratified=True)
+        by_name = w.by_name()
+        for q in w.queries:
+            if q.kind != "recency":
+                continue
+            assert q.state == recency_state(by_name[q.target].summary)
+            assert q.text.lower() in {t.lower() for t in RECENCY_BY_STATE[q.state]}, (q.text, q.state)
+            texts.add(q.text.lower())
+    assert len(texts) >= 6
+
+
+def test_recency_query_coherent_examples():
+    from evals.synthetic import RECENCY_BY_STATE, recency_state
+
+    assert recency_state("Sent draft to Bob about the flight confirmation; awaiting reply") == "draft"
+    assert "ok send it" in RECENCY_BY_STATE["draft"]
+    assert recency_state("Bob confirmed the flight confirmation; nothing pending") == "done"
+    assert "ok send it" not in RECENCY_BY_STATE["done"]
+    assert recency_state("Waiting on Bob for the flight confirmation since 3d ago") == "awaiting"
+    assert recency_state("Reminder scheduled for the flight confirmation") == "reminder"
