@@ -2,11 +2,11 @@
   {
     "rounds": 5,
     "entries": 16,
-    "upstream_chars": 2923,
-    "compacted_chars": 3102,
-    "ratio": 1.0612384536435169,
+    "upstream_chars": 2641,
+    "compacted_chars": 2890,
+    "ratio": 1.0942824687618327,
     "retention": {
-      "buried": 1.0,
+      "buried": 0.0,
       "changed_current": 1.0,
       "commitment": 1.0,
       "constraint": 1.0,
@@ -19,11 +19,11 @@
   {
     "rounds": 10,
     "entries": 34,
-    "upstream_chars": 7027,
-    "compacted_chars": 7210,
-    "ratio": 1.026042407855415,
+    "upstream_chars": 6181,
+    "compacted_chars": 6434,
+    "ratio": 1.0409318880440057,
     "retention": {
-      "buried": 1.0,
+      "buried": 0.0,
       "changed_current": 1.0,
       "commitment": 1.0,
       "constraint": 1.0,
@@ -36,11 +36,11 @@
   {
     "rounds": 20,
     "entries": 68,
-    "upstream_chars": 13589,
-    "compacted_chars": 13923,
-    "ratio": 1.0245787033630143,
+    "upstream_chars": 12038,
+    "compacted_chars": 12442,
+    "ratio": 1.0335603920917096,
     "retention": {
-      "buried": 1.0,
+      "buried": 0.0,
       "changed_current": 1.0,
       "commitment": 1.0,
       "constraint": 1.0,
@@ -53,11 +53,11 @@
   {
     "rounds": 40,
     "entries": 136,
-    "upstream_chars": 28290,
-    "compacted_chars": 11411,
-    "ratio": 0.4033580770590315,
+    "upstream_chars": 24882,
+    "compacted_chars": 10771,
+    "ratio": 0.4328832087452777,
     "retention": {
-      "buried": 0.20833333333333334,
+      "buried": 0.0,
       "changed_current": 0.7142857142857143,
       "commitment": 1.0,
       "constraint": 1.0,
@@ -70,18 +70,18 @@
   {
     "rounds": 80,
     "entries": 274,
-    "upstream_chars": 57351,
-    "compacted_chars": 8876,
-    "ratio": 0.15476626388380324,
+    "upstream_chars": 50393,
+    "compacted_chars": 14732,
+    "ratio": 0.292342190383585,
     "retention": {
-      "buried": 0.061224489795918366,
-      "changed_current": 0.2857142857142857,
+      "buried": 0.0,
+      "changed_current": 0.42857142857142855,
       "commitment": 1.0,
       "constraint": 1.0,
-      "surface": 0.37142857142857144,
+      "surface": 0.6285714285714286,
       "stale": 0.0,
       "recoverable": 1.0
     },
-    "compactions": 3
+    "compactions": 2
   }
 ]

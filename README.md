@@ -57,15 +57,22 @@ and a summary that reads as closed ("Rosa confirmed the lunch; nothing pending")
 
 Source: [`docs/live/round2/memory_results_live.json`](docs/live/round2/memory_results_live.json).
 Runtime budget (12k chars of raw log before compaction); the two shorter logs never compact.
+Tool results are written the way the runtime writes them: compacted to 500 chars in the log,
+in full in the raw journal that `search_history` reads.
 
 | 136-entry agent log | Upstream | This fork |
 |---|---|---|
-| History in the system prompt | 7,072 tokens | **2,748 tokens (39%)** |
-| Surface facts / facts buried in tool payloads / reminders | 100% / 100% / 100% | **100% / 100% / 100%** |
+| History in the system prompt | 6,220 tokens | **2,548 tokens (41%)** |
+| Surface facts / reminders in the prompt | 100% / 100% | **100% / 100%** |
 | "Do not …" constraints the user stated | 100% | **100% (verbatim commitments tier)** |
 | Corrected amounts: new value present | 100% | **100%** |
-| Corrected amounts: old value still asserted as a fact | 0% | **29%** (2 of 7; see limitations) |
-| Buried facts recoverable with `search_history` | n/a | **100%** |
+| Corrected amounts: old value still asserted as a fact | n/a (no facts block) | **29%** (2 of 7; see limitations) |
+| Facts buried deep in a tool payload: in the prompt | 0% (500-char cap) | 0% (500-char cap) |
+| …recoverable with `search_history` | n/a | **100%** |
+
+The first round measured "buried" needles on payloads stored uncompacted, which the runtime
+never does; that row is now measured on the real write path, and the answer for the prompt is
+the same as upstream's. The raw journal is what makes the difference.
 
 ### Live email (prefilter + Claude Haiku 4.5 classifier, 46 labelled emails)
 
@@ -96,16 +103,17 @@ Sources: [`docs/live/round2/roster_results.json`](docs/live/round2/roster_result
 | Roster tokens per turn, 400 agents | 4,476 and growing linearly | **507, flat** (12 entries) |
 | Correct agent in the roster, 400 agents (300 queries) | 100% | 93%, **99% with `search_agents`** |
 | 32 hand-written paraphrases ("yuki car thing", "Priyaa invoice?") | — | 91% in roster, **100% with search** |
-| History in prompt, 274 entries (heuristic extractor, no LLM) | 14.3k tokens | **2.2k (15%)**; commitments and constraints 100%, surface facts 37%, buried 6% (but 100% recoverable via `search_history`) |
-| Modelled cost, 200 agents, 40 turns/day, 160-entry histories | $5.34/day | **$3.21/day (−40%)** |
+| History in prompt, 274 entries (heuristic extractor, no LLM) | 12.6k tokens | **3.7k (29%)**; commitments and constraints 100%, surface facts 63%, corrected values current 43%, buried facts 0% in prompt but 100% recoverable via `search_history` |
+| Modelled cost, 200 agents, 40 turns/day, long (136-entry, nearest measured) histories | $5.34/day | **$3.21/day (−40%)** |
 
 ![roster tokens vs agents](docs/roster_tokens_vs_agents.png)
 ![memory tokens vs history](docs/memory_tokens_vs_history.png)
 
 The cost model's headline moves with two assumptions, so the sensitivity table is part of the
-result: at 1.2 execution runs per turn the saving is 16% with 40-entry histories and 40% with
-160-entry ones; at 0.5 runs per turn, 22% and 37%. The roster term dominates for short-lived
-agents, the history term for long-lived ones. Neither flips sign.
+result: at 1.2 execution runs per turn the saving is 16% with short (34-entry, uncompacted)
+histories and 40% with long (136-entry) ones; at 0.5 runs per turn, 22% and 37%. Each row uses
+the nearest measured history size. The roster term dominates for short-lived agents, the
+history term for long-lived ones. Neither flips sign.
 
 ## The problem, located in code
 
@@ -174,9 +182,12 @@ MCP tool sets; that is the experiment to run if a real inbox shows paraphrase mi
 # Recent History            last 12 log entries, verbatim
 ```
 
-- **Commitments tier.** Sentences that read as a reminder or a rule ("remind me…", "never cc…",
-  "always…") are captured by regex when the request is dispatched and rendered first, above the
-  compressed memory, for young and old agents alike. They never pass through an extractor.
+- **Commitments tier.** Sentences that read as a standing rule or a reminder ("remind me…",
+  "never cc…", "always…", "from now on…", an imperative "do not…" without a one-off marker like
+  "yet" or "for now") are captured by regex when the request is dispatched and rendered first,
+  above the compressed memory, for young and old agents alike, with a note that the current
+  request wins on conflict. They never pass through an extractor, and a request that arrives
+  while a compaction is running cannot be overwritten by it.
   Source: "Benchmarks Are Surprisingly Compaction-Friendly" (arXiv 2610.31778): behavioural
   constraints are the content summaries drop first, and the loss compounds per compaction. The
   live eval shows 100% retention of planted "do not" rules through compaction.
@@ -188,11 +199,13 @@ MCP tool sets; that is the experiment to run if a real inbox shows paraphrase mi
 - **Facts** supersede on a normalised key ("Alice's email address" and "alice email" are the
   same fact). The extractor is one cheap-model call with a strict JSON contract; a deterministic
   heuristic is the fallback and powers the offline evals.
-- **`search_history` tool** for execution agents: BM25 plus exact-match over the agent's own raw
-  log, so anything compaction dropped is one call away. Source: AMA-Bench (arXiv 2602.22769):
-  lossy memory with similarity retrieval loses to keeping the trajectory retrievable, and
-  retrieval exposed as a tool the agent queries itself beats fixed top-k. Measured: 100% of
-  buried facts absent from the compacted prompt are recoverable.
+- **`search_history` tool** for execution agents: BM25 plus exact-match over the agent's log
+  *and* a raw journal of full tool results (the log keeps the 500-char compacted form because
+  it is rendered into prompts), returning a snippet windowed on the match. Anything compaction
+  or the write-time cap dropped is one call away. Source: AMA-Bench (arXiv 2602.22769): lossy
+  memory with similarity retrieval loses to keeping the trajectory retrievable, and retrieval
+  exposed as a tool the agent queries itself beats fixed top-k. Measured: 100% of facts buried
+  in tool payloads are recoverable, in both the live and offline runs.
 - Each compaction pushes a one-line summary into the registry, so the roster shows *what an
   agent is doing*.
 
@@ -215,9 +228,9 @@ quality bar is known at the call site, is the defensible version of the idea.
 Messages API via `OPENPOKE_LLM_API=anthropic`; Anthropic's OpenAI-compatible endpoint ignores the
 markers). The execution agent's prompt is split into a static block (cached) and the history
 block (not), because a cache block that contains the history is a cache write on every run.
-Measured on a three-turn live session (`/api/v1/meta/usage`): interaction 83% of prompt tokens
-served from cache, execution 61%. The live routing run above served 72% of the fork's prompt
-tokens from cache. The native adapter retries dropped connections and overloaded responses with
+Measured on a three-turn live session ([`docs/live/round2/cache_by_role_probe.json`](docs/live/round2/cache_by_role_probe.json)):
+interaction 83% of prompt tokens served from cache, execution 61%. The live routing run above
+served 72% of the fork's prompt tokens from cache. The native adapter retries dropped connections and overloaded responses with
 backoff; a 400 only disables caching if it is about the cache markers.
 
 ### 4. Email pre-filter (`server/services/gmail/prefilter.py`)
@@ -246,16 +259,16 @@ of the decision alone.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 151 tests, ~1s, no network
+python -m pytest                 # 165 tests, ~1s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 bash evals/run_live.sh           # every live evaluator (needs a key; ~$8)
 ```
 
 | Suite | What it checks |
 |---|---|
-| `tests/test_registry.py` | lifecycle, trigger pinning and reserved slots, trigger touch, budget, hot cache, retrieval, transcript boost, archived-but-searchable, upstream-identical `all` rendering, migration from log mtime, a 7-row consolidation table, trigram fallback |
-| `tests/test_memory.py` | upstream-identical before first compaction, prompt bound + verbatim tail, incremental compaction, fact supersession with normalised keys, threads, reminder and constraint commitments surviving 6 compactions, empty-extraction fallback and cursor safety, atomic save, LLM extractor parsing |
-| `tests/test_history_tool.py` | `search_history` finds a buried reference, ranks lexical matches, handles empty queries, is registered |
+| `tests/test_registry.py` | lifecycle, trigger pinning and reserved slots, trigger touch, budget, hot cache, retrieval reserved ahead of the hot cache, transcript boost with a cap, archived-but-searchable, upstream-identical `all` rendering, migration from log mtime, an 11-row consolidation table incl. full names and capitalised instructions, trigram fallback |
+| `tests/test_memory.py` | upstream-identical before first compaction, prompt bound + verbatim tail, incremental compaction, fact supersession with normalised keys, threads, reminder and constraint commitments surviving 6 compactions and a concurrent compaction, regex precision on one-off instructions, empty-extraction fallback and cursor safety, atomic save, real background scheduling and shutdown, LLM extractor parsing |
+| `tests/test_history_tool.py` | `search_history` finds a reference that only the raw journal holds, windows the snippet on the match, ranks lexical matches, handles empty queries, is registered |
 | `tests/test_router_and_gateway.py` | tiering, overrides, usage from provider or estimated, cache block only on cacheable blocks, cache-write pricing, cache disable only on a cache_control rejection, family prices for dated model ids |
 | `tests/test_anthropic_native.py` | message/tool/system conversion both ways, key precedence, retry on transport errors and 529, no retry on 400 |
 | `tests/test_email_prefilter.py` | every important fixture reaches the model (incl. the six adversarial ones); only spam and labelled promotions are hard skips |
@@ -289,11 +302,21 @@ Agent uses, and a quarter of queries carry no retrievable words.
   proven; prompting the model to use it is the open item.
 - **Stale facts.** With the LLM extractor, 2 of 7 corrected amounts kept the old value as a
   separate active fact. Key normalisation helps only when the extractor reuses the key; the
-  next step is an entity-plus-attribute key schema in the extractor contract.
+  next step is an entity-plus-attribute key schema in the extractor contract. The metric was
+  tightened twice during this round (it first counted the timeline's "was $500" and the fact's
+  own "(corrected from $500)" as stale, scoring 86%); the 29% is from a fresh live run with the
+  final metric.
+- **The 100% commitment and constraint rows measure the mechanism**: the planted needles use
+  the regex's own trigger words. How often the regex misses a real rule, or records a one-off
+  as a rule, is not measured; the regex is deliberately narrow and the block tells the model
+  the current request wins.
 - **The email classifier misses 4 of 21 important emails**, including a bank alert. That is a
   prompt problem in `importance_classifier.py`, now visible because the rules no longer hide it.
 - **The cost model is a model.** Its two driving assumptions are printed and swept.
 - **Consolidation is unit-tested, not live-measured**: the live eval never creates agents.
+- **Not everything turns off with the upstream flags.** `search_history` and its prompt line
+  are always present, and consolidation has its own switch (`OPENPOKE_AGENT_CONSOLIDATE=0`).
+  The trigram fallback is off and, on the paraphrase set, inert.
 - The live workload is synthetic. The code paths are real, the inbox is not.
 
 ## Running the server
@@ -313,7 +336,7 @@ Fixed in this fork:
   instead of dismissing.
 - **Constraints lost to summarisation** — the verbatim commitments tier.
 - **Nothing recoverable after compaction** — `search_history`.
-- **Zero tests** — 151 now, plus seven evaluators.
+- **Zero tests** — 165 now, plus seven evaluators.
 
 Flagged, not built (what I'd do next, in order):
 1. **Calls per turn.** A three-turn session costs 11 LLM calls; this work cuts tokens per call
@@ -348,6 +371,6 @@ server/agents/execution_agent/tools/history.py    search_history tool
 server/services/trigger_scheduler.py              touch agent on fire
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            151 tests + 46 labelled emails
+tests/                                            165 tests + 46 labelled emails
 evals/                                            7 evaluators, synthetic workload, paraphrase set, stats
 ```

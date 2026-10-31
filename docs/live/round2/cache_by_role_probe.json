@@ -1,0 +1,12 @@
+{
+  "what": "GET /api/v1/meta/usage after a three-turn live chat session on the round-two server (native Messages API, Sonnet 4.5 for interaction/execution). Turns: create a reminder with a 'never cc' rule; move it to 10am; ask what was set. Composio not connected (dummy keys), so only reminder tools ran.",
+  "date": "2026-10-31",
+  "total": {"calls": 11, "prompt_tokens": 48035, "completion_tokens": 862, "cost_usd": 0.0627, "cached_tokens": 35921, "cache_write_tokens": 3576},
+  "by_role": {
+    "interaction": {"calls": 7, "prompt_tokens": 30447, "completion_tokens": 379, "cost_usd": 0.0290, "cached_tokens": 25193, "cache_write_tokens": 0},
+    "execution": {"calls": 4, "prompt_tokens": 17588, "completion_tokens": 483, "cost_usd": 0.0337, "cached_tokens": 10728, "cache_write_tokens": 3576}
+  },
+  "cached_share": {"interaction": 0.83, "execution": 0.61},
+  "registry_after": {"name": "Alice Lunch Invoice", "status": "active", "pinned": true, "use_count": 2},
+  "commitments_after": ["Set a reminder for tomorrow at 9am to send Alice the lunch invoice.", "Important: Never cc her manager on any emails related to this.", "Change the reminder time from 9am to 10am tomorrow."]
+}
