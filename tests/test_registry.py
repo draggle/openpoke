@@ -409,3 +409,21 @@ def test_transcript_tier_does_not_hide_explicit_query_target(tmp_path, clock):
     sel = reg.select("what happened with the acme invoice dispute?", recent_agent_names=recent[:6])
     assert "Acme invoice dispute" in sel.names(), sel.names()
     assert len(sel.shown) <= 12
+
+
+# ---- round three: the thread the user touched last is marked -------------------------------
+
+
+def test_render_marks_most_recent_agent_last_touched(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=5)
+    reg.register("Tara October Invoice", "chase Tara's invoice")
+    clock.advance(HOUR)
+    reg.register("Bob Flight", "find Bob's flight")
+    rendered = reg.render(reg.select("any news?"))
+    lines = [line for line in rendered.splitlines() if line.startswith("<agent ")]
+    assert rendered.count('last_touched="true"') == 1
+    assert 'name="Bob Flight"' in lines[0] and 'last_touched="true"' in lines[0]
+
+    upstream = AgentRegistry(tmp_path / "all.json", config=RegistryConfig(strategy="all"), clock=clock)
+    upstream.register("Bob Flight", "find Bob's flight")
+    assert "last_touched" not in upstream.render(upstream.select("any news?"))

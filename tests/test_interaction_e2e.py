@@ -176,3 +176,12 @@ def test_agent_names_in_transcript():
         "Dentist Appointment with Alice", "Tara October Invoice",
     ]
     assert agent_module.agent_names_in_transcript("", known) == []
+
+
+def test_system_prompt_names_last_touched_rule():
+    from server.agents.interaction_agent.agent import build_system_prompt
+
+    prompt = build_system_prompt()
+    assert 'last_touched="true"' in prompt
+    paragraph = next(p for p in prompt.split("\n") if "names a person" in p)
+    assert "search_agents" in paragraph

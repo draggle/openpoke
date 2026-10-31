@@ -660,13 +660,18 @@ class AgentRegistry:
             )
 
         lines: List[str] = []
-        for entry in selection.shown:
+        for index, entry in enumerate(selection.shown):
             record = entry.record
             attrs = [
                 f'name="{escape(record.name or "agent", quote=True)}"',
                 f'status="{entry.status.value}"',
                 f'last_used="{_relative_time(now - record.last_used_at)}"',
             ]
+            if index == 0:
+                # The list is most-recent first and the hot cache always holds the most
+                # recently used live agent, so the first entry is the thread the user touched
+                # last: the referent of a bare "ok send it" / "did she reply?".
+                attrs.append('last_touched="true"')
             if entry.pinned:
                 attrs.append('has_reminders="true"')
             body = record.summary or record.description
