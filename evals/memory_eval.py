@@ -6,12 +6,19 @@ and plant *needles* - facts the agent should still know later:
 - ``surface`` needles appear in agent requests/responses (where the LLM writes its summary)
 - ``buried``  needles appear only inside raw tool payloads (an email body returned by Gmail)
 - ``commitment`` needles are reminder requests ("remind me Friday ... crown")
+- ``changed`` needles are amounts that were later corrected: the NEW value must be present and
+  the OLD value must not be presented as current (a compactor that keeps the stale number, or
+  both, scores badly; presence-only metrics cannot see this)
+- ``constraint`` needles are "do not ..." rules the user stated, which compaction studies show
+  summaries drop first (arXiv 2610.31778)
 
 Then, for increasing history lengths, we compare the upstream prompt (full transcript) against
 the compacted prompt, measuring:
 
     history_chars           upstream vs compacted (and the ratio)
     retention[kind]         fraction of planted needles still present in the compacted prompt
+    retention[changed_current] / [stale]   new value present / old value shown as current
+    retention[recoverable]  buried needles absent from the prompt but found by search_history
 
 The offline run uses the deterministic ``HeuristicExtractor``. It is expected to keep surface
 and commitment needles and to *lose buried ones* - that is the honest limitation of a
@@ -49,9 +56,40 @@ TOOL_NOISE = (
 
 @dataclass
 class Needle:
-    kind: str  # surface | buried | commitment
+    kind: str  # surface | buried | commitment | changed | constraint
     text: str  # substring that must survive
     round: int
+    stale: str = ""  # for ``changed``: the superseded value that must not be presented as current
+
+
+def score_retention(needles: List[Needle], compacted: str, search) -> Dict[str, float]:
+    """Score what survived. ``search(query)`` returns search_history-style matches."""
+    # Only a compacted prompt has a memory section that *asserts* values; a raw transcript
+    # merely records history, so old values in it are not stale memory.
+    head = compacted.split("# Recent History")[0] if "# Recent History" in compacted else ""
+    # Lines in the "Changed facts (old -> new)" block legitimately show old values.
+    head_current = "\n".join(line for line in head.splitlines() if "→" not in line)
+    present: Dict[str, List[bool]] = {}
+    stale: List[bool] = []
+    recoverable: List[bool] = []
+    for needle in needles:
+        if needle.kind == "changed":
+            present.setdefault("changed_current", []).append(needle.text in compacted)
+            stale.append(needle.stale in head_current)
+            continue
+        hit = needle.text in compacted
+        present.setdefault(needle.kind, []).append(hit)
+        if needle.kind == "buried" and not hit:
+            matches = search(needle.text)
+            recoverable.append(any(needle.text in (m.get("text") or "") for m in matches))
+        elif needle.kind == "buried":
+            recoverable.append(True)
+    out = {k: sum(v) / len(v) for k, v in sorted(present.items())}
+    if stale:
+        out["stale"] = sum(stale) / len(stale)
+    if recoverable:
+        out["recoverable"] = sum(recoverable) / len(recoverable)
+    return out
 
 
 @dataclass
@@ -69,8 +107,30 @@ def build_log(store: ExecutionAgentLogStore, agent: str, rounds: int, rng: rando
     person = agent.split()[-1]
     email = f"{person.lower()}@example.com"
     needles: List[Needle] = []
+    amounts: List[Tuple[int, str]] = []  # (amount, item) for later corrections
     for i in range(rounds):
         kind = rng.random()
+        if i % 9 == 2:
+            # constraint: a rule the user stated; must survive verbatim
+            rule = rng.choice([
+                f"Do not mention the deposit dispute to {person}.",
+                f"Never cc {person}'s manager on these emails.",
+                f"Always send {person} the PDF version, not a link.",
+            ])
+            store.record_request(agent, f"Follow up with {person} on the open items. {rule}")
+            store.record_agent_response(agent, f"Followed up with {person}; noted the rule.")
+            needles.append(Needle("constraint", rule, i))
+            continue
+        if i % 5 == 4 and amounts:
+            # changed: a correction to an earlier amount
+            old_amount, item = rng.choice(amounts)
+            new_amount = old_amount + rng.randint(50, 400)
+            store.record_request(agent, f"{person} says the {item} was wrong: it is ${new_amount}, not ${old_amount}. Update our records.")
+            store.record_agent_response(agent, f"Updated: the {item} is ${new_amount} (was ${old_amount}).")
+            needles.append(Needle("changed", f"${new_amount}", i, stale=f"${old_amount}"))
+            needles = [n for n in needles if not (n.kind == "surface" and n.text == f"${old_amount}")]
+            amounts = [(a, it) for a, it in amounts if a != old_amount]
+            continue
         if i % 7 == 3:
             # commitment: a reminder the user asked for
             day = rng.choice(["Friday", "Monday", "Thursday"])
@@ -84,8 +144,10 @@ def build_log(store: ExecutionAgentLogStore, agent: str, rounds: int, rng: rando
             continue
 
         amount = rng.randint(120, 4800)
+        item = ["invoice", "deposit", "refund"][i % 3]
+        amounts.append((amount, item))
         date = f"{rng.choice(['Nov', 'Dec', 'Jan'])} {rng.randint(1, 28)}"
-        store.record_request(agent, f"Ask {person} whether the {['invoice', 'deposit', 'refund'][i % 3]} for ${amount} can be settled by {date}")
+        store.record_request(agent, f"Ask {person} whether the {item} for ${amount} can be settled by {date}")
         store.record_action(agent, f"Calling gmail_create_draft with: {{'to': '{email}', 'subject': 'Re: payment'}}")
         # buried needle: lives only in the tool payload
         code = f"REF-{rng.randint(10000, 99999)}"
@@ -101,7 +163,10 @@ def build_log(store: ExecutionAgentLogStore, agent: str, rounds: int, rng: rando
     return needles
 
 
-async def evaluate(rounds_list: List[int], live: bool, out_dir: Path, seed: int = 11) -> List[RoundResult]:
+async def evaluate(rounds_list: List[int], live: bool, out_dir: Path, seed: int = 11,
+                   budget_chars: int = 12_000) -> List[RoundResult]:
+    from server.agents.execution_agent.tools.history import search_history
+
     results: List[RoundResult] = []
     for rounds in rounds_list:
         rng = random.Random(seed + rounds)
@@ -117,7 +182,11 @@ async def evaluate(rounds_list: List[int], live: bool, out_dir: Path, seed: int 
         upstream = store.load_transcript(agent)
         extractor = LLMExtractor() if live else HeuristicExtractor()
         memory = AgentMemory(work / "mem", log_store=store, extractor=extractor,
-                             config=MemoryConfig(budget_chars=6000, tail_entries=12))
+                             config=MemoryConfig(budget_chars=budget_chars, tail_entries=12))
+        # The runtime records commitments at dispatch time; replay that for every request.
+        for tag, _ts, payload in store.iter_entries(agent):
+            if tag == "agent_request":
+                memory.note_request(agent, payload)
         # Simulate compaction happening as the log grew: compact every ~10 rounds' worth.
         compactions = 0
         entries = list(store.iter_entries(agent))
@@ -136,10 +205,9 @@ async def evaluate(rounds_list: List[int], live: bool, out_dir: Path, seed: int 
             await memory.compact(agent)
             compactions += 1
         compacted = memory.render_history(agent)
-
-        retention: Dict[str, List[bool]] = {}
-        for needle in needles:
-            retention.setdefault(needle.kind, []).append(needle.text in compacted)
+        retention = score_retention(
+            needles, compacted, search=lambda q: search_history(agent, q, limit=5, log_store=store)["matches"]
+        )
         results.append(
             RoundResult(
                 rounds=rounds,
@@ -147,7 +215,7 @@ async def evaluate(rounds_list: List[int], live: bool, out_dir: Path, seed: int 
                 upstream_chars=len(upstream),
                 compacted_chars=len(compacted),
                 ratio=len(compacted) / max(1, len(upstream)),
-                retention={k: sum(v) / len(v) for k, v in sorted(retention.items())},
+                retention=retention,
                 compactions=compactions,
             )
         )
@@ -196,11 +264,12 @@ def main() -> None:
     parser.add_argument("--live", action="store_true", help="use the LLM extractor (needs OPENROUTER_API_KEY)")
     parser.add_argument("--out", default="evals/out")
     parser.add_argument("--no-plot", action="store_true")
+    parser.add_argument("--budget", type=int, default=12_000, help="compaction budget in chars (runtime default 12000)")
     args = parser.parse_args()
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     rounds = [int(x) for x in args.rounds.split(",") if x.strip()]
-    results = asyncio.run(evaluate(rounds, args.live, out_dir))
+    results = asyncio.run(evaluate(rounds, args.live, out_dir, budget_chars=args.budget))
     print_table(results)
     if not args.no_plot:
         print(f"\nchart: {plot(results, out_dir)}")

@@ -66,3 +66,26 @@ async def test_decide_counts_search_calls(tmp_path, monkeypatch):
     assert decision.agent == target
     assert decision.search_calls == 1
     assert decision.none_text == ""
+
+
+def test_memory_eval_detects_stale_value():
+    from evals.memory_eval import Needle, score_retention
+
+    needles = [Needle("changed", "$700", 4, stale="$500"), Needle("buried", "REF-1", 1),
+               Needle("constraint", "Do not mention the deposit.", 2)]
+    kept_old = "## Facts\n- invoice: $500\n\n# Recent History (2 most recent entries, verbatim)\n<x>z</x>"
+    r = score_retention(needles, kept_old, search=lambda q: [])
+    assert r["changed_current"] == 0.0 and r["stale"] == 1.0
+    assert r["buried"] == 0.0 and r["recoverable"] == 0.0 and r["constraint"] == 0.0
+
+    kept_new = ("## Commitments (verbatim)\n- Do not mention the deposit.\n## Facts\n- invoice: $700\n"
+                "## Changed facts (old → new)\n- invoice: $500 → $700\n\n# Recent History (0 most recent entries, verbatim)\n")
+    r = score_retention(needles, kept_new, search=lambda q: [{"text": "reference REF-1"}] if "REF-1" in q else [])
+    assert r["changed_current"] == 1.0 and r["stale"] == 0.0
+    assert r["buried"] == 0.0 and r["recoverable"] == 1.0 and r["constraint"] == 1.0
+
+    # An uncompacted agent (raw transcript, no memory section) asserts nothing as current, so
+    # the old value in the raw log is not "stale memory".
+    raw = "<agent_request>invoice $500</agent_request>\n<agent_request>now $700 not $500</agent_request>"
+    r = score_retention(needles, raw, search=lambda q: [])
+    assert r["changed_current"] == 1.0 and r["stale"] == 0.0
