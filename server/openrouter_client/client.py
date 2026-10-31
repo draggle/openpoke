@@ -3,11 +3,15 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional
 
+import os
+
 import httpx
 
 from ..config import get_settings
 
-OpenRouterBaseURL = "https://openrouter.ai/api/v1"
+# Any OpenAI-compatible chat-completions endpoint works here (OpenRouter by default;
+# e.g. OPENROUTER_BASE_URL=https://ai-gateway.vercel.sh/v1 for Vercel AI Gateway).
+OpenRouterBaseURL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
 
 
 class OpenRouterError(RuntimeError):
