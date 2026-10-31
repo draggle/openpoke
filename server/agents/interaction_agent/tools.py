@@ -7,7 +7,11 @@ from typing import Any, Optional
 
 from ...logging_config import logger
 from ...services.conversation import get_conversation_log
-from ...services.execution import get_agent_roster, get_execution_agent_logs
+from ...services.execution import (
+    get_agent_registry,
+    get_agent_roster,
+    get_execution_agent_logs,
+)
 from ..execution_agent.batch_manager import ExecutionBatchManager
 
 
@@ -88,6 +92,33 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "search_agents",
+            "description": (
+                "Search existing execution agents by topic, person, or keyword. The roster shown "
+                "in <active_agents> is only the most recent and most relevant agents; call this "
+                "before creating a new agent when the task may belong to an older agent that is "
+                "not listed (e.g. a follow-up about a person or thread handled days ago)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Keywords describing the person, thread, or task to look for.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of matches to return (default 5).",
+                    },
+                },
+                "required": ["query"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "wait",
             "description": "Wait silently when a message is already in conversation history to avoid duplicating responses. Adds a <wait> log entry that is not visible to the user.",
             "parameters": {
@@ -111,12 +142,14 @@ _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 # Create or reuse execution agent and dispatch instructions asynchronously
 def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     """Send instructions to an execution agent."""
+    registry = get_agent_registry()
+    registry.load()
+    is_new = registry.register(agent_name, instructions, reason="user")
+
+    # Keep the legacy roster.json in sync so older tooling keeps working.
     roster = get_agent_roster()
     roster.load()
-    existing_agents = set(roster.get_agents())
-    is_new = agent_name not in existing_agents
-
-    if is_new:
+    if agent_name not in set(roster.get_agents()):
         roster.add_agent(agent_name)
 
     get_execution_agent_logs().record_request(agent_name, instructions)
@@ -189,6 +222,24 @@ def send_draft(
     )
 
 
+# Search the registry for agents that are not in the current budgeted roster
+def search_agents(query: str, limit: int = 5) -> ToolResult:
+    """Return existing agents matching the query, including dormant/archived ones."""
+    registry = get_agent_registry()
+    registry.load()
+    try:
+        limit = max(1, min(int(limit), 20))
+    except (TypeError, ValueError):
+        limit = 5
+    results = registry.search(query, limit=limit, include_archived=True)
+    payload = registry.render_search_results(results)
+    logger.info(f"search_agents('{query}') -> {len(payload)} matches")
+    return ToolResult(
+        success=True,
+        payload={"query": query, "matches": payload, "total_agents": len(registry)},
+    )
+
+
 # Record silent wait state to avoid duplicate responses
 def wait(reason: str) -> ToolResult:
     """Wait silently and add a wait log entry that is not visible to the user."""
@@ -231,6 +282,8 @@ def handle_tool_call(name: str, arguments: Any) -> ToolResult:
             return send_message_to_user(**args)
         if name == "send_draft":
             return send_draft(**args)
+        if name == "search_agents":
+            return search_agents(**args)
         if name == "wait":
             return wait(**args)
 

@@ -4,7 +4,7 @@ from html import escape
 from pathlib import Path
 from typing import Dict, List
 
-from ...services.execution import get_agent_roster
+from ...services.execution import get_agent_registry
 
 _prompt_path = Path(__file__).parent / "system_prompt.md"
 SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
@@ -26,7 +26,7 @@ def prepare_message_with_history(
     sections: List[str] = []
 
     sections.append(_render_conversation_history(transcript))
-    sections.append(f"<active_agents>\n{_render_active_agents()}\n</active_agents>")
+    sections.append(f"<active_agents>\n{_render_active_agents(latest_text)}\n</active_agents>")
     sections.append(_render_current_turn(latest_text, message_type))
 
     content = "\n\n".join(sections)
@@ -41,21 +41,17 @@ def _render_conversation_history(transcript: str) -> str:
     return f"<conversation_history>\n{history}\n</conversation_history>"
 
 
-# Format currently active execution agents into XML tags for LLM awareness
-def _render_active_agents() -> str:
-    roster = get_agent_roster()
-    roster.load()
-    agents = roster.get_agents()
+# Render the budgeted roster of execution agents relevant to this turn.
+def _render_active_agents(query: str = "") -> str:
+    """Select and render execution agents for the Interaction Agent.
 
-    if not agents:
-        return "None"
-
-    rendered: List[str] = []
-    for agent_name in agents:
-        name = escape(agent_name or "agent", quote=True)
-        rendered.append(f'<agent name="{name}" />')
-
-    return "\n".join(rendered)
+    Upstream rendered every agent name ever created. The registry now picks a bounded set
+    (recent + relevant to ``query``) and annotates each with status and a one-line summary.
+    """
+    registry = get_agent_registry()
+    registry.load()
+    selection = registry.select(query)
+    return registry.render(selection)
 
 
 # Wrap the current message in appropriate XML tags based on sender type

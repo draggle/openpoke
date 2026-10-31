@@ -9,6 +9,7 @@ from typing import Optional, Set
 from ..agents.execution_agent.batch_manager import ExecutionBatchManager
 from ..agents.execution_agent.runtime import ExecutionResult
 from ..logging_config import logger
+from .execution import get_agent_registry
 from .triggers import TriggerRecord, get_trigger_service
 
 
@@ -89,6 +90,9 @@ class TriggerScheduler:
                     "scheduled_for": trigger.next_trigger,
                 },
             )
+            # A firing trigger is activity: re-activate the owning agent so it is not
+            # treated as dormant/archived while it still has scheduled work.
+            get_agent_registry().touch(trigger.agent_name, reason="trigger")
             execution_manager = ExecutionBatchManager()
             result = await execution_manager.execute_agent(
                 trigger.agent_name,
