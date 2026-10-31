@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from .agent import ExecutionAgent
 from .tools import get_tool_schemas, get_tool_registry
 from ...config import get_settings
+from ...services.execution import get_agent_memory
 from ...services.llm import ROLE_EXECUTION, complete as llm_complete, get_model_router
 from ...logging_config import logger
 
@@ -127,6 +128,7 @@ class ExecutionAgentRuntime:
                 raise RuntimeError("LLM did not return a final response")
 
             self.agent.record_response(final_response)
+            await self._maybe_compact_memory()
 
             return ExecutionResult(
                 agent_name=self.agent.name,
@@ -147,6 +149,15 @@ class ExecutionAgentRuntime:
                 response=failure_text,
                 error=error_msg
             )
+
+    # Compress older history into structured memory when the raw log exceeds its budget
+    async def _maybe_compact_memory(self) -> None:
+        try:
+            memory = get_agent_memory()
+            if memory.needs_compaction(self.agent.name):
+                await memory.compact(self.agent.name)
+        except Exception as exc:  # never let memory maintenance fail the task
+            logger.warning(f"[{self.agent.name}] memory compaction skipped: {exc}")
 
     # Execute OpenRouter API call with system prompt, messages, and optional tool schemas
     async def _make_llm_call(self, system_prompt: str, messages: List[Dict], with_tools: bool) -> Dict:

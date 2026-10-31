@@ -1,6 +1,14 @@
 """Execution agent support services."""
 
 from .log_store import ExecutionAgentLogStore, get_execution_agent_logs
+from .memory import (
+    AgentMemory,
+    HeuristicExtractor,
+    LLMExtractor,
+    MemoryConfig,
+    MemoryState,
+    get_agent_memory,
+)
 from .registry import (
     AgentRecord,
     AgentRegistry,
@@ -22,4 +30,10 @@ __all__ = [
     "RegistryConfig",
     "RosterSelection",
     "get_agent_registry",
+    "AgentMemory",
+    "HeuristicExtractor",
+    "LLMExtractor",
+    "MemoryConfig",
+    "MemoryState",
+    "get_agent_memory",
 ]
