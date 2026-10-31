@@ -110,17 +110,20 @@ async def test_bounded_roster_search_fallback_and_delegation(monkeypatch, regist
 
     runtime = InteractionAgentRuntime()
     runtime.conversation_log = conversation
-    result = await runtime.execute("did priya ever get back to me about that invoice?")
+    # Keyword-free follow-up: nothing in it retrieves the Priya agent, so it is genuinely
+    # outside the first roster and only search_agents can bring it back.
+    result = await runtime.execute("did she ever get back to me about that thing?")
     await asyncio.sleep(0)  # let the fire-and-forget execution task run
 
     assert result.success, result.error
     assert result.response == "checking with priya's thread now"
 
-    # (1) bounded roster in the first prompt
+    # (1) bounded roster in the first prompt, and the target is NOT in it
     first = seen_prompts[0][0]["content"]
     roster = first.split("<active_agents>")[1].split("</active_agents>")[0]
     assert len(re.findall(r"<agent ", roster)) <= 12
     assert "<roster_note>" in roster and "60 agents" in roster
+    assert "Invoice from Priya" not in roster
     # (2)+(3) search found the buried agent, delegation reached it, registry recorded the touch
     assert dispatched["agent"] == "Invoice from Priya"
     assert registry.get("Invoice from Priya").use_count == 2

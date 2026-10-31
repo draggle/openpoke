@@ -43,41 +43,51 @@ def test_execution_runtime_uses_trigger_role(monkeypatch):
     assert ExecutionAgentRuntime("a").role == ROLE_EXECUTION
 
 
-async def test_watcher_classifies_concurrently(monkeypatch):
-    """With concurrency 4, 8 classifier calls of 50ms each finish in ~2 rounds, not 8."""
+async def test_watcher_classifies_concurrently(monkeypatch, tmp_path):
+    """Drive the real poll loop: 8 unseen emails, classifier 50ms each, concurrency 4 ->
+    at most 4 in flight at once, finished in ~2 rounds, every email marked seen, summaries sent."""
+    from datetime import datetime, timezone
     from server.services.gmail import importance_watcher as w
+    from server.services.gmail.seen_store import GmailSeenStore
     from evals.email_eval import load_fixtures, to_processed
 
+    now = datetime.now(timezone.utc)
     emails = [to_processed(r) for r in load_fixtures() if r["id"].startswith("i")][:8]
-    started = []
+    emails = [type(e)(**{**e.__dict__, "timestamp": now}) for e in emails]
+
+    in_flight = {"now": 0, "max": 0}
 
     async def fake_classify(email):
-        started.append(asyncio.get_event_loop().time())
+        in_flight["now"] += 1
+        in_flight["max"] = max(in_flight["max"], in_flight["now"])
         await asyncio.sleep(0.05)
-        return "summary"
+        in_flight["now"] -= 1
+        return f"summary for {email.id}"
+
+    sent = []
+
+    async def fake_dispatch(self, summary):
+        sent.append(summary)
 
     monkeypatch.setattr(w, "classify_email_importance", fake_classify)
     monkeypatch.setattr(w, "prefilter", lambda e: type("D", (), {"skip": False, "reason": ""})())
+    monkeypatch.setattr(w, "get_active_gmail_user_id", lambda: "user-1")
+    monkeypatch.setattr(w, "execute_gmail_tool", lambda *a, **k: {"raw": True})
+    monkeypatch.setattr(w, "parse_gmail_fetch_response", lambda raw, *, query, cleaner: (emails, None))
+    monkeypatch.setattr(w.ImportantEmailWatcher, "_dispatch_summary", fake_dispatch)
     monkeypatch.setenv("OPENPOKE_CLASSIFIER_CONCURRENCY", "4")
 
-    # Drive just the classification block through a minimal stand-in of the watcher method.
-    sent = []
-
-    class Stub:
-        async def _dispatch_summary(self, s):
-            sent.append(s)
-
-    # Reuse the real loop body by extracting it: simplest is to call the module helpers directly.
-    sem = asyncio.Semaphore(w._classifier_concurrency())
-
-    async def one(e):
-        async with sem:
-            return e, await w.classify_email_importance(e)
+    watcher = w.ImportantEmailWatcher(poll_interval_seconds=60, seen_store=GmailSeenStore(tmp_path / "seen.json"))
+    watcher._has_seeded_initial_snapshot = True  # skip the warm-up poll that only marks mail seen
 
     t0 = asyncio.get_event_loop().time()
-    results = await asyncio.gather(*(one(e) for e in emails))
+    await watcher._poll_once()
     elapsed = asyncio.get_event_loop().time() - t0
-    assert len(results) == 8 and elapsed < 0.05 * 8 * 0.6  # clearly faster than sequential
+
+    assert in_flight["max"] == 4
+    assert elapsed < 0.05 * 8 * 0.6, elapsed  # clearly faster than sequential
+    assert len(sent) == 8
+    assert all(watcher._seen_store.is_seen(e.id) for e in emails)
 
 
 async def test_execution_runtime_returns_before_compaction(monkeypatch, tmp_path):
