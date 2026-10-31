@@ -228,3 +228,40 @@ def test_session_probe_report_shape():
     assert out["by_role"]["interaction"]["cached_share"] == 0.8
     assert out["by_role"]["execution"]["calls_per_turn"] == round(2 / 3, 2)
     assert round(out["total"]["cost_usd"], 4) == 0.05
+
+
+def test_recall_eval_scoring():
+    from evals.memory_eval import Needle
+    from evals.recall_eval import questions_for, score
+
+    needles = [Needle("surface", "$1200", 0), Needle("buried", "REF-12345", 0),
+               Needle("surface", "$3400", 1), Needle("buried", "REF-67890", 1),
+               Needle("commitment", "Friday", 2),
+               Needle("surface", "$700", 4), Needle("buried", "REF-11111", 4),
+               Needle("surface", "$900", 6), Needle("buried", "REF-22222", 6)]
+    qs = questions_for(needles, person="Priya", n_each=4)
+    assert len(qs) == 8 and sum(q["kind"] == "buried" for q in qs) == 4
+    assert all(q["answer"] in {n.text for n in needles} for q in qs)
+    rows = [
+        {"kind": "buried", "called_search": True, "correct": True},
+        {"kind": "buried", "called_search": False, "correct": False},
+        {"kind": "surface", "called_search": False, "correct": True},
+        {"kind": "surface", "called_search": True, "correct": True},
+    ]
+    out = score(rows)
+    assert out["buried"] == {"n": 2, "call_rate": 0.5, "accuracy": 0.5}
+    assert out["surface"] == {"n": 2, "call_rate": 0.5, "accuracy": 1.0}
+
+
+def test_learned_selector_features_and_fit(tmp_path):
+    from evals.learned_selector import evaluate, features, fit
+
+    import numpy as np
+    X = np.array([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]])
+    y = np.array([1, 1, 0, 0])
+    w, b = fit(X, y, epochs=200, lr=0.5)
+    assert w[0] > w[1]  # the first feature separates the classes
+    result = evaluate(train_seeds=(1,), test_seeds=(2,), n_agents=40, n_queries=40, tmp_dir=tmp_path)
+    assert set(result) >= {"learned_recall", "select_recall", "n_test", "weights", "feature_names"}
+    assert 0.0 <= result["learned_recall"] <= 1.0 and 0.0 <= result["select_recall"] <= 1.0
+    assert len(result["weights"]) == len(result["feature_names"])
