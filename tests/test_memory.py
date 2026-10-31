@@ -354,7 +354,7 @@ async def test_commitments_survive_many_compactions(tmp_path, store):
         await mem.compact(agent, force=True)
     rendered = mem.render_history(agent)
     head = rendered.split("# Recent History")[0]
-    assert "## Commitments (verbatim)" in head
+    assert "## Commitments (verbatim" in head
     assert "Remind me on the 1st to pay the rent." in head
     assert "Do not mention the deposit dispute." in head
 
@@ -377,5 +377,48 @@ def test_young_agent_sees_commitments_before_transcript(tmp_path, store):
     mem.note_request(agent, "Always reply in French to Marie.")
     store.record_request(agent, "Always reply in French to Marie.")
     rendered = mem.render_history(agent)
-    assert rendered.startswith("## Commitments (verbatim)")
+    assert rendered.startswith("## Commitments (verbatim")
     assert store.load_transcript(agent) in rendered
+
+
+# ---- review fixes: commitments race and regex precision -------------------------------
+
+
+async def test_commitment_noted_during_compaction_survives(tmp_path, store):
+    """compact() awaits the extractor; a request that arrives meanwhile must not be erased."""
+    agent = "Race"
+    fill_log(store, agent, rounds=10)
+    holder = {}
+
+    class SlowExtractor:
+        async def __call__(self, entries, state):
+            holder["mem"].note_request(agent, "Never email Bob about the merger.")
+            return Extraction(episodes=["did things"])
+
+    mem = make_memory(tmp_path, store, extractor=SlowExtractor())
+    holder["mem"] = mem
+    await mem.compact(agent, force=True)
+    assert [c.text for c in mem.load(agent).commitments] == ["Never email Bob about the merger."]
+
+
+def test_commitment_regex_ignores_one_off_instructions():
+    from server.services.execution.memory import extract_commitments
+    one_offs = [
+        "Do not send it yet, only create the draft.",
+        "Make sure to include the thread id in your answer.",
+        "Only look at the last month.",
+        "I don't think he has.",
+        "Just check whether she replied this time.",
+        "Find emails from Dr. Chen about the lease.",
+    ]
+    for text in one_offs:
+        assert extract_commitments(text) == [], text
+    durable = [
+        ("Never cc her manager on these emails.", "Never cc her manager on these emails."),
+        ("From now on, reply in French to Marie.", "From now on, reply in French to Marie."),
+        ("Do not mention the deposit dispute to Hannah.", "Do not mention the deposit dispute to Hannah."),
+        ("Please don't ever forward her messages.", "Please don't ever forward her messages."),
+        ("Remind me every Monday at 9am to check the invoices.", "Remind me every Monday at 9am to check the invoices."),
+    ]
+    for text, expected in durable:
+        assert extract_commitments(text) == [expected], text

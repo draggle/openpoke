@@ -170,20 +170,38 @@ class Extractor(Protocol):
     async def __call__(self, entries: Sequence[LogEntry], state: MemoryState) -> Extraction: ...
 
 
+# Sentence boundary: punctuation + space. Titles ("Dr. Chen") are masked first so they do not split.
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-_COMMITMENT_RE = re.compile(
-    r"\b(remind|reminder|every (day|week|month|morning|evening)|each (day|week|month)|"
-    r"don'?t|do not|never|always|only|must|make sure|under no circumstances)\b",
+_TITLE_RE = re.compile(r"\b(Dr|Mr|Mrs|Ms|Prof|St|Jr|Sr)\.(?=\s)")
+# Durable phrasing: a standing rule or a reminder, not a one-off scoping instruction.
+_DURABLE_RE = re.compile(
+    r"\b(remind|reminder|reminders|every (day|week|month|morning|evening|monday|tuesday|wednesday|"
+    r"thursday|friday|saturday|sunday)|each (day|week|month)|never|always|from now on|going forward|"
+    r"don'?t ever|do not ever|under no circumstances|in future)\b",
     re.I,
 )
+# "do not"/"don't" count only as an imperative (sentence start, or after please/and/also/but).
+_IMPERATIVE_NEG_RE = re.compile(r"^(?:(?:please|and|also|but|then)[, ]+)?(?:do not|don'?t)\b", re.I)
+# One-off markers that make a "do not" about this task, not a standing rule.
+_TRANSIENT_RE = re.compile(r"\b(yet|for now|this time|right now|just|first|today|tonight|the draft|until)\b", re.I)
 
 
 def extract_commitments(text: str) -> List[str]:
-    """Sentences that read as a reminder, rule or constraint, verbatim."""
+    """Sentences that read as a standing rule or a reminder, verbatim.
+
+    Kept deliberately narrow: the Interaction Agent writes "only", "make sure", "do not … yet"
+    for one-off scoping, and recording those as permanent rules would be worse than missing a
+    rule. The rendered block tells the model the current request wins on conflict.
+    """
     out: List[str] = []
-    for sentence in _SENTENCE_SPLIT_RE.split(" ".join(text.split())):
-        sentence = sentence.strip()
-        if sentence and _COMMITMENT_RE.search(sentence):
+    masked = _TITLE_RE.sub(lambda m: m.group(1) + "\u2024", " ".join(text.split()))  # "Dr." -> "Dr․"
+    for sentence in _SENTENCE_SPLIT_RE.split(masked):
+        sentence = sentence.replace("\u2024", ".").strip()
+        if not sentence:
+            continue
+        durable = bool(_DURABLE_RE.search(sentence))
+        imperative_neg = bool(_IMPERATIVE_NEG_RE.search(sentence)) and not _TRANSIENT_RE.search(sentence)
+        if durable or imperative_neg:
             out.append(sentence)
     return out
 
@@ -427,7 +445,7 @@ class AgentMemory:
             return []
         from html import escape
 
-        lines = ["## Commitments (verbatim)"]
+        lines = ["## Commitments (verbatim; rules the user stated earlier — the current request wins on conflict)"]
         lines.extend(f"- {escape(c.text, quote=False)} (asked {c.recorded_at})" for c in state.commitments)
         return lines
 
@@ -460,6 +478,10 @@ class AgentMemory:
                 return None
 
             extraction = await self.extractor(batch, state)
+            # The extractor call awaited; note_request() may have added commitments meanwhile.
+            # Commitments are owned by note_request, so take them from disk, never from the
+            # state loaded before the await.
+            state.commitments = self.load(agent_name).commitments
             if _is_empty(extraction):
                 # A well-formed but empty answer ("nothing notable") would otherwise advance the
                 # cursor and hide these entries from every future prompt. Try the heuristic once;
