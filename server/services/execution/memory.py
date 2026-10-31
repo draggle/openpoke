@@ -151,6 +151,21 @@ class Extractor(Protocol):
     async def __call__(self, entries: Sequence[LogEntry], state: MemoryState) -> Extraction: ...
 
 
+_KEY_POSSESSIVE_RE = re.compile(r"(?<=\w)[\u2019']s\b")
+_KEY_STOPWORDS = frozenset({"the", "a", "an", "of", "for", "s"})
+
+
+def normalise_key(key: str) -> str:
+    """Canonical form for fact-key matching: "Alice's Email Address" == "alice email address".
+
+    The LLM extractor writes free-form keys; without this, a changed value lands as a second
+    active fact instead of superseding the old one.
+    """
+    text = _KEY_POSSESSIVE_RE.sub("", key.lower())
+    words = [w for w in re.findall(r"[a-z0-9]+", text) if w not in _KEY_STOPWORDS]
+    return " ".join(words)
+
+
 # --------------------------------------------------------------------------------------
 # Extractors
 # --------------------------------------------------------------------------------------
@@ -420,10 +435,10 @@ class AgentMemory:
     def _merge(self, state: MemoryState, extraction: Extraction, now_ts: str) -> None:
         # facts: temporal invalidation on key collision
         for key, value in extraction.facts:
-            key_norm = key.strip().lower()
+            key_norm = normalise_key(key)
             if not key_norm or not value:
                 continue
-            current = next((f for f in state.facts if f.active and f.key.lower() == key_norm), None)
+            current = next((f for f in state.facts if f.active and normalise_key(f.key) == key_norm), None)
             if current is not None:
                 if current.value.strip().lower() == value.strip().lower():
                     continue
@@ -556,4 +571,5 @@ __all__ = [
     "MemoryState",
     "Thread",
     "get_agent_memory",
+    "normalise_key",
 ]

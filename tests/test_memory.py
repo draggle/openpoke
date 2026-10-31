@@ -301,3 +301,28 @@ def test_save_is_atomic(tmp_path, store, monkeypatch):
     assert replaced and str(replaced[0][1]).endswith("a.memory.json")
     assert not list((tmp_path / "mem").glob("*.tmp"))
     assert mem.load("a").compactions == 1
+
+
+# ---- round two: fact keys are normalised before supersession ------------------------
+
+
+def test_normalise_key():
+    from server.services.execution.memory import normalise_key
+    assert normalise_key("Alice's Email Address") == "alice email address"
+    assert normalise_key("the lunch date") == "lunch date"
+    assert normalise_key("Bob’s phone #") == "bob phone"
+
+
+async def test_fact_keys_normalised_for_supersession(tmp_path, store):
+    fill_log(store, "a", rounds=4)
+    ext = ScriptedExtractor(
+        Extraction(facts=[("Alice's email address", "a@x")]),
+        Extraction(facts=[("alice email address", "b@x")]),
+    )
+    mem = make_memory(tmp_path, store, extractor=ext)
+    await mem.compact("a", force=True)
+    fill_log(store, "a", rounds=2)
+    state = await mem.compact("a", force=True)
+    active = [f for f in state.active_facts() if "email" in f.key.lower()]
+    assert len(active) == 1 and active[0].value == "b@x"
+    assert any(f.superseded_by == "b@x" for f in state.facts if not f.active)
