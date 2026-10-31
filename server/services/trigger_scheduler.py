@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from datetime import datetime, timezone
-from typing import Optional, Set
+from typing import Dict, List, Optional, Set
 
 from ..agents.execution_agent.batch_manager import ExecutionBatchManager
 from ..agents.execution_agent.runtime import ExecutionResult
@@ -72,46 +73,75 @@ class TriggerScheduler:
         if not due_triggers:
             return
 
-        for trigger in due_triggers:
-            if trigger.id in self._in_flight:
-                continue
-            self._in_flight.add(trigger.id)
-            asyncio.create_task(self._execute_trigger(trigger), name=f"trigger-{trigger.id}")
+        pending = [t for t in due_triggers if t.id not in self._in_flight]
+        # Several reminders due for the same agent in one poll are one wake-up, not N: each
+        # execution is a full strong-model run over that agent's history.
+        groups: List[List[TriggerRecord]] = []
+        if self._coalesce_enabled():
+            by_agent: Dict[str, List[TriggerRecord]] = {}
+            for trigger in pending:
+                by_agent.setdefault(trigger.agent_name, []).append(trigger)
+            groups = list(by_agent.values())
+        else:
+            groups = [[t] for t in pending]
+        for group in groups:
+            for trigger in group:
+                self._in_flight.add(trigger.id)
+            name = "trigger-" + "-".join(str(t.id) for t in group)
+            asyncio.create_task(self._execute_triggers(group), name=name)
+
+    @staticmethod
+    def _coalesce_enabled() -> bool:
+        return os.getenv("OPENPOKE_TRIGGER_COALESCE", "1") != "0"
 
     async def _execute_trigger(self, trigger: TriggerRecord) -> None:
+        await self._execute_triggers([trigger])
+
+    async def _execute_triggers(self, triggers: List[TriggerRecord]) -> None:
+        agent_name = triggers[0].agent_name
         try:
             fired_at = _utc_now()
-            instructions = self._format_instructions(trigger, fired_at)
+            instructions = self._format_instructions(triggers[0], fired_at) if len(triggers) == 1 \
+                else self._format_batch_instructions(triggers, fired_at)
             logger.info(
-                "Dispatching trigger",
+                "Dispatching trigger" if len(triggers) == 1 else "Dispatching coalesced triggers",
                 extra={
-                    "trigger_id": trigger.id,
-                    "agent": trigger.agent_name,
-                    "scheduled_for": trigger.next_trigger,
+                    "trigger_ids": [t.id for t in triggers],
+                    "agent": agent_name,
+                    "scheduled_for": triggers[0].next_trigger,
                 },
             )
             # A firing trigger is activity: re-activate the owning agent so it is not
             # treated as dormant/archived while it still has scheduled work.
-            get_agent_registry().touch(trigger.agent_name, reason="trigger")
+            get_agent_registry().touch(agent_name, reason="trigger")
             execution_manager = ExecutionBatchManager()
             result = await execution_manager.execute_agent(
-                trigger.agent_name,
+                agent_name,
                 instructions,
                 source="trigger",
             )
-            if result.success:
-                self._handle_success(trigger, fired_at)
-            else:
-                error_text = result.error or result.response
-                self._handle_failure(trigger, fired_at, error_text)
+            for trigger in triggers:
+                if result.success:
+                    self._handle_success(trigger, fired_at)
+                else:
+                    self._handle_failure(trigger, fired_at, result.error or result.response)
         except Exception as exc:  # pragma: no cover - defensive
-            self._handle_failure(trigger, _utc_now(), str(exc))
+            for trigger in triggers:
+                self._handle_failure(trigger, _utc_now(), str(exc))
             logger.exception(
                 "Trigger execution failed unexpectedly",
-                extra={"trigger_id": trigger.id, "agent": trigger.agent_name},
+                extra={"trigger_ids": [t.id for t in triggers], "agent": agent_name},
             )
         finally:
-            self._in_flight.discard(trigger.id)
+            for trigger in triggers:
+                self._in_flight.discard(trigger.id)
+
+    def _format_batch_instructions(self, triggers: List[TriggerRecord], fired_at: datetime) -> str:
+        parts = [f"{len(triggers)} reminders for this agent fired together at {_isoformat(fired_at)} (UTC). "
+                 "Handle each one; report on all of them in your final message.\n"]
+        for index, trigger in enumerate(triggers, 1):
+            parts.append(f"=== Reminder {index} of {len(triggers)} ===\n" + self._format_instructions(trigger, fired_at))
+        return "\n\n".join(parts)
 
     def _handle_success(self, trigger: TriggerRecord, fired_at: datetime) -> None:
         logger.info(
