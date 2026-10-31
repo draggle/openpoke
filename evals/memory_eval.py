@@ -46,13 +46,26 @@ from server.services.execution.memory import AgentMemory, HeuristicExtractor, LL
 
 from .synthetic import PEOPLE
 
-TOOL_NOISE = (
-    '{"id": "18f3a2c9e7b1", "threadId": "18f3a2c9e7b1", "labelIds": ["INBOX", "IMPORTANT"], '
-    '"snippet": "Thanks for reaching out, I will take a look and get back to you shortly...", '
-    '"payload": {"headers": [{"name": "From", "value": "{person} <{email}>"}, {"name": "Date", '
-    '"value": "Tue, 14 Oct 2026 09:12:33 -0400"}], "mimeType": "multipart/alternative"}, '
-    '"sizeEstimate": 48213, "historyId": "9988123"}'
-)
+def gmail_fetch_result(person: str, email: str, body: str) -> str:
+    """A realistic GMAIL_FETCH_EMAILS result (valid JSON) with the needle deep in the body."""
+    import json as _json
+
+    boilerplate = ("Thanks for reaching out. Per our earlier thread, here is the status update you asked "
+                   "for. Please find the details below and let me know if anything is unclear. ") * 3
+    return _json.dumps({"status": "success", "emails": [{
+        "id": "18f3a2c9e7b1", "thread_id": "18f3a2c9e7b1", "subject": "Re: payment",
+        "sender": f"{person} <{email}>", "recipient": "me@example.com",
+        "timestamp": "2026-10-14T09:12:33-04:00", "label_ids": ["INBOX", "IMPORTANT"],
+        "clean_text": boilerplate + body, "has_attachments": False, "attachment_count": 0,
+        "attachment_filenames": [],
+    }], "message_ids": ["18f3a2c9e7b1"]})
+
+
+def record_tool_result(store: ExecutionAgentLogStore, agent: str, tool: str, raw: str) -> None:
+    """Write a tool result the way the runtime does: compacted in the log, raw in the sidecar."""
+    from server.services.execution.payloads import compact_tool_payload
+
+    store.record_tool_response(agent, tool, compact_tool_payload(raw, limit=500), raw=raw)
 
 
 @dataclass
@@ -149,7 +162,7 @@ def build_log(store: ExecutionAgentLogStore, agent: str, rounds: int, rng: rando
             thing = rng.choice(["crown", "lease renewal", "passport pickup", "car inspection"])
             store.record_request(agent, f"Remind me {day} at 9am about the {thing}")
             store.record_action(agent, "Calling createTrigger with: {'payload': 'reminder'}")
-            store.record_tool_response(agent, "createTrigger", "{'id': %d, 'status': 'active'}" % (100 + i))
+            record_tool_result(store, agent, "createTrigger", '{"id": %d, "status": "active"}' % (100 + i))
             store.record_agent_response(agent, f"Reminder set for {day} 9am about the {thing} (trigger {100 + i})")
             needles.append(Needle("commitment", f"{day}", i))
             needles.append(Needle("commitment", thing, i))
@@ -161,11 +174,10 @@ def build_log(store: ExecutionAgentLogStore, agent: str, rounds: int, rng: rando
         date = f"{rng.choice(['Nov', 'Dec', 'Jan'])} {rng.randint(1, 28)}"
         store.record_request(agent, f"Ask {person} whether the {item} for ${amount} can be settled by {date}")
         store.record_action(agent, f"Calling gmail_create_draft with: {{'to': '{email}', 'subject': 'Re: payment'}}")
-        # buried needle: lives only in the tool payload
+        # buried needle: lives only inside the tool payload's email body
         code = f"REF-{rng.randint(10000, 99999)}"
-        payload = TOOL_NOISE.replace("{person}", person).replace("{email}", email)
-        payload += f' "body": "Hi, confirming receipt. Our internal reference is {code}. Regards, {person}"'
-        store.record_tool_response(agent, "gmail_fetch_emails", payload)
+        raw = gmail_fetch_result(person, email, f"Hi, confirming receipt. Our internal reference is {code}. Regards, {person}")
+        record_tool_result(store, agent, "gmail_fetch_emails", raw)
         if kind < 0.5:
             store.record_agent_response(agent, f"Draft sent to {person} about ${amount} due {date}; awaiting reply")
         else:

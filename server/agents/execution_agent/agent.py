@@ -138,4 +138,6 @@ class ExecutionAgent:
         """Record tool execution details."""
         self._log_store.record_action(self.name, f"Calling {tool_name} with: {arguments[:200]}")
         # Record the tool response, keeping the informative fields rather than the first 500 chars
-        self._log_store.record_tool_response(self.name, tool_name, compact_tool_payload(result, limit=500))
+        self._log_store.record_tool_response(
+            self.name, tool_name, compact_tool_payload(result, limit=500), raw=result
+        )

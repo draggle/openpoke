@@ -25,6 +25,9 @@ _ITEM_KEYS = (
     "snippet", "clean_text", "body", "text", "status", "error",
 )
 _ITEM_STRING_LIMIT = 120
+# A list item is projected only when it looks like an email; other records (triggers, drafts,
+# contacts) keep every non-noise field.
+_EMAIL_SHAPE_KEYS = frozenset({"subject", "sender", "from", "clean_text", "snippet", "messageId"})
 # Keys worth keeping first, in this order, when present.
 _PRIORITY_KEYS = (
     "id", "messageId", "subject", "from", "sender", "to", "date", "snippet", "preview",
@@ -55,13 +58,16 @@ def _compact_value(value: Any, string_limit: int, depth: int = 0) -> Any:
             k for k in value if k not in _PRIORITY_KEYS
         ]
         for key in ordered:
-            if key in _NOISE_KEYS:
+            # "payload" is Gmail MIME noise when it is a dict, but a trigger's instruction text
+            # when it is a string.
+            if key in _NOISE_KEYS and not (key == "payload" and isinstance(value[key], str)):
                 continue
             out[key] = _compact_value(value[key], string_limit, depth + 1)
         return out
     if isinstance(value, list):
         items: List[Any] = [
-            _project_item(v) if isinstance(v, dict) else _compact_value(v, string_limit, depth + 1)
+            _project_item(v) if isinstance(v, dict) and (set(v) & _EMAIL_SHAPE_KEYS)
+            else _compact_value(v, string_limit, depth + 1)
             for v in value[:5]
         ]
         if len(value) > 5:

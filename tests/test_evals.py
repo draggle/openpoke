@@ -135,3 +135,19 @@ def test_cost_sensitivity_rows(tmp_path):
         # only; the memory saving appears once the log is long enough to compact.
         assert savings[160] > savings[0], savings
         assert all(0 <= s < 100 for s in savings.values())
+
+
+def test_memory_eval_log_goes_through_runtime_payload_compaction(tmp_path):
+    """Buried needles must sit in payloads written the way the runtime writes them: compacted in
+    the log (<= 500 chars), full in the raw sidecar."""
+    import random
+    from evals.memory_eval import build_log
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    needles = build_log(store, "Email to Priya", rounds=6, rng=random.Random(3))
+    tool_payloads = [p for tag, _, p in store.iter_entries("Email to Priya") if tag == "tool_response"]
+    assert tool_payloads and all(len(p) <= 500 for p in tool_payloads)
+    raw = [r for _, _, r in store.iter_raw_tool_responses("Email to Priya")]
+    buried = [n.text for n in needles if n.kind == "buried"]
+    assert buried and all(any(b in r for r in raw) for b in buried)

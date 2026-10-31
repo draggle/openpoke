@@ -51,3 +51,30 @@ def test_schema_and_registry_registered():
 
     assert "search_history" in {s["function"]["name"] for s in get_tool_schemas()}
     assert "search_history" in get_tool_registry("Email to Priya")
+
+
+def test_search_history_finds_needle_only_in_raw_sidecar(tmp_path):
+    """The log keeps the compacted payload; the raw sidecar keeps everything, so a reference the
+    compaction dropped is still recoverable."""
+    from server.agents.execution_agent.tools.history import search_history
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    agent = "Email to Priya"
+    compacted = '{"status":"success","emails":[{"id":"m1","subject":"Re: invoice"}]}'
+    raw = '{"status":"success","emails":[{"id":"m1","subject":"Re: invoice","clean_text":"' + "x" * 700 + ' reference REF-77777 end"}]}'
+    store.record_tool_response(agent, "gmail_fetch_emails", compacted, raw=raw)
+    result = search_history(agent, "REF-77777", log_store=store)
+    assert result["matches"], result
+    assert "REF-77777" in result["matches"][0]["text"]
+    assert result["matches"][0]["tag"] == "tool_response_raw"
+
+
+def test_snippet_window_contains_the_match(tmp_path):
+    from server.agents.execution_agent.tools.history import search_history
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    agent = "Long"
+    store.record_agent_response(agent, "a" * 900 + " the code is REF-31337 " + "b" * 300)
+    result = search_history(agent, "REF-31337", log_store=store)
+    assert "REF-31337" in result["matches"][0]["text"]
+    assert len(result["matches"][0]["text"]) <= 600

@@ -81,6 +81,9 @@ async def _stop_trigger_scheduler() -> None:
     await scheduler.stop()
     watcher = get_important_email_watcher()
     await watcher.stop()
+    from .services.execution import get_agent_memory
+
+    await get_agent_memory().shutdown()
 
 
 __all__ = ["app"]

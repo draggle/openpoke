@@ -191,3 +191,28 @@ def test_execution_static_block_is_cacheable_and_history_is_not(monkeypatch, tmp
     assert blocks[1].get("cacheable", False) is False and "chase the invoice" in blocks[1]["text"]
     # the legacy string form is the blocks joined
     assert agent.build_system_prompt_with_history() == blocks[0]["text"] + "\n\n" + blocks[1]["text"]
+
+
+def test_trigger_list_keeps_its_fields():
+    raw = json.dumps({"triggers": [
+        {"id": i, "status": "active", "payload": f"remind me about thing {i} " * 8,
+         "next_trigger": f"2026-11-0{i+1}T09:00:00", "recurrence_rule": "FREQ=WEEKLY", "created_at": "2026-10-31"}
+        for i in range(3)]})
+    assert len(raw) > 500
+    out = compact_tool_payload(raw, limit=800)
+    for i in range(3):
+        assert f"2026-11-0{i+1}T09:00:00" in out
+    assert "FREQ=WEEKLY" in out and "remind me about thing 0" in out
+
+
+def test_record_tool_response_writes_raw_sidecar(tmp_path):
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    store.record_tool_response("A", "tool", "short", raw="short")  # identical: no sidecar entry
+    store.record_tool_response("A", "tool", "cut", raw="the full " + "payload " * 50)
+    entries = list(store.iter_raw_tool_responses("A"))
+    assert len(entries) == 1
+    ts, tool, raw = entries[0]
+    assert tool == "tool" and raw.startswith("the full payload")
+    assert [p for _, _, p in store.iter_entries("A")] == ["tool: short", "tool: cut"]

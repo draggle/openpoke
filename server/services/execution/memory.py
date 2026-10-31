@@ -378,6 +378,7 @@ class AgentMemory:
         self.extractor: Extractor = extractor or LLMExtractor()
         self._on_summary = on_summary  # e.g. registry.update_summary
         self._locks: Dict[str, asyncio.Lock] = {}
+        self._tasks: set = set()  # background compactions; strong refs so the loop cannot drop them
 
     def _lock(self, agent_name: str) -> asyncio.Lock:
         return self._locks.setdefault(_slugify(agent_name), asyncio.Lock())
@@ -516,10 +517,28 @@ class AgentMemory:
         try:
             if not self.needs_compaction(agent_name):
                 return None
-            return asyncio.get_running_loop().create_task(self.compact(agent_name))
+            task = asyncio.get_running_loop().create_task(self.compact(agent_name))
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
+            return task
         except Exception as exc:  # pragma: no cover - defensive
             logger.warning(f"[{agent_name}] could not schedule compaction: {exc}")
             return None
+
+    def pending_tasks(self) -> set:
+        return set(self._tasks)
+
+    async def shutdown(self) -> None:
+        """Cancel background compactions (saves are atomic, so cancelling loses nothing on disk)."""
+        tasks = list(self._tasks)
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+        self._tasks.clear()
 
     def _merge(self, state: MemoryState, extraction: Extraction, now_ts: str) -> None:
         # facts: temporal invalidation on key collision

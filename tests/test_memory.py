@@ -422,3 +422,35 @@ def test_commitment_regex_ignores_one_off_instructions():
     ]
     for text, expected in durable:
         assert extract_commitments(text) == [expected], text
+
+
+# ---- review fix: real schedule_compaction is tracked and cancellable ----------------
+
+
+async def test_schedule_compaction_runs_the_real_compact(tmp_path, store):
+    fill_log(store, "a", rounds=12)
+    mem = make_memory(tmp_path, store)
+    assert mem.needs_compaction("a")
+    task = mem.schedule_compaction("a")
+    assert task is not None and task in mem.pending_tasks()
+    await task
+    assert mem.load("a").compacted_through > 0
+    assert task not in mem.pending_tasks()
+
+
+async def test_shutdown_cancels_pending_compaction(tmp_path, store):
+    import asyncio
+
+    class Slow:
+        async def __call__(self, entries, state):
+            await asyncio.sleep(5)
+            return Extraction(episodes=["late"])
+
+    fill_log(store, "a", rounds=12)
+    mem = make_memory(tmp_path, store, extractor=Slow())
+    task = mem.schedule_compaction("a")
+    await asyncio.sleep(0)
+    await mem.shutdown()
+    assert task.cancelled() or task.done()
+    assert mem.load("a").compacted_through == 0
+    assert not mem.pending_tasks()

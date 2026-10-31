@@ -117,9 +117,48 @@ class ExecutionAgentLogStore:
         """Record an agent action (tool call)."""
         self._append(agent_name, "agent_action", description)
 
-    def record_tool_response(self, agent_name: str, tool_name: str, response: str) -> None:
-        """Record the response from a tool."""
+    def record_tool_response(
+        self, agent_name: str, tool_name: str, response: str, *, raw: str | None = None
+    ) -> None:
+        """Record the (compacted) response from a tool.
+
+        ``raw`` is the full tool result. The log keeps the compacted form because the log is
+        rendered into prompts; the raw form goes to a sidecar journal (``<agent>.raw.jsonl``)
+        that only ``search_history`` reads, so nothing a later turn might need is unrecoverable.
+        """
         self._append(agent_name, "tool_response", f"{tool_name}: {response}")
+        if raw is not None and raw != response:
+            self._append_raw(agent_name, tool_name, raw)
+
+    _RAW_LIMIT = 20_000
+
+    def _raw_path(self, agent_name: str) -> Path:
+        return self._base_dir / f"{_slugify(agent_name)}.raw.jsonl"
+
+    def _append_raw(self, agent_name: str, tool_name: str, raw: str) -> None:
+        import json
+
+        self._ensure_directory()
+        record = {"ts": now_in_user_timezone().isoformat(), "tool": tool_name, "raw": raw[: self._RAW_LIMIT]}
+        with self._lock_for(agent_name):
+            with self._raw_path(agent_name).open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    def iter_raw_tool_responses(self, agent_name: str) -> Iterator[Tuple[str, str, str]]:
+        """Yield (timestamp, tool_name, raw_result) from the sidecar journal, oldest first."""
+        import json
+
+        path = self._raw_path(agent_name)
+        if not path.exists():
+            return
+        with self._lock_for(agent_name):
+            lines = path.read_text(encoding="utf-8").splitlines()
+        for line in lines:
+            try:
+                item = json.loads(line)
+            except ValueError:
+                continue
+            yield str(item.get("ts", "")), str(item.get("tool", "")), str(item.get("raw", ""))
 
     def record_agent_response(self, agent_name: str, response: str) -> None:
         """Record the agent's final response."""
@@ -169,7 +208,7 @@ class ExecutionAgentLogStore:
     def clear_all(self) -> None:
         """Clear all execution agent logs."""
         try:
-            for log_file in self._base_dir.glob("*.log"):
+            for log_file in [*self._base_dir.glob("*.log"), *self._base_dir.glob("*.raw.jsonl")]:
                 log_file.unlink()
             logger.info("Cleared all execution agent logs")
         except Exception as exc:

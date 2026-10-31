@@ -58,6 +58,9 @@ def search_history(
     """Return the log entries best matching ``query``, newest first among ties."""
     store = log_store or get_execution_agent_logs()
     entries = list(store.iter_entries(agent_name))
+    # The raw sidecar holds full tool results; the log holds the compacted form that prompts
+    # render. Search both, so anything compaction dropped is still findable.
+    entries += [("tool_response_raw", ts, f"{tool}: {raw}") for ts, tool, raw in store.iter_raw_tool_responses(agent_name)]
     query = (query or "").strip()
     try:
         limit = max(1, min(int(limit), 20))
@@ -82,10 +85,27 @@ def search_history(
     scored.sort(key=lambda item: (-item[0], -item[1]))
 
     matches = [
-        {"tag": tag, "timestamp": ts, "text": payload[:_SNIPPET_CHARS]}
+        {"tag": tag, "timestamp": ts, "text": _window(payload, query, query_tokens)}
         for _, _, tag, ts, payload in scored[:limit]
     ]
     return {"query": query, "matches": matches, "total_entries": len(entries)}
+
+
+def _window(payload: str, query: str, query_tokens: List[str]) -> str:
+    """A snippet that contains the match: centred on the exact query if present, else on the
+    first query token, else the start of the entry."""
+    if len(payload) <= _SNIPPET_CHARS:
+        return payload
+    lowered = payload.lower()
+    position = lowered.find(query.lower())
+    if position < 0:
+        position = min((p for p in (lowered.find(t) for t in query_tokens) if p >= 0), default=0)
+    start = max(0, position - _SNIPPET_CHARS // 3)
+    end = min(len(payload), start + _SNIPPET_CHARS)
+    start = max(0, end - _SNIPPET_CHARS)
+    prefix = "…" if start > 0 else ""
+    suffix = "…" if end < len(payload) else ""
+    return (prefix + payload[start:end] + suffix)[: _SNIPPET_CHARS]
 
 
 def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:
