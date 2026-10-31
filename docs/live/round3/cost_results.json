@@ -5,7 +5,7 @@
     "roster_tokens_all": 2245.0,
     "roster_tokens_budgeted": 519.7,
     "history_tokens_full": 6220.5,
-    "history_tokens_tiered": 2548.5,
+    "history_tokens_tiered": 2344.75,
     "strong_model": "anthropic/claude-sonnet-4",
     "cheap_model": "anthropic/claude-3.5-haiku",
     "prices_usd_per_1M": {
@@ -78,31 +78,31 @@
     },
     {
       "config": "context_only",
-      "usd_per_day": 3.9790368,
-      "usd_per_month": 119.37110399999999,
+      "usd_per_day": 3.9055968,
+      "usd_per_month": 117.16790400000001,
       "by_role": {
         "interaction": 1.1118,
-        "execution": 1.8173,
+        "execution": 1.7438,
         "execution_search": 0.405,
         "email_classifier": 0.504,
         "summarizer": 0.033,
         "memory_compactor": 0.108
       },
-      "tokens_per_day": 1128525
+      "tokens_per_day": 1104075
     },
     {
       "config": "both",
-      "usd_per_day": 3.1418368,
-      "usd_per_month": 94.255104,
+      "usd_per_day": 3.0683968,
+      "usd_per_month": 92.051904,
       "by_role": {
         "interaction": 1.1118,
-        "execution": 1.8173,
+        "execution": 1.7438,
         "execution_search": 0.108,
         "email_classifier": 0.0672,
         "summarizer": 0.0088,
         "memory_compactor": 0.0288
       },
-      "tokens_per_day": 1054125
+      "tokens_per_day": 1029675
     }
   ]
 }

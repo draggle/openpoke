@@ -1,0 +1,23 @@
+[buried ] search=Y returned=Y OK  want REF-80639  got 'REF-80639' q=['refund $182 reference number']
+[buried ] search=Y returned=Y OK  want REF-94407  got 'REF-94407' q=['deposit $454 Hannah reference number']
+[buried ] search=Y returned=Y OK  want REF-29252  got 'REF-29252' q=['deposit $2532 reference number']
+[buried ] search=Y returned=Y OK  want REF-93866  got 'REF-93866' q=['refund $3401 reference number']
+[surface] search=Y returned=Y OK  want $182       got '$182' q=['refund Nov 1']
+[surface] search=Y returned=Y OK  want $454       got '$454' q=['deposit Dec 17']
+[surface] search=Y returned=Y OK  want $2532      got '$2532' q=['deposit Dec 16']
+[surface] search=Y returned=Y OK  want $3401      got '$3401' q=['refund Dec 28']
+{
+ "buried": {
+  "n": 4,
+  "call_rate": 1.0,
+  "accuracy": 1.0,
+  "search_returned_answer": 1.0
+ },
+ "surface": {
+  "n": 4,
+  "call_rate": 1.0,
+  "accuracy": 1.0,
+  "search_returned_answer": 1.0
+ }
+}
+RERUN_DONE

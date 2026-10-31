@@ -11,11 +11,14 @@ hundreds compete for attention. This fork treats that as *two* coupled problems 
 and each agent's unbounded history), fixes both, adds the cheap wins around them, and ships
 the tests and evaluators to show what changed.
 
-This is the second round. The first round's claims were reviewed adversarially; the review
-found three correctness bugs, a handicapped baseline, and headline cells that rested on one
-query. This round fixes those, re-measures with a fair baseline and confidence intervals, and
-adopts three results from the 2026 agent-memory and routing literature where the evaluators
-here could verify them. Every number below names the file it comes from.
+This is the third round. The first round located the problem and shipped bounded fixes. The
+second reviewed those claims adversarially, fixed three correctness bugs, and re-measured with a
+fair baseline and confidence intervals. This round takes each row of that table where the loss
+was and attacks it at its measured cause, adds two measurements that were missing (does the
+execution model actually use its retrieval tool; how many LLM calls does a turn cost), and runs
+one experiment an interviewer will ask about (a learned roster reranker). Every number below
+names the file it comes from; where round three changed a workload, both arms were re-run on it
+and the round-two number stands beside it.
 
 ## Results at a glance
 
@@ -23,97 +26,166 @@ here could verify them. Every number below names the file it comes from.
 
 Claude Sonnet 4.5 via Anthropic's native Messages API (`bash evals/run_live.sh`). 150 agents,
 3 workload seeds × 40 follow-up queries, equal numbers of each query kind, and **both arms see
-the same conversation history** (the last 6 interactions). The first round stripped the history,
-which handicapped upstream on exactly the queries it relies on history for; that is corrected.
-Source: [`docs/live/round2/live_routing_results_history.json`](docs/live/round2/live_routing_results_history.json),
-per-query log in [`live_routing_log.txt`](docs/live/round2/live_routing_log.txt).
+the same conversation history** (the last 6 interactions). Round three changed one thing in the
+workload: the keyword-free queries are now drawn from the follow-ups that are coherent with the
+last thread's state (round two drew "ok send it" uniformly, so a third of them had no draft to
+send and both arms rightly asked what the user meant). Both arms were re-run on the new workload;
+the round-two column is the old one.
+Source: [`docs/live/round3/live_routing_results_history.json`](docs/live/round3/live_routing_results_history.json),
+per-query log in [`live_routing_log.txt`](docs/live/round3/live_routing_log.txt).
 
-| n = 120 per arm | Upstream (all 150 names) | This fork (budgeted roster + `search_agents`) |
-|---|---|---|
-| **Correct existing agent chosen** | **49% (95% CI 40–58)** | **74% (95% CI 66–81)** |
-| …person + topic ("what did Bob say about the flight") | 90% (74–96) | 87% (70–95) |
-| …person only ("nudge Hannah again") | 37% (22–55) | **93% (79–98)** |
-| …topic only ("any update on the tax documents?") | 40% (25–58) | **83% (66–93)** |
-| …keyword-free ("ok send it", "and then?") | 30% (17–48) | 33% (19–51) |
-| Wrong agent chosen | 42 / 120 | **9 / 120** |
-| Did not delegate (asked the user instead) | 19 | 22 |
-| New agent spawned for an existing thread | 2 | 1 |
-| Prompt tokens per query (cached) | 7,307 (4,019) | **5,262 (3,779)** |
-| Cost of 120 queries | $1.56 | **$0.91** |
+| n = 120 per arm | Upstream, round 2 | Fork, round 2 | **Upstream, round 3** | **Fork, round 3** |
+|---|---|---|---|---|
+| **Correct existing agent chosen** | 49% (40–58) | 74% (66–81) | 71% (62–78) | **89% (82–94)** |
+| …person + topic ("what did Bob say about the flight") | 90% | 87% | 97% | **100%** |
+| …person only ("nudge Hannah again") | 37% | 93% | 57% | **90%** |
+| …topic only ("any update on the tax documents?") | 40% | 83% | 53% | **77%** |
+| …keyword-free ("ok send it", "did she reply?") | 30% | 33% | 77% | **90%** |
+| Wrong agent chosen | 42 | 9 | 25 | **5** |
+| Did not delegate (asked the user, or answered from history) | 19 | 22 | 10 | 8 |
+| New agent spawned for an existing thread | 2 | 1 | 0 | 0 |
+| `search_agents`: needed / called / found | — | 6 / 2 / 2 | — | **7 / 7 / 7** |
+| Did-you-mean guard: fired / helped / hurt | — | — | — | 1 / 1 / 0 |
+| Prompt tokens per query (cached) | 7,307 (4,019) | 5,262 (3,779) | 7,850 (4,368) | **5,499 (3,994)** |
+| Cost of 120 queries | $1.56 | $0.91 | $1.66 | **$0.94** |
 
-What the keyword-free row means: on "ok send it", "any news?" and "did she reply?" the fork
-delegates to the right thread (9/9 when it delegates; upstream sent "any news?" to the wrong
-agent 4 times). On "and then?", "yes do that", "go ahead" and "what did they say" **both** models
-ask the user which thread they mean. With only a synthetic transcript to go on that is the
-reasonable answer, and the fork never guesses wrong (0 wrong picks on this row vs 4 upstream);
-the metric counts the question as a miss.
+Per-kind rows have n = 30 and ±15-point intervals; the headline intervals do not overlap in
+either round. What moved and why:
 
-Where the fork still misses: 6 of 120 targets were outside the 12-entry roster; the model called
-`search_agents` for 2 of them (both found) and did not for the other 4. The search tool works;
-the model under-uses it. The person-only misses are all one person with several live threads
-and a summary that reads as closed ("Rosa confirmed the lunch; nothing pending").
+- **Keyword-free follow-ups, 33% → 90%.** Two causes, kept apart: the workload change (upstream
+  also rose, 30% → 77%, because the queries now make sense) and the `last_touched` marker with
+  its prompt rule (the fork's remaining gap over upstream, 90% vs 77%). The fork never picks a
+  wrong agent on this row (0 of 30, both rounds); its three misses are "what did they say" after
+  a thread whose summary already says what they said, where the model answered from the
+  transcript instead of delegating, which the metric counts as a miss.
+- **The model now searches.** Every one of the 7 targets outside the 12-entry roster was
+  searched for and found (round two: 2 of 6). The prompt rule "if the message names a person and
+  no listed agent is about that person, search" did this; the roster note alone did not.
+- **Wrong-person picks.** The guard fired once in 120 queries and corrected the pick. The other
+  five misses are all same-person-different-topic ("did Tomasz reply?" sent to Tomasz's lunch
+  thread rather than his tax one), which no person-based guard can see; the only signal is
+  recency, and the model took the thread higher in the list in three of them.
+- Upstream improved too (49% → 71%): the coherent queries and the shared system prompt's new
+  rules help any roster. The fork's gain over upstream is 18 points, down from 25, because the
+  prompt rules are the fork's and the baseline gets them for free.
 
 ### Live memory: what survives compaction (LLM extractor, Claude Haiku 4.5)
 
-Source: [`docs/live/round2/memory_results_live.json`](docs/live/round2/memory_results_live.json).
-Runtime budget (12k chars of raw log before compaction); the two shorter logs never compact.
-Tool results are written the way the runtime writes them: compacted to 500 chars in the log,
-in full in the raw journal that `search_history` reads.
+Source: [`docs/live/round3/memory_results_live.json`](docs/live/round3/memory_results_live.json)
+(run after the tail-correction fix; the two earlier runs of this round are in
+[`live_memory_recall_run1_log.txt`](docs/live/round3/live_memory_recall_run1_log.txt) and
+[`run2`](docs/live/round3/live_memory_recall_run2_log.txt)). Runtime budget (12k chars of raw
+log before compaction); the two shorter logs never compact. Tool results are written the way the
+runtime writes them: compacted to 500 chars in the log, in full in the raw journal.
 
-| 136-entry agent log | Upstream | This fork |
+| 136-entry agent log | Upstream | Fork, round 2 | **Fork, round 3** |
+|---|---|---|---|
+| History in the system prompt | 6,220 tokens | 2,548 (41%) | **2,344 tokens (38%)** |
+| Surface facts / reminders in the prompt | 100% / 100% | 100% / 100% | **100% / 100%** |
+| "Do not …" constraints the user stated | 100% | 100% | **100%** |
+| Corrected amounts: new value present | 100% | 100% | **100%** |
+| Corrected amounts: old value still asserted as a fact | n/a | 29% (2 of 7) | **0%** |
+| Facts buried deep in a tool payload: in the prompt | 0% (500-char cap) | 0% | 0% |
+| …recoverable with `search_history`, searched by the answer | n/a | 100% | (no longer measured that way) |
+| …recoverable with `search_history`, searched **the way a user would** | n/a | — | **100%** |
+
+The stale row took three runs this round, and the limitations section says what each run
+showed. The recoverable row changed its definition: round two searched for the reference code
+itself, which measured the index; round three searches "$182 refund reference", which is the
+question the user would ask.
+
+### Does the execution model reach for `search_history`? (live, Claude Sonnet 4.5)
+
+Source: [`docs/live/round3/recall_results_live.json`](docs/live/round3/recall_results_live.json).
+After the 40-round agent above is compacted, the real execution model gets the execution system
+prompt, the compacted history, the `search_history` tool, and eight questions.
+
+| 8 questions | Called the tool | Tool returned the answer | Answered correctly |
+|---|---|---|---|
+| Answer only in the raw journal (4 reference codes) | 4 / 4 | 4 / 4 | **4 / 4** |
+| Answer already in the prompt (4 amounts) | 4 / 4 | 4 / 4 | **4 / 4** |
+
+The model always searches, even when the amount is in the prompt in front of it: that is cost,
+not error. On the buried questions this row went 0 of 4 → 2 of 4 → 4 of 4 across the
+three runs of this round, as the match gained the request it answered and the snippet window
+moved to where the query's words are; the per-run logs are beside the result file
+([run 1](docs/live/round3/live_memory_recall_run1_log.txt), [run 2](docs/live/round3/live_memory_recall_run2_log.txt),
+[run 3](docs/live/round3/live_recall_run3_log.txt)). Eight questions on one agent is a small n;
+the row says the mechanism works end to end with the real model, not how often it will on a real
+inbox.
+
+### Live email (prefilter + Claude Haiku 4.5 classifier, Jev gate)
+
+Sources: [`docs/live/round3/email_results.json`](docs/live/round3/email_results.json) (shipped
+defaults), [`email_results_gate05.json`](docs/live/round3/email_results_gate05.json) (round-two
+gate), [`jev_bench_live.json`](docs/live/round3/jev_bench_live.json) (per-email probabilities and
+the gate sweep).
+
+| | Round 2 | **Round 3** |
 |---|---|---|
-| History in the system prompt | 6,220 tokens | **2,548 tokens (41%)** |
-| Surface facts / reminders in the prompt | 100% / 100% | **100% / 100%** |
-| "Do not …" constraints the user stated | 100% | **100% (verbatim commitments tier)** |
-| Corrected amounts: new value present | 100% | **100%** |
-| Corrected amounts: old value still asserted as a fact | n/a (no facts block) | **29%** (2 of 7; see limitations) |
-| Facts buried deep in a tool payload: in the prompt | 0% (500-char cap) | 0% (500-char cap) |
-| …recoverable with `search_history` | n/a | **100%** |
+| Pre-filter skips without a model call, dev set | 12 / 46, 0 important dropped | 12 / 46, 0 important dropped |
+| Classifier alone (no Jev), precision / recall on the 34 kept | 1.00 / 0.90 | **1.00 / 1.00** |
+| Shipped pipeline, dev set (46 emails), precision / recall | 1.00 / 0.81 | **1.00 / 0.95** (misses the LinkedIn recruiter once) |
+| Shipped pipeline, **held-out set** (14 emails, written before the prompt changed) | — | **1.00 / 1.00** |
+| Jev yes/no alone: recall, p50 latency, $/120 emails | 0.86, 0.16 s, $0.003 | 0.81, 0.17 s, $0.003 |
+| LLM calls per 34 kept emails under the shipped gate | 17 | 21 |
+| Jev as agent router (40 queries) | 42.5% vs LLM 87.5% | 40% vs LLM 90% — **still off** |
 
-The first round measured "buried" needles on payloads stored uncompacted, which the runtime
-never does; that row is now measured on the real write path, and the answer for the prompt is
-the same as upstream's. The raw journal is what makes the difference.
+What the first live run of this round showed, and what changed because of it: with the new
+prompt the classifier alone reaches recall 1.00, but the shipped pipeline still missed the bank
+alert, the recruiter and the visa update, because Jev scored them 0.10–0.30 and the round-two gate
+(one edge at 0.5) dismissed them before the model ever saw them. The sweep over recorded
+probabilities found the cheapest two-sided gate that keeps the model's recall: dismiss below 0.1,
+summarise-only at or above 0.5, let the full classifier decide in between. It costs 4 more LLM
+calls per 34 emails and was chosen on the dev set; the held-out set, run once with those
+defaults, scored 1.00 / 1.00. The remaining dev miss is the recruiter mail at p = 0.10, where the
+model said no on that run and yes on the sweep run.
 
-### Live email (prefilter + Claude Haiku 4.5 classifier, 46 labelled emails)
+### Calls per turn (the real app, in-process)
 
-Source: [`docs/live/round2/email_results.json`](docs/live/round2/email_results.json),
-[`jev_bench_live.json`](docs/live/round2/jev_bench_live.json).
+Source: [`docs/live/round3/session_probe.json`](docs/live/round3/session_probe.json). The three-turn
+reminder session from round two (create a reminder with a standing rule, move it, ask what is
+set), driven through the FastAPI app with a fresh usage ledger per run.
 
-| | Value |
-|---|---|
-| Pre-filter skips without a model call | 12 / 46 (26%), **0 important emails dropped** |
-| Classifier precision / recall / F1 on what reaches it | 1.00 / 0.81 / 0.89 |
-| Classifier misses | a human's lunch reply, a bank balance alert, a recruiter message, a visa status update |
-| Jev typed yes/no instead of the LLM: recall, p50 latency, $/120 emails | 0.86, 0.16 s, $0.003 (LLM: 0.90, 1.1 s, $0.16) |
-| Jev gate + LLM summary (what ships with `OPENPOKE_JEV=1`) | 0.81, 1.1 s, $0.09 |
-| Jev as agent router (40 queries, one seed) | 42.5% vs LLM 87.5% — **off by default** |
+| | Round-two loop | **Early exit** |
+|---|---|---|
+| LLM calls, 3 turns | 18 (12 interaction + 6 execution) | **12 (6 + 6)** |
+| Interaction calls per user turn | 4.0 | **2.0** |
+| Prompt tokens | 83,391 | **55,221** |
+| Cached share, interaction / execution | 80% / 65% | 82% / 64% |
+| Cost | $0.103 | **$0.079 (−24%)** |
 
-The first round's prefilter would have dismissed the bank alert, the recruiter message and the
-visa update with no model call at all (plus a Google Groups outage and a Slack sign-in code,
-which the classifier now catches). Those are now the classifier's misses, visible and tunable.
+The six calls removed are the ones that produced nothing the user sees: the follow-up after the
+model had already told the user and dispatched the agent, and the follow-up after it had relayed
+the agent's result. The replies in both runs are in the file.
 
 ### Offline (deterministic, no key — `python -m evals.run_all`)
 
-Sources: [`docs/live/round2/roster_results.json`](docs/live/round2/roster_results.json),
-[`roster_paraphrase_results.json`](docs/live/round2/roster_paraphrase_results.json),
-[`memory_results.json`](docs/live/round2/memory_results.json), [`cost_sensitivity.json`](docs/live/round2/cost_sensitivity.json).
+Sources: [`docs/live/round3/roster_results.json`](docs/live/round3/roster_results.json),
+[`roster_paraphrase_results.json`](docs/live/round3/roster_paraphrase_results.json),
+[`memory_results.json`](docs/live/round3/memory_results.json), [`cost_results.json`](docs/live/round3/cost_results.json), [`cost_sensitivity.json`](docs/live/round3/cost_sensitivity.json),
+[`learned_selector.json`](docs/live/round3/learned_selector.json).
 
 | | Upstream | This fork |
 |---|---|---|
-| Roster tokens per turn, 400 agents | 4,476 and growing linearly | **507, flat** (12 entries) |
+| Roster tokens per turn, 400 agents | 4,476 and growing linearly | **512, flat** (12 entries) |
 | Correct agent in the roster, 400 agents (300 queries) | 100% | 93%, **99% with `search_agents`** |
 | 32 hand-written paraphrases ("yuki car thing", "Priyaa invoice?") | — | 91% in roster, **100% with search** |
-| History in prompt, 274 entries (heuristic extractor, no LLM) | 12.6k tokens | **3.7k (29%)**; commitments and constraints 100%, surface facts 63%, corrected values current 43%, buried facts 0% in prompt but 100% recoverable via `search_history` |
-| Modelled cost, 200 agents, 40 turns/day, long (136-entry, nearest measured) histories | $5.34/day | **$3.21/day (−40%)** |
+| History in prompt, 136 entries (heuristic extractor, no LLM) | 6,220 tokens | **2,692 (43%)**; commitments and constraints 100%, surface facts 88%, buried facts 0% in prompt and **100% recoverable** by a user-style query |
+| Modelled cost, 200 agents, 40 turns/day, long (136-entry, nearest measured) histories | $5.72/day | **$3.07/day (−46%)**; the sensitivity table's matching row says −39%, and 16% with short histories that never compact |
+| **Learned reranker vs hand-tuned `select()`**, recall@12, 900 held-out queries | — | learned **1.00** vs `select()` 0.95 |
+
+The reranker result is reported and not shipped. It was trained and tested on the same synthetic
+generator, whose structure (the target is the most recent agent matching the words) its features
+encode exactly, so the win is evidence about the generator, not about users. The useful finding is
+in the fitted weights (BM25 3.6, name overlap 1.9, named-in-transcript 1.4, recency rank −1.3):
+they agree with the hand-tuned ordering, and `select()`'s 5-point gap is the three slots it
+reserves for reminder owners and the hot cache, a deliberate trade for reminder safety that the
+generator does not reward. The experiment to run on a real deployment is the same script on its own
+delegation log.
 
 ![roster tokens vs agents](docs/roster_tokens_vs_agents.png)
 ![memory tokens vs history](docs/memory_tokens_vs_history.png)
-
-The cost model's headline moves with two assumptions, so the sensitivity table is part of the
-result: at 1.2 execution runs per turn the saving is 16% with short (34-entry, uncompacted)
-histories and 40% with long (136-entry) ones; at 0.5 runs per turn, 22% and 37%. Each row uses
-the nearest measured history size. The roster term dominates for short-lived agents, the
-history term for long-lived ones. Neither flips sign.
 
 ## The problem, located in code
 
@@ -197,15 +269,21 @@ MCP tool sets; that is the experiment to run if a real inbox shows paraphrase mi
   is empty too the cursor does not advance, so entries are never silently lost. Memory files are
   written atomically.
 - **Facts** supersede on a normalised key ("Alice's email address" and "alice email" are the
-  same fact). The extractor is one cheap-model call with a strict JSON contract; a deterministic
-  heuristic is the fallback and powers the offline evals.
+  same fact), on an explicit `replaces`, and on a stated correction ("it is $700, not $500"):
+  corrections are regex-detected in every batch *and* in the verbatim tail, so a fact never
+  asserts a value the entry below it retracts, whether or not the model noticed. The extractor
+  is one cheap-model call with a strict JSON contract; a deterministic heuristic is the fallback
+  and powers the offline evals.
 - **`search_history` tool** for execution agents: BM25 plus exact-match over the agent's log
   *and* a raw journal of full tool results (the log keeps the 500-char compacted form because
   it is rendered into prompts), returning a snippet windowed on the match. Anything compaction
   or the write-time cap dropped is one call away. Source: AMA-Bench (arXiv 2602.22769): lossy
   memory with similarity retrieval loses to keeping the trajectory retrievable, and retrieval
-  exposed as a tool the agent queries itself beats fixed top-k. Measured: 100% of facts buried
-  in tool payloads are recoverable, in both the live and offline runs.
+  exposed as a tool the agent queries itself beats fixed top-k. Each raw result is indexed with
+  the request that produced it and the match says so (round three: three near-identical email
+  bodies carry no amount; the request does). Measured with a user-style query, not the answer:
+  100% of facts buried in tool payloads are recoverable offline; the live row in the memory
+  table says whether the real model gets there.
 - Each compaction pushes a one-line summary into the registry, so the roster shows *what an
   agent is doing*.
 
@@ -246,12 +324,74 @@ is checked against all 46. Classification runs concurrently (bounded, default 4)
 
 Two of OpenPoke's decisions are classification, not generation. [Jev](https://docs.typesafe.ai)
 answers typed questions (yes/no with a probability, or a choice) in ~0.16 s. With
-`OPENPOKE_JEV=1` and `TYPESAFE_API_KEY`, a yes/no gates the email classifier (Jev decides; the
-cheap model only writes the summary). The agent-routing hint is off by default: measured live,
-Jev picks the right agent 42.5% of the time (abstaining on 17 of 40) against the LLM's 87.5%.
-Email: Jev alone reaches recall 0.86 at $0.003 per 120 emails vs the LLM's 0.90 at $0.16; the
-shipped gate-plus-summary pipeline is 0.81 at $0.09, so the honest saving is 40%, not the 150×
-of the decision alone.
+`OPENPOKE_JEV=1` and `TYPESAFE_API_KEY`, a two-sided yes/no gates the email classifier: below
+0.1 nothing runs, at or above 0.5 the cheap model only writes the summary, in between the full
+classifier decides (round three; the pair comes from the sweep in `jev_bench_live.json`). The
+agent-routing hint is off by default: measured live in both rounds, Jev picks the right agent
+about 40% of the time (abstaining on half) against the LLM's ~90%. Email: Jev alone reaches
+recall 0.81–0.86 at $0.003 per 120 emails vs the LLM's 1.00 at $0.20; the shipped gate keeps the
+LLM's recall on both sets at 21 of 34 model calls, so the honest saving is about 40% of the
+classifier bill, not the 150× of the decision alone.
+
+### 6. Round three: each measured loss, attacked at its cause
+
+Round two's table said where the loss was. Each item below is one row of it, with a switch
+that restores the round-two behaviour.
+
+- **Bare follow-ups.** The roster marks the thread the user touched last
+  (`last_touched="true"`) and the system prompt says a message with no name and no topic
+  ("ok send it", "did she reply?", "and then?") refers to it: delegate, do not ask. The synthetic
+  keyword-free queries are now drawn from the follow-ups that are coherent with that thread's
+  state (a draft gets "ok send it"; an awaited reply gets "did she reply?"; a reminder gets
+  "cancel it"), because a third of the round-two ones were incoherent with the transcript and
+  both arms rightly asked what the user meant. Both arms are re-run on the new workload.
+- **Wrong-person picks: a did-you-mean guard.** `send_message_to_agent` checks the chosen agent
+  against the message: if the message names a person (learned from the agents' own first
+  instructions, no name list), the chosen agent's name and instruction contain none of those
+  people, and another live agent contains all of them, the tool returns an error naming up to
+  three candidates instead of dispatching. A repeated identical call overrides it. A message that
+  also names someone the chosen agent *is* about ("ask Tomasz whether Bob is coming") never
+  fires. On the synthetic workload: 0 false fires on 120 correct picks, 58 of 60 wrong-person
+  picks caught. The prompt also says to search before picking another person's agent.
+  `OPENPOKE_ROUTING_GUARD=0` turns it off; the upstream arm of the eval never has it.
+- **One LLM call fewer per turn.** The interaction loop used to make a follow-up call after the
+  model had already told the user and dispatched the agent; that call produces nothing the user
+  sees (the reply is always the last `send_message_to_user`). The loop now ends after an
+  iteration that both told the user and dispatched (user turn), or that answered the user without
+  dispatching (agent turn). An iteration that only tells the user keeps looping, so the
+  announce-then-delegate pattern still works; any `search_agents` call or failed dispatch keeps
+  looping too. `OPENPOKE_INTERACTION_EARLY_EXIT=0` restores the upstream loop. Measured by
+  `evals/session_probe.py`, which drives the real app in-process with the flag on and off.
+- **Classifier prompt** names the categories it missed (a person replying, money and account
+  alerts, recruiter outreach, government and immigration status, security codes, deadlines and
+  changes) and says a footer does not make a message promotional. A **held-out set** of 14
+  emails (`tests/fixtures/emails_heldout.json`) was written before the prompt changed and is
+  reported separately from the 46-row dev set the prompt was written against. When Jev has
+  already decided a mail matters and the summary model returns nothing usable, the mail is
+  surfaced with a generated summary instead of dropped (that was the recall point the
+  gate-plus-summary pipeline lost in round two).
+- **Two-sided Jev gate.** Below `OPENPOKE_JEV_EMAIL_LOW` no chat model runs; at or above
+  `OPENPOKE_JEV_EMAIL_HIGH` the model only summarises; in between the full classifier decides.
+  Defaults are 0.5/0.5 (round-two behaviour). `jev_bench --live` now records every email's Jev
+  probability and LLM verdict and sweeps the (low, high) grid, so the recommended pair comes
+  from data and the README says which set it was chosen on.
+- **Corrections in the extractor contract.** The compactor's JSON gains `replaces` (the existing
+  key a renamed fact updates) and `corrections` (`{"old": "$500", "new": "$700"}`), with keys
+  fixed to "entity attribute". `_merge` invalidates the named key and any active fact still
+  asserting a corrected value whose key shares a token with the correcting fact. The heuristic
+  extractor reads "it is $700, not $500" and "$900 (was $850)".
+- **Trigger coalescing.** Several reminders due for one agent in the same scheduler poll become
+  one execution whose instructions list every reminder; completion and failure bookkeeping stay
+  per trigger. `OPENPOKE_TRIGGER_COALESCE=0` dispatches them separately as before.
+- **Two measurements that were missing.** `evals/recall_eval.py --live` asks the real execution
+  model eight questions after compaction, four answerable only through `search_history` and four
+  answerable from the prompt, and reports tool-call rate and accuracy per class. 
+  `evals/session_probe.py` reports calls, cached share and cost by role for a real session.
+- **Learned reranker, measured and not shipped.** `evals/learned_selector.py` fits a logistic
+  reranker over the signals `select()` already uses (BM25, name overlap, recency rank, log age,
+  use count, pinned, named in transcript, waiting) on five synthetic seeds and scores recall@12
+  on three held-out seeds against `select()`. Result and why it stays an experiment are in the
+  offline table.
 
 ## Tests and evaluators
 
@@ -259,32 +399,37 @@ of the decision alone.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 165 tests, ~1s, no network
+python -m pytest                 # 205 tests, ~2s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
-bash evals/run_live.sh           # every live evaluator (needs a key; ~$8)
+bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 ```
 
 | Suite | What it checks |
 |---|---|
-| `tests/test_registry.py` | lifecycle, trigger pinning and reserved slots, trigger touch, budget, hot cache, retrieval reserved ahead of the hot cache, transcript boost with a cap, archived-but-searchable, upstream-identical `all` rendering, migration from log mtime, an 11-row consolidation table incl. full names and capitalised instructions, trigram fallback |
-| `tests/test_memory.py` | upstream-identical before first compaction, prompt bound + verbatim tail, incremental compaction, fact supersession with normalised keys, threads, reminder and constraint commitments surviving 6 compactions and a concurrent compaction, regex precision on one-off instructions, empty-extraction fallback and cursor safety, atomic save, real background scheduling and shutdown, LLM extractor parsing |
+| `tests/test_registry.py` | lifecycle, trigger pinning and reserved slots, trigger touch, budget, hot cache, retrieval reserved ahead of the hot cache, transcript boost with a cap, archived-but-searchable, upstream-identical `all` rendering, migration from log mtime, an 11-row consolidation table incl. full names and capitalised instructions, trigram fallback, `last_touched` marker, a 5-row routing-mismatch table |
+| `tests/test_memory.py` | upstream-identical before first compaction, prompt bound + verbatim tail, incremental compaction, fact supersession with normalised keys, threads, reminder and constraint commitments surviving 6 compactions and a concurrent compaction, regex precision on one-off instructions, empty-extraction fallback and cursor safety, atomic save, real background scheduling and shutdown, LLM extractor parsing incl. `replaces` and `corrections`, correction-driven invalidation that leaves unrelated facts alone |
 | `tests/test_history_tool.py` | `search_history` finds a reference that only the raw journal holds, windows the snippet on the match, ranks lexical matches, handles empty queries, is registered |
 | `tests/test_router_and_gateway.py` | tiering, overrides, usage from provider or estimated, cache block only on cacheable blocks, cache-write pricing, cache disable only on a cache_control rejection, family prices for dated model ids |
 | `tests/test_anthropic_native.py` | message/tool/system conversion both ways, key precedence, retry on transport errors and 529, no retry on 400 |
-| `tests/test_email_prefilter.py` | every important fixture reaches the model (incl. the six adversarial ones); only spam and labelled promotions are hard skips |
-| `tests/test_jev.py` | answer parsing, gate skips/permits, fallback, routing hint on/off, offline oracle bench is live |
-| `tests/test_interaction_e2e.py` | the real `InteractionAgentRuntime` loop with a scripted LLM: bounded roster, target genuinely absent from the first prompt, `search_agents` round-trip, one roster selection per turn, transcript name extraction |
+| `tests/test_email_prefilter.py` | every important fixture reaches the model (incl. the six adversarial ones and the held-out set); only spam and labelled promotions are hard skips |
+| `tests/test_jev.py` | answer parsing, gate skips/permits, fallback, routing hint on/off, offline oracle bench is live, two-sided gate (low = high reproduces round two; middle band runs the full classifier), gate sweep arithmetic |
+| `tests/test_interaction_e2e.py` | the real `InteractionAgentRuntime` loop with a scripted LLM: bounded roster, target genuinely absent from the first prompt, `search_agents` round-trip, one roster selection per turn, transcript name extraction, the did-you-mean guard fires once and can be overridden, early exit after announce + delegate and not after announce alone, prompt rules present |
 | `tests/test_payloads_and_misc.py` | payload compaction keeps thread ids and per-email fields, the real watcher classifies with bounded concurrency, compaction never blocks the result, static/history prompt split |
-| `tests/test_evals.py` | stratified workloads, transcript replay, Wilson intervals, search-call counting, stale-fact scoring, paraphrase resolution, cost sensitivity |
+| `tests/test_evals.py` | stratified workloads, transcript replay, Wilson intervals, search-call counting, stale-fact scoring, paraphrase resolution, cost sensitivity, state-conditioned follow-ups, guard round-trip in the live eval, session-probe report, recall-eval scoring, reranker fit |
+| `tests/test_classifier.py` | the prompt names the missed categories; Jev-decided mail survives a missing or absent summary |
+| `tests/test_trigger_scheduler.py` | due reminders for one agent coalesce into one execution; failure marks every trigger; flag off dispatches separately |
 
 | Evaluator | Measures | Needs key |
 |---|---|---|
 | `evals.roster_eval` | roster tokens/turn and recall across 10–400 agents, upstream vs budgeted, by query kind; `--paraphrase` scores 32 hand-written follow-ups with and without the trigram fallback | no |
 | `evals.memory_eval` | prompt size and retention of surface, buried, reminder, constraint and *corrected* facts (new value present, old value not asserted), plus recovery via `search_history` | no (`--live` for the LLM extractor) |
-| `evals.email_eval` | pre-filter skip rate/precision; `--live` pipeline P/R/F1 with the ids it missed | no / yes |
+| `evals.email_eval` | pre-filter skip rate/precision; `--live` pipeline P/R/F1 with the ids it missed; `--set dev\|heldout\|both` | no / yes |
 | `evals.cost_eval` | $/user/day under four configurations plus a sensitivity table over history length and runs per turn | no |
-| `evals.jev_bench` | email gating and routing hint, offline (oracle) or live | no / yes + TypeSafe |
-| `evals.live_routing_eval` | the real Interaction model choosing an agent: `--history` for both arms, `--stratified` kinds, `--seeds`, Wilson CIs, `search_agents` call/need/hit counts, the model's words on every non-delegation | yes |
+| `evals.jev_bench` | email gating and routing hint, offline (oracle) or live; live records per-email probabilities and sweeps the two-sided gate | no / yes + TypeSafe |
+| `evals.live_routing_eval` | the real Interaction model choosing an agent: `--history` for both arms, `--stratified` kinds, `--seeds`, Wilson CIs, `search_agents` call/need/hit counts, the model's words on every non-delegation, did-you-mean guard fired/helped/hurt | yes |
+| `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
+| `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real three-turn session through the in-process app, early exit on vs off | yes |
+| `evals.learned_selector` | logistic reranker trained on synthetic seeds vs `select()` on held-out seeds, recall@12 | no |
 
 The synthetic workload (`evals/synthetic.py`) is seeded and adversarial: the same person recurs
 across topics, the same topic across people, names follow the five patterns the Interaction
@@ -292,31 +437,48 @@ Agent uses, and a quarter of queries carry no retrievable words.
 
 ### How to read the numbers, and what they do not show
 
-- **The 49% → 74% routing gap is the only headline that clears the noise**, and the two
+- **The routing headline (71% → 89%) is the only cell that clears the noise**, and the two
   intervals do not overlap. Per-kind rows have n = 30 and ±15-point intervals; treat them as
-  direction, not magnitude. Two runs of identical code on the first round's 40 queries disagreed
-  on 4 queries, which is why this round pools 120.
-- **Keyword-free follow-ups are hard for both models even with history.** The fork's gain there
-  is "never wrong" rather than "always right".
-- **The model under-uses `search_agents`** (2 calls in 6 cases that needed one). The tool is
-  proven; prompting the model to use it is the open item.
-- **Stale facts.** With the LLM extractor, 2 of 7 corrected amounts kept the old value as a
-  separate active fact. Key normalisation helps only when the extractor reuses the key; the
-  next step is an entity-plus-attribute key schema in the extractor contract. The metric was
-  tightened twice during this round (it first counted the timeline's "was $500" and the fact's
-  own "(corrected from $500)" as stale, scoring 86%); the 29% is from a fresh live run with the
-  final metric.
+  direction, not magnitude.
+- **The keyword-free row changed because the workload changed.** The round-two queries were a
+  third incoherent with the transcript; the fix was to the eval, and upstream rose with it. The
+  fork's own gain on that row over upstream is 13 points, from the `last_touched` rule.
+- **The upstream baseline gets the fork's prompt rules.** The system prompt is shared, so "search
+  before picking another person's agent" and the `last_touched` rule help upstream too; the
+  baseline is "upstream roster, fork everything else", as in round two. That is why upstream
+  moved from 49% to 71% while its roster did not change.
+- **The guard fired once in 120 queries.** It corrected that one. The design was checked offline
+  (0 false fires on 120 correct picks, 58 of 60 wrong-person picks caught); the live rate is low
+  because the prompt rule already stops most wrong-person picks before the tool sees them.
+- **Stale facts: the round-three mechanism was verified in three steps, and the README says
+  which.** The first live run of this round still showed 2 of 7 corrected amounts asserted as
+  current. Inspection showed both corrections sat in the verbatim tail *after* the compaction
+  cursor, so the fact block contradicted the entry below it; corrections are now applied from the
+  tail at compaction and at render. The number in the memory table is from the run after that fix.
+- **`search_history`: the model calls it; whether it answers is the row to read.** Round two's
+  "100% recoverable" searched for the answer itself, which measured the index. Round three
+  searches the way a user would ("$182 refund reference"); the first live run showed the model
+  calling the tool every time, the tool returning the right payload 3 of 4 times, and the model
+  answering 0 of 4 because three near-identical email bodies carry no amount. Matches now carry
+  the request that produced them. The memory table reports the run after that fix.
+- **The email prompt was written against the dev set.** The held-out set is the number to trust
+  and it was run once, after the prompt was frozen. The gate pair (0.1, 0.5) was chosen on the
+  dev set by the sweep.
 - **The 100% commitment and constraint rows measure the mechanism**: the planted needles use
   the regex's own trigger words. How often the regex misses a real rule, or records a one-off
-  as a rule, is not measured; the regex is deliberately narrow and the block tells the model
-  the current request wins.
-- **The email classifier misses 4 of 21 important emails**, including a bank alert. That is a
-  prompt problem in `importance_classifier.py`, now visible because the rules no longer hide it.
-- **The cost model is a model.** Its two driving assumptions are printed and swept.
-- **Consolidation is unit-tested, not live-measured**: the live eval never creates agents.
+  as a rule, is not measured.
+- **The learned reranker's win is on its own generator.** Reported, not shipped; see the offline
+  table.
+- **The session probe is one session.** Three turns, reminder tools only, Composio not connected.
+  The call count is deterministic (the loop structure), the cost is not.
+- **Trigger coalescing is unit-tested, not live-measured**: the live evals never fire two
+  reminders at once. **Consolidation** likewise.
 - **Not everything turns off with the upstream flags.** `search_history` and its prompt line
-  are always present, and consolidation has its own switch (`OPENPOKE_AGENT_CONSOLIDATE=0`).
-  The trigram fallback is off and, on the paraphrase set, inert.
+  are always present; consolidation, the guard, early exit and coalescing have their own
+  switches (`OPENPOKE_AGENT_CONSOLIDATE`, `OPENPOKE_ROUTING_GUARD`,
+  `OPENPOKE_INTERACTION_EARLY_EXIT`, `OPENPOKE_TRIGGER_COALESCE`). The trigram fallback is off
+  and, on the paraphrase set, inert.
+- **The cost model is a model.** Its two driving assumptions are printed and swept.
 - The live workload is synthetic. The code paths are real, the inbox is not.
 
 ## Running the server
@@ -336,19 +498,22 @@ Fixed in this fork:
   instead of dismissing.
 - **Constraints lost to summarisation** — the verbatim commitments tier.
 - **Nothing recoverable after compaction** — `search_history`.
-- **Zero tests** — 165 now, plus seven evaluators.
+- **Zero tests** — 205 now, plus ten evaluators.
+
+Built in round three (each measured above): the wasted follow-up call per turn, the
+did-you-mean guard and search rule, corrections in the extractor contract, the classifier
+prompt with a held-out set, the two-sided Jev gate, trigger coalescing, and the two missing
+measurements (`search_history` usage, calls per turn).
 
 Flagged, not built (what I'd do next, in order):
-1. **Calls per turn.** A three-turn session costs 11 LLM calls; this work cuts tokens per call
-   and leaves the announce/delegate/process/announce loop alone. Merging announce + delegate and
-   streaming the first execution result are the largest remaining cost and latency levers.
-2. **Make the model search.** The roster note already says to call `search_agents`; a hard
-   rule ("before creating an agent, search") plus a "did you mean" error from
-   `send_message_to_agent` when a near-duplicate exists.
-3. **Extractor key schema** so corrections always supersede; re-run `memory_eval --live`.
-4. **Classifier prompt** for alerts and recruiter mail, measured on the 46-email set.
-5. **Live A/B on a real inbox** with `/meta/usage` before/after.
-6. **Memory merge on consolidation** for threads that already split before this change.
+1. **Live A/B on a real inbox** with `/meta/usage` before/after. Everything here is measured on a
+   synthetic workload; the code paths are real, the inbox is not, and that is the single thing
+   that would most change how much the numbers mean.
+2. **Streaming the first execution result** back to the user instead of a second interaction
+   turn: the remaining large lever on calls per message.
+3. **Train the reranker on the deployment's own delegation log** once one exists; the synthetic
+   experiment says the signals are right and the weights are close.
+4. **Memory merge on consolidation** for threads that already split before this change.
 
 ## Files changed
 
@@ -357,6 +522,7 @@ ARCHITECTURE.md                                   code-path notes with line refs
 docs/superpowers/specs, docs/superpowers/plans    round-two design and plan
 docs/live/                                        round-one live results (kept for the record)
 docs/live/round2/                                 round-two live results and logs
+docs/live/round3/                                 round-three live and offline results and logs
 server/services/execution/registry.py             AgentRegistry
 server/services/execution/memory.py               AgentMemory (+ commitments tier)
 server/services/execution/payloads.py             tool-payload compaction
@@ -365,12 +531,13 @@ server/services/llm/{router,usage,gateway}.py     routing, ledger, cache blocks
 server/services/llm/jev.py                        Jev typed-decision client
 server/services/gmail/prefilter.py                email routing layer
 server/openrouter_client/anthropic_native.py      native Messages API adapter with retry
-server/agents/interaction_agent/{agent,tools}.py  budgeted + transcript-aware roster, search_agents
+server/agents/interaction_agent/{agent,tools,runtime}.py  budgeted + transcript-aware roster, search_agents, did-you-mean guard, early exit
 server/agents/execution_agent/{agent,runtime}.py  memory-backed history, cache-stable prompt, background compaction
 server/agents/execution_agent/tools/history.py    search_history tool
-server/services/trigger_scheduler.py              touch agent on fire
+server/services/trigger_scheduler.py              touch agent on fire; coalesce per agent
+server/services/gmail/importance_classifier.py    category prompt, two-sided Jev gate, summary fallback
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            165 tests + 46 labelled emails
-evals/                                            7 evaluators, synthetic workload, paraphrase set, stats
+tests/                                            205 tests + 46 labelled emails + 14 held-out
+evals/                                            10 evaluators, synthetic workload, paraphrase set, stats
 ```
