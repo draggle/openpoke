@@ -360,3 +360,17 @@ def test_transcript_names_outrank_lexical_ties(tmp_path, clock):
     clock.advance(DAY)
     hits = reg.search("nudge tara again", recent_agent_names=["Tara October Invoice"])
     assert hits[0][0].name == "Tara October Invoice"
+
+
+# ---- round two: optional trigram fallback for misspelt follow-ups ---------------------
+
+
+def test_fuzzy_fallback_matches_misspelling(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, fuzzy=True)
+    reg.register("Email to Priya about invoice", "chase Priya for the invoice")
+    reg.register("Dinner Plans with Bob", "book dinner with Bob")
+    hits = reg.search("any word from Priyaa?")
+    assert hits and hits[0][0].name == "Email to Priya about invoice"
+    strict = make_registry(tmp_path / "strict", clock, fuzzy=False)
+    strict.register("Email to Priya about invoice", "chase Priya for the invoice")
+    assert strict.search("any word from Priyaa?") == []

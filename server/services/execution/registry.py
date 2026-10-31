@@ -70,6 +70,8 @@ class RegistryConfig:
     recent_requests_kept: int = 3
     recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
     transcript_boost: float = 1.0  # added to the score of agents named in the recent conversation
+    fuzzy: bool = False  # trigram fallback when no token matches (misspelt names); off by default
+    fuzzy_min_similarity: float = 0.4
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
     consolidate_min_overlap: float = 0.75  # name-token overlap required in *both* directions
@@ -86,6 +88,7 @@ class RegistryConfig:
             min_score=_env_float("OPENPOKE_ROSTER_MIN_SCORE", 0.0),
             recency_weight=_env_float("OPENPOKE_ROSTER_RECENCY_WEIGHT", 0.6),
             transcript_boost=_env_float("OPENPOKE_ROSTER_TRANSCRIPT_BOOST", 1.0),
+            fuzzy=os.getenv("OPENPOKE_ROSTER_FUZZY", "0") == "1",
             consolidate=os.getenv("OPENPOKE_AGENT_CONSOLIDATE", "1") != "0",
             active_ttl_s=_env_float("OPENPOKE_AGENT_ACTIVE_TTL_S", 48 * 3600),
             archive_ttl_s=_env_float("OPENPOKE_AGENT_ARCHIVE_TTL_S", 14 * 24 * 3600),
@@ -480,8 +483,29 @@ class AgentRegistry:
                 score += self.config.transcript_boost
             if score > self.config.min_score:
                 scored.append((record, score))
+        if not scored and self.config.fuzzy:
+            scored = self._fuzzy_search(candidates, query_tokens, now)
         scored.sort(key=lambda pair: (-pair[1], -pair[0].last_used_at))
         return scored[:limit]
+
+    def _fuzzy_search(
+        self, candidates: List[AgentRecord], query_tokens: List[str], now: float
+    ) -> List[Tuple[AgentRecord, float]]:
+        """Character-trigram fallback: 'Priyaa' still finds Priya. Only runs when BM25 found nothing."""
+        scored: List[Tuple[AgentRecord, float]] = []
+        long_query = [t for t in query_tokens if len(t) >= 4]
+        if not long_query:
+            return scored
+        for record in candidates:
+            name_tokens = [t for t in tokenize(record.name) if len(t) >= 3]
+            best = max(
+                (_trigram_similarity(q, n) for q in long_query for n in name_tokens), default=0.0
+            )
+            if best >= self.config.fuzzy_min_similarity:
+                idle = max(0.0, now - record.last_used_at)
+                recency = 0.5 ** (idle / self.config.recency_half_life_s)
+                scored.append((record, best + self.config.recency_weight * recency))
+        return scored
 
     def select(
         self, query: str = "", *, now: Optional[float] = None, recent_agent_names: Sequence[str] = ()
@@ -622,6 +646,16 @@ class AgentRegistry:
                 }
             )
         return payload
+
+
+def _trigrams(token: str) -> set:
+    padded = f"  {token} "
+    return {padded[i : i + 3] for i in range(len(padded) - 2)}
+
+
+def _trigram_similarity(a: str, b: str) -> float:
+    ta, tb = _trigrams(a), _trigrams(b)
+    return len(ta & tb) / len(ta | tb) if ta and tb else 0.0
 
 
 def _relative_time(seconds: float) -> str:
