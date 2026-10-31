@@ -185,3 +185,65 @@ def test_system_prompt_names_last_touched_rule():
     assert 'last_touched="true"' in prompt
     paragraph = next(p for p in prompt.split("\n") if "names a person" in p)
     assert "search_agents" in paragraph
+
+
+def _guard_registry(tmp_path):
+    reg = AgentRegistry(tmp_path / "g.json", config=RegistryConfig(max_roster=12))
+    reg.register("Follow up with Tomasz - flight", "Check whether Tomasz has replied about the flight confirmation")
+    reg.register("Flight Confirmation with Bob", "Find the latest email from Bob about the flight confirmation")
+    return reg
+
+
+def test_send_message_guard_fires_once(monkeypatch, tmp_path):
+    reg = _guard_registry(tmp_path)
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+    dispatched = []
+
+    async def fake_execute_agent(agent_name, instructions):
+        dispatched.append(agent_name)
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+    monkeypatch.delenv("OPENPOKE_ROUTING_GUARD", raising=False)
+    tools_module._GUARD_SEEN.clear()
+
+    async def run():
+        first = tools_module.send_message_to_agent("Follow up with Tomasz - flight",
+                                                   "What did Bob say about the flight confirmation?")
+        assert not first.success
+        assert first.payload["did_you_mean"][0] == "Flight Confirmation with Bob"
+        assert dispatched == []
+        second = tools_module.send_message_to_agent("Follow up with Tomasz - flight",
+                                                    "What did Bob say about the flight confirmation?")
+        assert second.success
+        await asyncio.sleep(0)
+        assert dispatched == ["Follow up with Tomasz - flight"]
+
+    asyncio.run(run())
+
+
+def test_send_message_guard_flag_off(monkeypatch, tmp_path):
+    reg = _guard_registry(tmp_path)
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+
+    async def fake_execute_agent(agent_name, instructions):
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+    monkeypatch.setenv("OPENPOKE_ROUTING_GUARD", "0")
+    tools_module._GUARD_SEEN.clear()
+
+    async def run():
+        first = tools_module.send_message_to_agent("Follow up with Tomasz - flight",
+                                                   "What did Bob say about the flight confirmation?")
+        assert first.success
+
+    asyncio.run(run())

@@ -166,6 +166,23 @@ class RosterSelection:
         return [entry.record.name for entry in self.shown]
 
 
+@dataclass
+class RoutingMismatch:
+    """The message names people the chosen agent is not about; these agents are."""
+
+    tokens: List[str]  # person tokens in the message that the chosen agent lacks
+    candidates: List[str]  # live agents about those people, best first
+
+    def render(self) -> str:
+        people = ", ".join(self.tokens)
+        options = "; ".join(self.candidates)
+        return (
+            f"The message mentions {people}, but this agent is not about {people}. "
+            f"Did you mean: {options}? Call send_message_to_agent with one of those names, or "
+            f"call search_agents. Repeat this exact call to override."
+        )
+
+
 # --------------------------------------------------------------------------------------
 # Tokeniser (tiny, dependency-free)
 # --------------------------------------------------------------------------------------
@@ -524,6 +541,50 @@ class AgentRegistry:
         scored.sort(key=lambda pair: (-pair[1], -pair[0].last_used_at))
         return scored[:limit]
 
+    def routing_mismatch(self, agent_name: str, message: str) -> Optional[RoutingMismatch]:
+        """Did the Interaction Agent pick an agent about a different person than the message?
+
+        People are learned from the agents' own first instructions (capitalised runs that do
+        not start a sentence: "Find the latest email from Bob ..."), so no name list is needed.
+        Fires only when the message names at least one such person, the chosen agent's name and
+        instruction contain none of them, and some other live agent contains all of them. A
+        message that also names someone the chosen agent *is* about ("ask Tomasz whether Bob is
+        coming") never fires: the pick is anchored.
+        """
+        chosen = self.get(agent_name)
+        if chosen is None or not message.strip():
+            return None
+        people: set = set()
+        for record in self._records.values():
+            for entity in _entities(record.description):
+                people.update(tokenize(entity))
+        query_tokens = set(tokenize(message))
+        mentioned = sorted(query_tokens & people)
+        if not mentioned:
+            return None
+        chosen_tokens = set(tokenize(f"{chosen.name} {chosen.description}"))
+        if any(token in chosen_tokens for token in mentioned):
+            return None
+        needed = set(mentioned)
+        statuses = {r.name: self.status_of(r) for r in self._records.values()}
+
+        def about(record: AgentRecord) -> bool:
+            return needed <= set(tokenize(f"{record.name} {record.description}"))
+
+        ranked: List[str] = []
+        for record, _score in self.search(message, limit=12, include_archived=False, statuses=statuses):
+            if record.name != chosen.name and about(record) and record.name not in ranked:
+                ranked.append(record.name)
+        for record in sorted(self._records.values(), key=lambda r: -r.last_used_at):
+            if len(ranked) >= 3:
+                break
+            if (record.name != chosen.name and statuses[record.name] != AgentStatus.ARCHIVED
+                    and about(record) and record.name not in ranked):
+                ranked.append(record.name)
+        if not ranked:
+            return None
+        return RoutingMismatch(tokens=mentioned, candidates=ranked[:3])
+
     def _fuzzy_search(
         self, candidates: List[AgentRecord], query_tokens: List[str], now: float
     ) -> List[Tuple[AgentRecord, float]]:
@@ -774,6 +835,7 @@ __all__ = [
     "RegistryConfig",
     "RosterEntry",
     "RosterSelection",
+    "RoutingMismatch",
     "get_agent_registry",
     "tokenize",
 ]

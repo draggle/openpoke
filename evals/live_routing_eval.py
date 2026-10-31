@@ -52,6 +52,8 @@ class Decision:
     search_calls: int = 0
     none_text: str = ""  # what the model said when it did not delegate
     target_shown: bool = True  # was the target in the first roster the model saw?
+    first_pick: Optional[str] = None  # the first agent the model tried to dispatch to
+    guard_fired: bool = False  # the did-you-mean guard challenged that first pick
 
 
 def _prompt(registry: AgentRegistry, workload: Workload, text: str, history: bool) -> tuple[str, bool]:
@@ -74,7 +76,8 @@ async def decide(registry: AgentRegistry, workload: Workload, text: str, *, hist
     messages = [{"role": "user", "content": body}]
     decision = Decision(agent=None, target_shown=(target in shown) if target else True)
     last_text = ""
-    for _ in range(3):
+    guarded = registry.config.strategy == "budgeted"  # upstream arm has no guard
+    for _ in range(4):
         response = await complete(role=ROLE_INTERACTION, messages=messages, system=build_system_prompt(),
                                   tools=get_tool_schemas(), tag="live_routing_eval")
         message = (response.get("choices") or [{}])[0].get("message") or {}
@@ -89,8 +92,22 @@ async def decide(registry: AgentRegistry, workload: Workload, text: str, *, hist
                 args = {}
             name = fn.get("name")
             if name == "send_message_to_agent":
-                decision.agent = args.get("agent_name")
-                return decision
+                chosen = args.get("agent_name")
+                if decision.first_pick is None:
+                    decision.first_pick = chosen
+                mismatch = None
+                if guarded and not decision.guard_fired and isinstance(chosen, str):
+                    mismatch = registry.routing_mismatch(chosen, args.get("instructions") or text)
+                if mismatch is None:
+                    decision.agent = chosen
+                    return decision
+                decision.guard_fired = True
+                messages.append({"role": "tool", "tool_call_id": call.get("id") or "send",
+                                 "content": json.dumps({"tool": name, "status": "error",
+                                                        "arguments": args,
+                                                        "error": {"error": mismatch.render(),
+                                                                  "did_you_mean": mismatch.candidates}})})
+                continue
             if name == "search_agents":
                 decision.search_calls += 1
                 hits = registry.search(args.get("query", ""), limit=int(args.get("limit", 5) or 5))
@@ -130,6 +147,10 @@ def _summary(rows: List[Dict], ledger_totals: Dict, n_queries: int) -> Dict:
         "search_calls": sum(r["search_calls"] for r in rows),
         "search_needed": len(needed),
         "search_hits": sum(r["ok"] for r in needed),
+        "wrong_agent": sum(1 for r in rows if r["chosen"] is not None and not r["ok"]),
+        "guard_fired": sum(1 for r in rows if r.get("guard_fired")),
+        "guard_helped": sum(1 for r in rows if r.get("guard_fired") and r["ok"] and r.get("first_pick") != r["target"]),
+        "guard_hurt": sum(1 for r in rows if r.get("guard_fired") and not r["ok"] and r.get("first_pick") == r["target"]),
         "prompt_tokens_per_query": round(ledger_totals["prompt_tokens"] / n, 1),
         "cached_tokens_per_query": round(ledger_totals.get("cached_tokens", 0) / n, 1),
         "usd_total": round(ledger_totals["cost_usd"], 4),
@@ -152,9 +173,12 @@ async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "
                 ok = d.agent == q.target
                 rows.append({"seed": seed, "kind": q.kind, "text": q.text, "target": q.target, "chosen": d.agent,
                              "ok": ok, "known": d.agent in registry if d.agent else False,
-                             "search_calls": d.search_calls, "target_shown": d.target_shown, "none_text": d.none_text})
+                             "search_calls": d.search_calls, "target_shown": d.target_shown, "none_text": d.none_text,
+                             "state": q.state, "first_pick": d.first_pick, "guard_fired": d.guard_fired})
                 flag = "OK " if ok else "MISS"
                 extra = f" [search x{d.search_calls}]" if d.search_calls else ""
+                if d.guard_fired:
+                    extra += f" [guard: first {d.first_pick!r}]"
                 print(f"[{strategy} s{seed}] {flag} {q.kind:<10} {q.text[:45]:<45} -> {d.agent!r} (want {q.target!r}){extra}", flush=True)
         results[strategy] = _summary(rows, ledger.totals()["total"], n_queries)
         results[strategy]["rows"] = rows
@@ -172,6 +196,7 @@ def print_table(results: Dict[str, Dict]) -> None:
         print(f"\n{strategy}: {r['accuracy']:.1%} (n={r['n']}, 95% CI {lo:.0%}-{hi:.0%}); "
               f"no delegation {r['no_delegation']}, new agents {r['spawned_new_agent']}, "
               f"search calls {r['search_calls']} (needed {r['search_needed']}, hit {r['search_hits']}); "
+              f"wrong agent {r['wrong_agent']}, guard fired {r['guard_fired']} (helped {r['guard_helped']}, hurt {r['guard_hurt']}); "
               f"{r['prompt_tokens_per_query']} prompt tok/query, {r['cached_tokens_per_query']} cached; ${r['usd_total']}")
         for kind, k in r["by_kind"].items():
             print(f"  {kind:<10} {k['acc']:.0%}  n={k['n']:<3} CI {k['ci95'][0]:.0%}-{k['ci95'][1]:.0%}")

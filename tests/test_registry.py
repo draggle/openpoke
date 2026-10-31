@@ -427,3 +427,29 @@ def test_render_marks_most_recent_agent_last_touched(tmp_path, clock):
     upstream = AgentRegistry(tmp_path / "all.json", config=RegistryConfig(strategy="all"), clock=clock)
     upstream.register("Bob Flight", "find Bob's flight")
     assert "last_touched" not in upstream.render(upstream.select("any news?"))
+
+
+# ---- round three: did-you-mean guard when the chosen agent is about someone else ---------
+
+
+@pytest.mark.parametrize("message,chosen,expect", [
+    ("what did bob say about the flight confirmation?", "Follow up with Tomasz - flight", ["Flight Confirmation with Bob"]),
+    ("ask Tomasz whether Bob is coming", "Follow up with Tomasz - flight", None),
+    ("any update on the flight?", "Follow up with Tomasz - flight", None),
+    ("did bob reply?", "Flight Confirmation with Bob", None),
+    ("did bob reply?", "No Such Agent", None),
+])
+def test_routing_mismatch(tmp_path, clock, message, chosen, expect):
+    reg = make_registry(tmp_path, clock)
+    reg.register("Follow up with Tomasz - flight", "Check whether Tomasz has replied about the flight confirmation")
+    clock.advance(HOUR)
+    reg.register("Flight Confirmation with Bob", "Find the latest email from Bob about the flight confirmation")
+    clock.advance(HOUR)
+    reg.register("Dinner Plans with Alice", "book dinner with Alice")
+    mismatch = reg.routing_mismatch(chosen, message)
+    if expect is None:
+        assert mismatch is None
+    else:
+        assert mismatch is not None
+        assert mismatch.candidates[: len(expect)] == expect
+        assert "bob" in mismatch.tokens

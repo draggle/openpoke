@@ -1,7 +1,9 @@
 """Tool definitions for interaction agent."""
 
 import asyncio
+import hashlib
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -139,6 +141,13 @@ TOOL_SCHEMAS = [
 
 _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 
+# (agent, message) pairs the did-you-mean guard already challenged: a repeat is an override.
+_GUARD_SEEN: set = set()
+
+
+def _guard_enabled() -> bool:
+    return os.getenv("OPENPOKE_ROUTING_GUARD", "1") != "0"
+
 
 # Create or reuse execution agent and dispatch instructions asynchronously
 def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
@@ -149,6 +158,18 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     if duplicate is not None:
         logger.info(f"Consolidated new agent '{agent_name}' into existing '{duplicate.name}'")
         agent_name = duplicate.name
+    if _guard_enabled() and agent_name in registry:
+        key = (agent_name, hashlib.sha1(instructions.strip().lower().encode()).hexdigest())
+        if key not in _GUARD_SEEN:
+            mismatch = registry.routing_mismatch(agent_name, instructions)
+            if mismatch is not None:
+                _GUARD_SEEN.add(key)
+                logger.info(f"Routing guard: '{agent_name}' is not about {mismatch.tokens}; "
+                            f"suggesting {mismatch.candidates}")
+                return ToolResult(
+                    success=False,
+                    payload={"error": mismatch.render(), "did_you_mean": mismatch.candidates},
+                )
     is_new = registry.register(agent_name, instructions, reason="user")
 
     # Keep the legacy roster.json in sync so older tooling keeps working.

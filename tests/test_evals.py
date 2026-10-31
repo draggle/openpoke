@@ -178,3 +178,36 @@ def test_recency_query_coherent_examples():
     assert "ok send it" not in RECENCY_BY_STATE["done"]
     assert recency_state("Waiting on Bob for the flight confirmation since 3d ago") == "awaiting"
     assert recency_state("Reminder scheduled for the flight confirmation") == "reminder"
+
+
+async def test_decide_applies_guard(tmp_path, monkeypatch):
+    from evals.live_routing_eval import decide
+    from evals.roster_eval import build_registry
+    from server.services.execution.registry import RegistryConfig
+    from server.services.llm import gateway
+
+    w = generate(60, seed=7, n_queries=5)
+    registry = build_registry(w, tmp_path, RegistryConfig(strategy="budgeted"))
+    bob = next(a for a in w.agents if a.person == "Bob")
+    other = next(a for a in w.agents if a.person != "Bob" and a.topic == bob.topic)
+    text = f"what did bob say about the {bob.desc}?"
+    calls = {"n": 0}
+
+    async def scripted(*, model, messages, system=None, api_key=None, tools=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return {"choices": [{"message": {"content": "", "tool_calls": [{"id": "c1", "type": "function",
+                    "function": {"name": "send_message_to_agent",
+                                 "arguments": json.dumps({"agent_name": other.name, "instructions": text})}}]}}]}
+        error = json.loads(messages[-1]["content"])
+        assert error["status"] == "error" and error["error"]["did_you_mean"]
+        return {"choices": [{"message": {"content": "", "tool_calls": [{"id": "c2", "type": "function",
+                "function": {"name": "send_message_to_agent",
+                             "arguments": json.dumps({"agent_name": error["error"]["did_you_mean"][0],
+                                                      "instructions": text})}}]}}]}
+
+    monkeypatch.setattr(gateway._openrouter, "request_chat_completion", scripted)
+    decision = await decide(registry, w, text, history=True, target=bob.name)
+    assert decision.guard_fired
+    assert decision.first_pick == other.name
+    assert decision.agent is not None and "Bob" in decision.agent
