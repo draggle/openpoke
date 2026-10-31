@@ -65,6 +65,7 @@ def search_history(
     by_key, in_order = _request_contexts(entries)
     raw_entries = []
     index_text: Dict[int, str] = {}
+    context_of: Dict[int, str] = {}
     unkeyed = 0
     for ts, tool, raw, key in store.iter_raw_tool_responses_keyed(agent_name):
         if key and by_key.get(key):
@@ -75,6 +76,7 @@ def search_history(
             context = in_order[unkeyed] if unkeyed < len(in_order) else ""
             unkeyed += 1
         index_text[len(entries) + len(raw_entries)] = f"{tool}: {raw} {context}"
+        context_of[len(entries) + len(raw_entries)] = context
         raw_entries.append(("tool_response_raw", ts, f"{tool}: {raw}"))
     entries += raw_entries
     query = (query or "").strip()
@@ -104,9 +106,12 @@ def search_history(
             scored.append((score, index, tag, ts, payload))
     scored.sort(key=lambda item: (-item[0], -item[1]))
 
+    # A raw result says what the tool returned; ``context`` says what it was asked for, which is
+    # how the caller tells three near-identical email bodies apart.
     matches = [
-        {"tag": tag, "timestamp": ts, "text": _window(payload, query, query_tokens)}
-        for _, _, tag, ts, payload in scored[:limit]
+        {"tag": tag, "timestamp": ts, "text": _window(payload, query, query_tokens),
+         "context": context_of.get(index, "")[:200]}
+        for _, index, tag, ts, payload in scored[:limit]
     ]
     return {"query": query, "matches": matches, "total_entries": len(entries)}
 

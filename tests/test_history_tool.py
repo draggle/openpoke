@@ -122,3 +122,20 @@ def test_raw_context_survives_a_short_result_without_a_raw_row(tmp_path):
     hits = [m for m in search_history("a", "$182 refund reference", limit=5, log_store=store)["matches"]
             if m["tag"] == "tool_response_raw"]
     assert hits and "REF-22222" in hits[0]["text"]
+
+
+def test_raw_match_carries_the_request_it_answered(tmp_path):
+    """Three near-identical email bodies each hold a reference code; the model can only tell
+    which is which if the match says what request produced it."""
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    body = "Thanks for reaching out. " * 20
+    for amount, code in (("$454", "REF-11111"), ("$182", "REF-22222")):
+        store.record_request("a", f"Ask Hannah whether the refund for {amount} can be settled by Nov 1")
+        raw = '{"emails": [{"clean_text": "%sOur internal reference is %s."}]}' % (body, code)
+        store.record_tool_response("a", "gmail_fetch_emails", raw[:500], raw=raw)
+    hit = next(m for m in search_history("a", "$182 refund reference", limit=5, log_store=store)["matches"]
+               if m["tag"] == "tool_response_raw")
+    assert "REF-22222" in hit["text"]
+    assert "$182" in hit["context"] and hit["context"].startswith("Ask Hannah")

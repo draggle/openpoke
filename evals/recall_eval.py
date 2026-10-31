@@ -91,7 +91,7 @@ async def _ask(agent: str, store: ExecutionAgentLogStore, system_blocks: List[Di
     text = ""
     queries: List[str] = []
     returned: List[str] = []
-    for _ in range(3):
+    for _ in range(4):  # a search, a refined search, an answer, one spare
         response = await complete(role=ROLE_EXECUTION, messages=messages, system=system_blocks,
                                   tools=history_tool.get_schemas(), tag="recall_eval")
         message = (response.get("choices") or [{}])[0].get("message") or {}

@@ -29,6 +29,7 @@ lunch from Friday to Thursday" is answerable and auditable.
 from __future__ import annotations
 
 import asyncio
+import copy
 import hashlib
 import json
 import os
@@ -535,6 +536,9 @@ class AgentMemory:
                     return None
             now_ts = batch[-1][1] or ""
             self._merge(state, extraction, now_ts)
+            # A correction that arrived after the batch (still in the verbatim tail) must not
+            # leave the fact block asserting the old value right above the entry that retracts it.
+            self._apply_tail_corrections(state, entries[cutoff:], now_ts)
             state.compacted_through = cutoff
             state.compactions += 1
             self.save(agent_name, state)
@@ -581,6 +585,15 @@ class AgentMemory:
             except (asyncio.CancelledError, Exception):
                 pass
         self._tasks.clear()
+
+    def _apply_tail_corrections(self, state: MemoryState, tail: Sequence[LogEntry], now_ts: str) -> None:
+        corrections = []
+        for _tag, _ts, payload in tail:
+            for pair in extract_corrections(" ".join(payload.split())):
+                if pair not in corrections:
+                    corrections.append(pair)
+        if corrections:
+            self._merge(state, Extraction(corrections=corrections), now_ts)
 
     def _merge(self, state: MemoryState, extraction: Extraction, now_ts: str) -> None:
         # facts: temporal invalidation on key collision
@@ -689,6 +702,12 @@ class AgentMemory:
             commitments = self._render_commitments(state)
             return "\n".join([*commitments, "", transcript]) if commitments else transcript
 
+        # Display-time pass: a correction that landed in the tail since the last compaction
+        # retires the fact it contradicts (not persisted; the next compaction persists it).
+        recent = entries[state.compacted_through :]
+        state = copy.deepcopy(state)
+        self._apply_tail_corrections(state, recent, recent[-1][1] if recent else "")
+
         parts: List[str] = [*self._render_commitments(state), "# Memory (compressed from earlier activity)"]
         facts = state.active_facts()
         if facts:
@@ -710,7 +729,6 @@ class AgentMemory:
             parts.append("## Timeline")
             parts.extend(f"- [{e.timestamp}] {e.text}" for e in state.episodes)
 
-        recent = entries[state.compacted_through :]
         parts.append("")
         parts.append(f"# Recent History ({len(recent)} most recent entries, verbatim)")
         from html import escape

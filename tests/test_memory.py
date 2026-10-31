@@ -540,3 +540,26 @@ async def test_llm_extractor_unions_regex_corrections(tmp_path, store, monkeypat
     monkeypatch.setattr(oc, "request_chat_completion", fake)
     ext = await LLMExtractor()(list(store.iter_entries("a")), MemoryState())
     assert ext.corrections == [("$3579", "$3911")]
+
+
+async def test_correction_in_the_verbatim_tail_retires_the_fact(tmp_path, store):
+    """The fact block must not assert $500 while the raw tail, rendered right below it, says
+    'it is $700, not $500'. Applied at compaction and again at render time."""
+    fill_log(store, "a", rounds=6)
+    store.record_request("a", "Ask Alice whether the invoice for $500 can be settled by Nov 8")
+    store.record_agent_response("a", "Alice confirmed the invoice for $500 by Nov 8")
+    mem = make_memory(tmp_path, store, tail_entries=2)
+    state = await mem.compact("a", force=True)
+    state.facts.append(Fact(key="Alice invoice $500", value="confirmed by Nov 8", recorded_at="t0"))
+    mem.save("a", state)
+    # the correction lands after compaction, inside the verbatim tail
+    store.record_request("a", "Alice says the invoice was wrong: it is $700, not $500. Update our records.")
+    store.record_agent_response("a", "Updated: the invoice is $700 (was $500).")
+    rendered = mem.render_history("a")
+    facts_block = rendered.split("## Facts", 1)[1].split("##", 1)[0]
+    assert "$500" not in facts_block
+    assert "Alice invoice $500" not in facts_block
+    # and the next compaction persists it
+    state = await mem.compact("a", force=True)
+    old = next(f for f in state.facts if f.key == "Alice invoice $500")
+    assert old.active is False and old.superseded_by == "$700"
