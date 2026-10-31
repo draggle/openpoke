@@ -228,3 +228,41 @@ def test_empty_registry_renders_none(tmp_path, clock):
 
 def test_tokenize_drops_stopwords_and_punctuation():
     assert tokenize("Did Alice reply about the invoice?") == ["alice", "invoice"]
+
+
+# ---- consolidation ---------------------------------------------------------------------
+
+
+def test_find_duplicate_merges_renamed_same_thread(tmp_path, clock):
+    reg = make_registry(tmp_path, clock)
+    reg.register("Email to Alice about lunch", "Invite Alice to lunch Friday")
+    assert reg.find_duplicate("Alice Lunch").name == "Email to Alice about lunch"
+    assert reg.find_duplicate("Lunch with Alice").name == "Email to Alice about lunch"
+
+
+def test_find_duplicate_respects_topic_difference(tmp_path, clock):
+    reg = make_registry(tmp_path, clock)
+    reg.register("Email to Alice about lunch", "Invite Alice to lunch")
+    assert reg.find_duplicate("Alice Contract") is None
+    assert reg.find_duplicate("Alice") is None  # single token: too little signal
+
+
+def test_find_duplicate_ignores_archived_and_can_be_disabled(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, active_ttl_s=DAY, archive_ttl_s=2 * DAY)
+    reg.register("Email to Alice about lunch", "x")
+    clock.advance(30 * DAY)
+    assert reg.find_duplicate("Alice Lunch") is None
+    reg2 = make_registry(tmp_path, clock, consolidate=False)
+    reg2.register("Email to Bob about rent", "x")
+    assert reg2.find_duplicate("Bob Rent") is None
+
+
+def test_roster_is_ordered_most_recent_first(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=5, hot_cache_size=1)
+    reg.register("Tara October Invoice", "chase Tara's invoice")
+    clock.advance(HOUR)
+    reg.register("Tara Conference Talk", "ask Tara about the talk")
+    clock.advance(HOUR)
+    reg.register("Tara Flight", "Tara's flight details")
+    names = reg.select("nudge tara again").names()
+    assert names[:3] == ["Tara Flight", "Tara Conference Talk", "Tara October Invoice"]

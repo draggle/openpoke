@@ -9,7 +9,7 @@ from .agent import ExecutionAgent
 from .tools import get_tool_schemas, get_tool_registry
 from ...config import get_settings
 from ...services.execution import get_agent_memory
-from ...services.llm import ROLE_EXECUTION, complete as llm_complete, get_model_router
+from ...services.llm import ROLE_EXECUTION, ROLE_EXECUTION_TRIGGER, complete as llm_complete, get_model_router
 from ...logging_config import logger
 
 
@@ -29,11 +29,12 @@ class ExecutionAgentRuntime:
     MAX_TOOL_ITERATIONS = 8
 
     # Initialize execution agent runtime with settings, tools, and agent instance
-    def __init__(self, agent_name: str):
+    def __init__(self, agent_name: str, *, source: str = "user"):
         settings = get_settings()
         self.agent = ExecutionAgent(agent_name)
         self.api_key = settings.openrouter_api_key
-        self.model = get_model_router().model_for(ROLE_EXECUTION)
+        self.role = ROLE_EXECUTION_TRIGGER if source == "trigger" else ROLE_EXECUTION
+        self.model = get_model_router().model_for(self.role)
         self.tool_registry = get_tool_registry(agent_name=agent_name)
         self.tool_schemas = get_tool_schemas()
 
@@ -165,7 +166,7 @@ class ExecutionAgentRuntime:
         tools_to_send = self.tool_schemas if with_tools else None
         logger.info(f"[{self.agent.name}] Calling LLM with model: {self.model}, tools: {len(tools_to_send) if tools_to_send else 0}")
         return await llm_complete(
-            role=ROLE_EXECUTION,
+            role=self.role,
             messages=messages,
             system=system_prompt,
             api_key=self.api_key,

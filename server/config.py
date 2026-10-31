@@ -50,7 +50,9 @@ class Settings(BaseModel):
     server_host: str = Field(default=os.getenv("OPENPOKE_HOST", "0.0.0.0"))
     server_port: int = Field(default=_env_int("OPENPOKE_PORT", 8001))
 
-    # LLM model selection
+    # LLM model selection now lives in services/llm/router.py (role -> tier -> model), driven by
+    # OPENPOKE_STRONG_MODEL / OPENPOKE_CHEAP_MODEL / OPENPOKE_TIER_<ROLE>. The fields below are
+    # kept only for backward compatibility with upstream call sites and are not consulted.
     interaction_agent_model: str = Field(default="anthropic/claude-sonnet-4")
     execution_agent_model: str = Field(default="anthropic/claude-sonnet-4")
     execution_agent_search_model: str = Field(default="anthropic/claude-sonnet-4")

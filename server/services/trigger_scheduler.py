@@ -97,6 +97,7 @@ class TriggerScheduler:
             result = await execution_manager.execute_agent(
                 trigger.agent_name,
                 instructions,
+                source="trigger",
             )
             if result.success:
                 self._handle_success(trigger, fired_at)

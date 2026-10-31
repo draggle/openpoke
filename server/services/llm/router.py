@@ -31,6 +31,7 @@ ROLE_EXECUTION_SEARCH = "execution_search"
 ROLE_SUMMARIZER = "summarizer"
 ROLE_EMAIL_CLASSIFIER = "email_classifier"
 ROLE_MEMORY_COMPACTOR = "memory_compactor"
+ROLE_EXECUTION_TRIGGER = "execution_trigger"  # execution agent woken by a scheduled trigger
 
 ALL_ROLES = (
     ROLE_INTERACTION,
@@ -39,6 +40,7 @@ ALL_ROLES = (
     ROLE_SUMMARIZER,
     ROLE_EMAIL_CLASSIFIER,
     ROLE_MEMORY_COMPACTOR,
+    ROLE_EXECUTION_TRIGGER,
 )
 
 # Default tier per role. Rationale:
@@ -48,6 +50,8 @@ ALL_ROLES = (
 #   summarizer       - compress a transcript: cheap.
 #   email_classifier - binary importance call on every inbound email, high volume: cheap.
 #   memory_compactor - structured extraction from an agent log: cheap.
+#   execution_trigger - agent woken by a reminder; defaults strong (it may draft mail), set
+#                       OPENPOKE_TIER_EXECUTION_TRIGGER=cheap to route reminder wake-ups cheaply.
 DEFAULT_TIERS: Dict[str, str] = {
     ROLE_INTERACTION: "strong",
     ROLE_EXECUTION: "strong",
@@ -55,6 +59,7 @@ DEFAULT_TIERS: Dict[str, str] = {
     ROLE_SUMMARIZER: "cheap",
     ROLE_EMAIL_CLASSIFIER: "cheap",
     ROLE_MEMORY_COMPACTOR: "cheap",
+    ROLE_EXECUTION_TRIGGER: "strong",
 }
 
 DEFAULT_STRONG_MODEL = "anthropic/claude-sonnet-4"
@@ -75,9 +80,15 @@ class ModelPrice:
     input_per_million: float
     output_per_million: float
 
-    def cost(self, prompt_tokens: int, completion_tokens: int) -> float:
+    CACHE_READ_DISCOUNT = 0.10  # Anthropic bills cache reads at 10% of the input price
+
+    def cost(self, prompt_tokens: int, completion_tokens: int, cached_tokens: int = 0) -> float:
+        cached = min(cached_tokens, prompt_tokens)
+        uncached = prompt_tokens - cached
         return (
-            prompt_tokens * self.input_per_million + completion_tokens * self.output_per_million
+            uncached * self.input_per_million
+            + cached * self.input_per_million * self.CACHE_READ_DISCOUNT
+            + completion_tokens * self.output_per_million
         ) / 1_000_000
 
 
@@ -167,6 +178,7 @@ __all__ = [
     "ROLE_EXECUTION_SEARCH",
     "ROLE_INTERACTION",
     "ROLE_MEMORY_COMPACTOR",
+    "ROLE_EXECUTION_TRIGGER",
     "ROLE_SUMMARIZER",
     "get_model_router",
     "set_model_router",

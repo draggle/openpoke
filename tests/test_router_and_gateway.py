@@ -111,3 +111,65 @@ async def test_explicit_model_overrides_routing(router, ledger, monkeypatch):
     monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
     await complete(role=ROLE_INTERACTION, messages=[], model="pinned/model")
     assert seen["model"] == "pinned/model"
+
+
+# ---- prompt caching ----------------------------------------------------------------------
+
+
+async def test_cache_block_sent_for_long_claude_system_prompt(router, ledger, monkeypatch):
+    from server.services.llm import gateway
+    monkeypatch.setattr(gateway, "_CACHE_SUPPORTED", True)
+    monkeypatch.setattr(router, "strong_model", "anthropic/claude-sonnet-4-5")
+    seen = {}
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        seen["system"] = system
+        return {"choices": [{"message": {"content": "ok"}}],
+                "usage": {"prompt_tokens": 3000, "completion_tokens": 10,
+                          "prompt_tokens_details": {"cached_tokens": 2500}}}
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    await complete(role=ROLE_INTERACTION, messages=[{"role": "user", "content": "hi"}], system="s" * 5000)
+    assert isinstance(seen["system"], list) and seen["system"][0]["cache_control"] == {"type": "ephemeral"}
+    [rec] = ledger.records()
+    assert rec.cached_tokens == 2500
+    # cached reads billed at 10%: 500 full + 2500*0.1 = 750 effective input tokens
+    price = router.price_for("anthropic/claude-sonnet-4-5")
+    assert rec.cost_usd == pytest.approx((750 * price.input_per_million + 10 * price.output_per_million) / 1_000_000)
+    assert ledger.totals()["total"]["cached_tokens"] == 2500
+
+
+async def test_cache_falls_back_on_400_and_disables(router, ledger, monkeypatch):
+    from server.services.llm import gateway
+    monkeypatch.setattr(gateway, "_CACHE_SUPPORTED", True)
+    monkeypatch.setattr(router, "strong_model", "anthropic/claude-sonnet-4-5")
+    calls = []
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        calls.append(system)
+        if isinstance(system, list):
+            raise RuntimeError("OpenRouter request failed (400): invalid system content")
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    await complete(role=ROLE_INTERACTION, messages=[], system="s" * 5000)
+    await complete(role=ROLE_INTERACTION, messages=[], system="s" * 5000)
+    assert isinstance(calls[0], list) and isinstance(calls[1], str) and isinstance(calls[2], str)
+    assert gateway._CACHE_SUPPORTED is False
+
+
+async def test_cache_skipped_for_short_prompts_or_flag_off(router, ledger, monkeypatch):
+    from server.services.llm import gateway
+    monkeypatch.setattr(gateway, "_CACHE_SUPPORTED", True)
+    monkeypatch.setattr(router, "strong_model", "anthropic/claude-sonnet-4-5")
+    seen = []
+
+    async def fake(*, model, messages, system=None, api_key=None, tools=None, base_url=None):
+        seen.append(system)
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+    monkeypatch.setattr(openrouter_client, "request_chat_completion", fake)
+    await complete(role=ROLE_INTERACTION, messages=[], system="short")
+    monkeypatch.setenv("OPENPOKE_PROMPT_CACHE", "0")
+    await complete(role=ROLE_INTERACTION, messages=[], system="s" * 5000)
+    assert all(isinstance(x, str) for x in seen)

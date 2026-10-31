@@ -144,6 +144,10 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     """Send instructions to an execution agent."""
     registry = get_agent_registry()
     registry.load()
+    duplicate = registry.find_duplicate(agent_name, instructions)
+    if duplicate is not None:
+        logger.info(f"Consolidated new agent '{agent_name}' into existing '{duplicate.name}'")
+        agent_name = duplicate.name
     is_new = registry.register(agent_name, instructions, reason="user")
 
     # Keep the legacy roster.json in sync so older tooling keeps working.
@@ -173,14 +177,10 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
 
     loop.create_task(_execute_async())
 
-    return ToolResult(
-        success=True,
-        payload={
-            "status": "submitted",
-            "agent_name": agent_name,
-            "new_agent_created": is_new,
-        },
-    )
+    payload = {"status": "submitted", "agent_name": agent_name, "new_agent_created": is_new}
+    if duplicate is not None:
+        payload["consolidated_into_existing"] = True
+    return ToolResult(success=True, payload=payload)
 
 
 # Send immediate message to user and record in conversation history

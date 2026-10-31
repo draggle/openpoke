@@ -70,6 +70,8 @@ class RegistryConfig:
     recent_requests_kept: int = 3
     recency_weight: float = 0.6  # weight of the recency prior in retrieval scores
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
+    consolidate: bool = True  # redirect new agents that duplicate a live one
+    consolidate_min_overlap: float = 0.75  # fraction of the new name's tokens found in the existing one
 
     @classmethod
     def from_env(cls) -> "RegistryConfig":
@@ -80,6 +82,7 @@ class RegistryConfig:
             retrieval_k=_env_int("OPENPOKE_ROSTER_RETRIEVAL_K", 8),
             min_score=_env_float("OPENPOKE_ROSTER_MIN_SCORE", 0.0),
             recency_weight=_env_float("OPENPOKE_ROSTER_RECENCY_WEIGHT", 0.6),
+            consolidate=os.getenv("OPENPOKE_AGENT_CONSOLIDATE", "1") != "0",
             active_ttl_s=_env_float("OPENPOKE_AGENT_ACTIVE_TTL_S", 48 * 3600),
             archive_ttl_s=_env_float("OPENPOKE_AGENT_ARCHIVE_TTL_S", 14 * 24 * 3600),
         )
@@ -157,6 +160,10 @@ class RosterSelection:
 # --------------------------------------------------------------------------------------
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
+# Words that carry no identity in an agent *name* ("Email to Alice about lunch" -> alice, lunch).
+_NAME_NOISE = frozenset(
+    "email emails follow up with reminder reminders thread task about re fwd draft send check ask find".split()
+)
 _STOPWORDS = frozenset(
     """a an the and or but if then of to in on at for from by with about as into like through
     after over between out against during without before under around among is are was were be
@@ -275,6 +282,37 @@ class AgentRegistry:
             ]
         self.save()
         return is_new
+
+    def find_duplicate(self, name: str, instructions: str = "") -> Optional[AgentRecord]:
+        """Return a live agent that ``name`` would duplicate, if any.
+
+        The Interaction Agent names agents freely ("Email to Alice about lunch" today,
+        "Alice Lunch" tomorrow). If a *new* name's content tokens are (nearly) all present in
+        an existing non-archived agent's name, and the instructions don't point elsewhere, the
+        existing agent should take the work: that is where the context lives.
+        """
+        if not self.config.consolidate or name in self._records:
+            return None
+        new_tokens = set(tokenize(name)) - _NAME_NOISE
+        if len(new_tokens) < 2:
+            return None  # too little signal to merge on
+        now = self._clock()
+        best: Optional[Tuple[float, AgentRecord]] = None
+        for record in self._records.values():
+            if self.status_of(record, now) == AgentStatus.ARCHIVED:
+                continue
+            existing_tokens = set(tokenize(record.name)) - _NAME_NOISE
+            if not existing_tokens:
+                continue
+            overlap = len(new_tokens & existing_tokens) / len(new_tokens)
+            # require the overlap to be mutual enough that "Alice lunch" doesn't swallow
+            # "Alice lunch invoice reconciliation" (different topic words on the old side)
+            reverse = len(new_tokens & existing_tokens) / len(existing_tokens)
+            if overlap >= self.config.consolidate_min_overlap and reverse >= 0.5:
+                score = overlap + reverse + 0.01 * (record.last_used_at / max(now, 1.0))
+                if best is None or score > best[0]:
+                    best = (score, record)
+        return best[1] if best else None
 
     def touch(self, name: str, *, reason: str = "user") -> None:
         """Mark an agent as used now (e.g. a trigger fired for it) without a new request."""
@@ -426,9 +464,10 @@ class AgentRegistry:
                         record, statuses[record.name], pinned(record.name), "recent"
                     )
 
-        shown = sorted(
-            chosen.values(), key=lambda e: (-e.score, -e.record.last_used_at)
-        )[: self.config.max_roster]
+        # Most recently used first. Relevance decided *which* agents are shown; recency decides
+        # the order, because on ambiguous follow-ups ("nudge Tara again") the user almost
+        # always means the thread they touched last, and models weight list order.
+        shown = sorted(chosen.values(), key=lambda e: -e.record.last_used_at)[: self.config.max_roster]
         return RosterSelection(shown=shown, total=total, archived=archived, strategy="budgeted")
 
     # ---- rendering -------------------------------------------------------------------
@@ -463,8 +502,8 @@ class AgentRegistry:
                 lines.append(f"<agent {' '.join(attrs)} />")
 
         note = (
-            f"Showing {len(selection.shown)} of {selection.total} agents "
-            f"(most recent + most relevant to the current message); "
+            f"Showing {len(selection.shown)} of {selection.total} agents, most recently used first "
+            f"(selected by recency + relevance to the current message); "
             f"{selection.hidden} others hidden, {selection.archived} archived. "
             "Before creating a new agent for a topic that may already have one, "
             "call search_agents."

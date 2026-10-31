@@ -10,6 +10,7 @@
 #   OPENROUTER_API_KEY=...     (+ optionally TYPESAFE_API_KEY=... for Jev)
 # Optional: OPENPOKE_STRONG_MODEL / OPENPOKE_CHEAP_MODEL / TYPESAFE_MODEL to pin model IDs.
 #           ONLY_JEV=1 bash evals/run_live.sh   -> run just the Jev bench (Claude evals already done)
+#           ROUTING_STRATEGIES=budgeted ONLY_ROUTING=1 bash evals/run_live.sh -> re-run routing only
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -116,8 +117,12 @@ if [ -f evals/out/.jev_base ]; then export TYPESAFE_BASE_URL="$(cat evals/out/.j
 run() { echo; echo "================ $* ================"; PYTHONUNBUFFERED=1 "$@" 2>&1 | grep --line-buffered -v " - INFO - " | tee -a evals/out/live_log.txt; }
 
 : > evals/out/live_log.txt
+if [ "${ONLY_ROUTING:-0}" = "1" ]; then
+  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES" --strategies "${ROUTING_STRATEGIES:-budgeted}"
+  echo; echo "done (routing only). results: evals/out/live_routing_results*.json"; exit 0
+fi
 if [ "${ONLY_JEV:-0}" != "1" ]; then
-  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES"
+  run python -m evals.live_routing_eval --agents 150 --queries "$QUERIES" --strategies "${ROUTING_STRATEGIES:-all,budgeted}"
   run python -m evals.memory_eval --live --rounds 10,20,40
   run python -m evals.email_eval --live
 fi

@@ -78,10 +78,10 @@ async def decide(registry: AgentRegistry, workload: Workload, text: str) -> Opti
     return None
 
 
-async def run(n_agents: int, n_queries: int, out_dir: Path) -> Dict[str, Dict]:
+async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "budgeted")) -> Dict[str, Dict]:
     workload = generate(n_agents, seed=7, n_queries=n_queries)
     results: Dict[str, Dict] = {}
-    for strategy in ("all", "budgeted"):
+    for strategy in strategies:
         registry = build_registry(workload, out_dir / "tmp", RegistryConfig(strategy=strategy))
         ledger = UsageLedger()
         set_usage_ledger(ledger)
@@ -101,6 +101,7 @@ async def run(n_agents: int, n_queries: int, out_dir: Path) -> Dict[str, Dict]:
         totals = ledger.totals()["total"]
         results[strategy] = {
             "accuracy": correct / len(workload.queries),
+            "cached_tokens_per_query": totals.get("cached_tokens", 0) / len(workload.queries),
             "by_kind": {k: sum(v) / len(v) for k, v in by_kind.items()},
             "spawned_new_agent": new_agent,
             "no_delegation": none,
@@ -108,7 +109,8 @@ async def run(n_agents: int, n_queries: int, out_dir: Path) -> Dict[str, Dict]:
             "usd_total": totals["cost_usd"],
         }
     set_usage_ledger(None)
-    (out_dir / "live_routing_results.json").write_text(json.dumps(results, indent=2))
+    suffix = "" if set(strategies) == {"all", "budgeted"} else "_" + "_".join(strategies)
+    (out_dir / f"live_routing_results{suffix}.json").write_text(json.dumps(results, indent=2))
     return results
 
 
@@ -117,10 +119,12 @@ def main() -> None:
     parser.add_argument("--agents", type=int, default=150)
     parser.add_argument("--queries", type=int, default=40)
     parser.add_argument("--out", default="evals/out")
+    parser.add_argument("--strategies", default="all,budgeted", help="comma-separated: all, budgeted")
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    results = asyncio.run(run(args.agents, args.queries, out))
+    strategies = tuple(s.strip() for s in args.strategies.split(",") if s.strip())
+    results = asyncio.run(run(args.agents, args.queries, out, strategies))
     print("\n" + json.dumps(results, indent=2))
 
 

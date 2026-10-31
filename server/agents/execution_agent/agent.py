@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 from ...services.execution import get_agent_memory, get_execution_agent_logs
+from ...services.execution.payloads import compact_tool_payload
 from ...logging_config import logger
 
 
@@ -120,5 +121,5 @@ class ExecutionAgent:
     def record_tool_execution(self, tool_name: str, arguments: str, result: str) -> None:
         """Record tool execution details."""
         self._log_store.record_action(self.name, f"Calling {tool_name} with: {arguments[:200]}")
-        # Record the tool response
-        self._log_store.record_tool_response(self.name, tool_name, result[:500])
+        # Record the tool response, keeping the informative fields rather than the first 500 chars
+        self._log_store.record_tool_response(self.name, tool_name, compact_tool_payload(result, limit=500))

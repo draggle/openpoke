@@ -8,12 +8,31 @@ estimated cost.
 
 from __future__ import annotations
 
+import os
 import time
 from typing import Any, Dict, List, Optional
 
+from ...logging_config import logger
 from ...openrouter_client import client as _openrouter
 from .router import get_model_router
 from .usage import UsageRecord, estimate_message_tokens, estimate_tokens, get_usage_ledger
+
+# Prompt caching: the Interaction Agent's ~3k-token system prompt and the tool schemas are
+# identical on every call, so we mark the system prompt as a cacheable block (Anthropic
+# ``cache_control``, also honoured by OpenRouter). If the endpoint rejects block-formatted
+# system content we fall back to a plain string and stop trying for the process lifetime.
+_CACHE_SUPPORTED = True
+_MIN_CACHE_CHARS = 2048  # Anthropic ignores cache markers on prefixes shorter than ~1k tokens
+
+
+def _cache_enabled(model: str, system: Optional[str]) -> bool:
+    if os.getenv("OPENPOKE_PROMPT_CACHE", "1") == "0" or not _CACHE_SUPPORTED:
+        return False
+    return bool(system) and len(system) >= _MIN_CACHE_CHARS and "claude" in model.lower()
+
+
+def _cached_system(system: str) -> List[Dict[str, Any]]:
+    return [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
 
 
 async def complete(
@@ -33,13 +52,25 @@ async def complete(
 
     # Resolve the function at call time so monkeypatching ``request_chat_completion`` on
     # the client module (what tests/evals do) is honoured.
-    response = await _openrouter.request_chat_completion(
-        model=resolved_model,
-        messages=messages,
-        system=system,
-        api_key=api_key,
-        tools=tools,
-    )
+    global _CACHE_SUPPORTED
+    system_payload: Any = _cached_system(system) if _cache_enabled(resolved_model, system) else system
+    try:
+        response = await _openrouter.request_chat_completion(
+            model=resolved_model,
+            messages=messages,
+            system=system_payload,
+            api_key=api_key,
+            tools=tools,
+        )
+    except Exception as exc:
+        if system_payload is not system and "400" in str(exc):
+            logger.warning(f"prompt caching not supported by endpoint; disabling ({str(exc)[:120]})")
+            _CACHE_SUPPORTED = False
+            response = await _openrouter.request_chat_completion(
+                model=resolved_model, messages=messages, system=system, api_key=api_key, tools=tools
+            )
+        else:
+            raise
 
     _record_usage(role, resolved_model, messages, system, tools, response, tag)
     return response
@@ -56,9 +87,11 @@ def _record_usage(
 ) -> None:
     usage = response.get("usage") if isinstance(response, dict) else None
     estimated = False
+    cached_tokens = 0
     if isinstance(usage, dict) and usage.get("prompt_tokens") is not None:
         prompt_tokens = int(usage.get("prompt_tokens") or 0)
         completion_tokens = int(usage.get("completion_tokens") or 0)
+        cached_tokens = _cached_tokens(usage)
     else:
         estimated = True
         prompt_tokens = estimate_message_tokens(messages, system)
@@ -76,11 +109,21 @@ def _record_usage(
             model=model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            cost_usd=price.cost(prompt_tokens, completion_tokens),
+            cost_usd=price.cost(prompt_tokens, completion_tokens, cached_tokens),
             estimated=estimated,
             tag=tag,
+            cached_tokens=cached_tokens,
         )
     )
+
+
+def _cached_tokens(usage: Dict[str, Any]) -> int:
+    """Cache-read tokens in either OpenAI (prompt_tokens_details.cached_tokens) or Anthropic
+    (cache_read_input_tokens) spelling."""
+    details = usage.get("prompt_tokens_details")
+    if isinstance(details, dict) and details.get("cached_tokens") is not None:
+        return int(details.get("cached_tokens") or 0)
+    return int(usage.get("cache_read_input_tokens") or 0)
 
 
 def _estimate_completion(response: Dict[str, Any]) -> int:

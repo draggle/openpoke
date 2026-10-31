@@ -33,7 +33,8 @@ def _headers(*, api_key: Optional[str] = None) -> Dict[str, str]:
     return headers
 
 
-def _build_messages(messages: List[Dict[str, str]], system: Optional[str]) -> List[Dict[str, str]]:
+def _build_messages(messages: List[Dict[str, Any]], system: Any) -> List[Dict[str, Any]]:
+    # ``system`` may be a plain string or a list of content blocks (used for prompt caching).
     if system:
         return [{"role": "system", "content": system}, *messages]
     return messages
@@ -53,8 +54,8 @@ def _handle_response_error(exc: httpx.HTTPStatusError) -> None:
 async def request_chat_completion(
     *,
     model: str,
-    messages: List[Dict[str, str]],
-    system: Optional[str] = None,
+    messages: List[Dict[str, Any]],
+    system: Any = None,
     api_key: Optional[str] = None,
     tools: Optional[List[Dict[str, Any]]] = None,
     base_url: str = OpenRouterBaseURL,

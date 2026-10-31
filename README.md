@@ -175,13 +175,30 @@ the LLM only writes the summary.
 Offline (`python -m evals.jev_bench`, oracle Jev, stated latency model) at a realistic 10%
 important-email rate: 60 → 6 LLM calls/day, decision latency ~1.8 s → ~0.15 s.
 
+### 6. Second-pass optimisations (flag-controlled, awaiting one more live run)
+
+Built after the first live run, each targeting something it exposed:
+
+| Change | Why | Flag |
+|---|---|---|
+| **Duplicate-agent consolidation** — a new agent whose name tokens match a live agent's ("Alice Lunch" vs "Email to Alice about lunch") is redirected to the existing one | the Interaction Agent names agents freely, so the same thread accrues several agents and context splits | `OPENPOKE_AGENT_CONSOLIDATE=0` to disable |
+| **Recency-first roster + ambiguity rule** — roster ordered most-recent-first; prompt says to take the top match on person-only / topic-only follow-ups | all 6 live misses were "nudge Tara again" with 3 live Tara threads | (always on) |
+| **Prompt caching** — the ~3k-token system prompt is sent as a cacheable block; cache reads are recorded in the ledger and billed at 10% | the system prompt + tool schemas are identical on every call | `OPENPOKE_PROMPT_CACHE=0`; auto-disables if the endpoint rejects it |
+| **Tool-payload compaction at write time** — keep subject/from/body/ids, drop headers/labels/history ids, before the 500-char cap | upstream kept the first 500 chars of a Gmail payload, i.e. the boilerplate | (always on) |
+| **Concurrent email classification** (bounded, default 4) | a burst of N emails took N × classifier latency | `OPENPOKE_CLASSIFIER_CONCURRENCY` |
+| **Trigger wake-ups get their own routing role** | reminder-driven runs can be routed cheaply without touching user-initiated execution | `OPENPOKE_TIER_EXECUTION_TRIGGER=cheap` |
+
+Re-run `ROUTING_STRATEGIES=budgeted ONLY_ROUTING=1 bash evals/run_live.sh` to measure the
+first two against the 85% baseline; `cached_tokens_per_query` in the output shows whether
+caching took effect on your endpoint.
+
 ## Tests and evaluators
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 71 tests, < 2s, no network
+python -m pytest                 # 83 tests, < 2s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 ```
 
@@ -237,23 +254,23 @@ Fixed in this fork:
   reminders. Registry pins agents with active triggers; trigger fires re-activate them.
 - **No per-agent memory** — see above; it dominates cost.
 - **Classifier on every email** — pre-filter.
-- **Zero tests** — 71 now, plus six evaluators.
+- **Zero tests** — 83 now, plus six evaluators.
 
 Flagged, not built (what I'd do next, in order):
-1. **Duplicate-agent consolidation.** The Interaction Agent still *can* create "Email to Alice"
-   next to "Alice Lunch". The registry now surfaces both with summaries so the model can pick,
-   and the eval defines the target as the most recent of the pair, but a merge step (same
-   person+topic, union of memory) would remove the ambiguity at the source.
+1. **Memory merge on consolidation.** Consolidation now redirects new work to the existing
+   agent; merging the *memories* of agents that already split before this change is the
+   remaining half.
 2. **Hybrid retrieval.** Add a small embedding index alongside BM25 (RRF fusion) and re-run
    `roster_eval` with paraphrased queries to see if it earns its cost.
-3. **Trigger-aware budgets.** Reminder wake-ups could run on the cheap tier when the payload is
-   a plain notification; today role = execution = strong.
+3. **Streaming the first execution result** instead of waiting for the whole batch — the
+   biggest remaining *latency* lever, but an architectural change.
 4. **Cross-agent facts.** When two agents share an entity, link their fact stores — the point at
    which a graph starts paying for itself.
 5. **Live A/B on a real inbox** with `/meta/usage` before/after; the live evals above use a
    synthetic workload, and the cost model is still a model.
-6. **Retire the dead `Settings.*_model` fields** — model choice now lives in the router; the
-   fields are kept only so upstream call sites still import cleanly.
+6. **`wait` decisions via a typed classifier** — the Interaction Agent spends a strong-model
+   call to decide an agent result is a duplicate; a Jev yes/no would do (the email result
+   suggests it would work; the routing result says to benchmark first).
 
 ## Files changed
 
@@ -263,7 +280,8 @@ server/services/execution/registry.py             AgentRegistry (new)
 server/services/execution/memory.py               AgentMemory (new)
 server/services/llm/{router,usage,gateway}.py     routing + ledger (new)
 server/services/llm/jev.py                        Jev typed-decision client (new, opt-in)
-server/services/execution/routing_hint.py         Jev routing hint (new)
+server/services/execution/routing_hint.py         Jev routing hint (new, off by default)
+server/services/execution/payloads.py             tool-payload compaction (new)
 server/services/gmail/prefilter.py                email pre-filter (new)
 server/agents/interaction_agent/{agent,tools}.py  budgeted roster, search_agents tool
 server/agents/interaction_agent/system_prompt.md  search_agents guidance
@@ -271,6 +289,6 @@ server/agents/execution_agent/{agent,runtime}.py  memory-backed history, compact
 server/services/trigger_scheduler.py              touch agent on fire
 server/services/gmail/importance_watcher.py       prefilter before classify
 server/routes/meta.py                             /meta/usage, /meta/agents
-tests/                                            71 tests + labelled email fixtures
+tests/                                            83 tests + labelled email fixtures
 evals/                                            6 evaluators + synthetic workload
 ```

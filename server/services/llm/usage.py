@@ -45,6 +45,7 @@ class UsageRecord:
     cost_usd: float
     estimated: bool  # True when tokens were estimated rather than reported by the provider
     tag: str = ""  # free-form, e.g. agent name
+    cached_tokens: int = 0  # prompt tokens served from the provider's prompt cache
 
 
 class UsageLedger:
@@ -56,7 +57,7 @@ class UsageLedger:
         self._lock = threading.Lock()
         self._by_role: Dict[str, Dict[str, float]] = {}
         self._by_model: Dict[str, Dict[str, float]] = {}
-        self._total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
+        self._total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0, "cached_tokens": 0}
 
     @staticmethod
     def _bump(bucket: Dict[str, float], rec: "UsageRecord") -> None:
@@ -64,6 +65,7 @@ class UsageLedger:
         bucket["prompt_tokens"] += rec.prompt_tokens
         bucket["completion_tokens"] += rec.completion_tokens
         bucket["cost_usd"] += rec.cost_usd
+        bucket["cached_tokens"] = bucket.get("cached_tokens", 0) + rec.cached_tokens
 
     def record(self, record: UsageRecord) -> None:
         with self._lock:
@@ -71,7 +73,7 @@ class UsageLedger:
             if len(self._records) > self.MAX_RECORDS:
                 del self._records[: len(self._records) - self.MAX_RECORDS]
             for buckets, key in ((self._by_role, record.role), (self._by_model, record.model)):
-                self._bump(buckets.setdefault(key, {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}), record)
+                self._bump(buckets.setdefault(key, {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0, "cached_tokens": 0}), record)
             self._bump(self._total, record)
             if self._path is not None:
                 try:
@@ -90,7 +92,7 @@ class UsageLedger:
             self._records.clear()
             self._by_role.clear()
             self._by_model.clear()
-            self._total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}
+            self._total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0, "cached_tokens": 0}
 
     def totals(self) -> Dict[str, Any]:
         with self._lock:

@@ -36,6 +36,15 @@ _DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 _DEFAULT_SEEN_PATH = _DATA_DIR / "gmail_seen.json"
 
 
+def _classifier_concurrency() -> int:
+    import os
+
+    try:
+        return max(1, int(os.getenv("OPENPOKE_CLASSIFIER_CONCURRENCY", "4")))
+    except ValueError:
+        return 4
+
+
 class ImportantEmailWatcher:
     """Poll Gmail for recent messages and surface important ones."""
 
@@ -198,6 +207,7 @@ class ImportantEmailWatcher:
         summaries_sent = 0
         processed_ids: List[str] = [email.id for email in aged_emails]
 
+        to_classify = []
         for email in eligible_emails:
             decision = prefilter(email)
             if decision.skip:
@@ -205,11 +215,25 @@ class ImportantEmailWatcher:
                 logger.debug(f"prefilter skipped {email.id} ({decision.reason})")
                 processed_ids.append(email.id)
                 continue
-            summary = await classify_email_importance(email)
+            to_classify.append(email)
+
+        # Classify concurrently (bounded) instead of one-at-a-time; a burst of 20 emails after
+        # a quiet period otherwise takes 20 x classifier latency.
+        semaphore = asyncio.Semaphore(_classifier_concurrency())
+
+        async def _classify(email):
+            async with semaphore:
+                return email, await classify_email_importance(email)
+
+        results = await asyncio.gather(*(_classify(e) for e in to_classify), return_exceptions=True)
+        for item in results:
+            if isinstance(item, BaseException):
+                logger.warning(f"importance classification failed: {item}")
+                continue
+            email, summary = item
             processed_ids.append(email.id)
             if not summary:
                 continue
-
             summaries_sent += 1
             await self._dispatch_summary(summary)
 
