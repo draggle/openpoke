@@ -521,11 +521,13 @@ def test_merge_correction_matches_old_value_in_key(tmp_path, store):
     mem = make_memory(tmp_path, store)
     state = MemoryState(facts=[Fact(key="Hannah refund $3579", value="confirmed payment by Nov 4", recorded_at="t0"),
                                Fact(key="Bob deposit", value="$3579", recorded_at="t0")])
-    mem._merge(state, Extraction(corrections=[("$3579", "$3911")]), "t1")
+    ext = Extraction(corrections=[("$3579", "$3911")],
+                     correction_context={("$3579", "$3911"): "Hannah says the refund was wrong: it is $3911, not $3579."})
+    mem._merge(state, ext, "t1")
     by_key = {f.key: f for f in state.facts}
     assert by_key["Hannah refund $3579"].active is False and by_key["Hannah refund $3579"].superseded_by == "$3911"
-    # with no carrier fact to anchor on, every fact asserting the exact old amount is retired
-    assert by_key["Bob deposit"].active is False
+    # anchored on the sentence's own words (Hannah, refund): Bob's deposit is untouched
+    assert by_key["Bob deposit"].active is True
 
 
 async def test_llm_extractor_unions_regex_corrections(tmp_path, store, monkeypatch):
@@ -563,3 +565,45 @@ async def test_correction_in_the_verbatim_tail_retires_the_fact(tmp_path, store)
     state = await mem.compact("a", force=True)
     old = next(f for f in state.facts if f.key == "Alice invoice $500")
     assert old.active is False and old.superseded_by == "$700"
+
+
+# ---- review fix pass: corrections come from the user's words, never from email bodies -------
+
+
+def test_tail_corrections_ignore_tool_responses_and_unrelated_facts(tmp_path, store):
+    fill_log(store, "a", rounds=6)
+    mem = make_memory(tmp_path, store, tail_entries=2)
+    state = MemoryState(facts=[Fact(key="Priya invoice amount", value="$500", recorded_at="t0"),
+                               Fact(key="Bob deposit", value="$500", recorded_at="t0"),
+                               Fact(key="Gym membership", value="$99/month", recorded_at="t0")],
+                        compacted_through=24)
+    mem.save("a", state)
+    store.record_request("a", "Priya says the invoice was wrong: it is $700, not $500. Update our records.")
+    store.record_tool_response("a", "gmail_fetch_emails", "Newsletter: Premium plan now $49 (was $99). Unsubscribe.")
+    rendered = mem.render_history("a")
+    facts_block = rendered.split("## Facts", 1)[1].split("## ", 1)[0]
+    assert "Priya invoice amount" not in facts_block
+    assert "Bob deposit: $500" in facts_block  # shares nothing with "Priya ... invoice"
+    assert "Gym membership: $99/month" in facts_block  # the "correction" was in an email body
+
+
+async def test_heuristic_corrections_only_from_requests_and_responses(tmp_path, store):
+    store.record_tool_response("a", "gmail_fetch_emails", "Premium plan now $49 (was $99).")
+    store.record_agent_response("a", "Updated: the deposit is $900 (was $850).")
+    ext = await HeuristicExtractor()(list(store.iter_entries("a")), MemoryState())
+    assert ext.corrections == [("$850", "$900")]
+
+
+def test_correction_without_any_anchor_retires_nothing(tmp_path, store):
+    mem = make_memory(tmp_path, store)
+    state = MemoryState(facts=[Fact(key="Bob deposit", value="$500", recorded_at="t0")])
+    mem._merge(state, Extraction(corrections=[("$500", "$700")]), "t1")  # no sentence, no carrier
+    assert state.facts[0].active
+
+
+def test_correction_new_value_is_matched_as_a_whole_amount(tmp_path, store):
+    mem = make_memory(tmp_path, store)
+    state = MemoryState(facts=[Fact(key="Priya invoice amount", value="$500", recorded_at="t0")])
+    ext = Extraction(corrections=[("$500", "$50")], correction_context={("$500", "$50"): "Priya's invoice is $50, not $500."})
+    mem._merge(state, ext, "t1")
+    assert state.facts[0].active is False and state.facts[0].superseded_by == "$50"

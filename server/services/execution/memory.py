@@ -168,6 +168,7 @@ class Extraction:
     # Round three. Key normalisation only supersedes a fact when the extractor reuses the key;
     # these two carry the extractor's own knowledge of what changed:
     corrections: List[Tuple[str, str]] = field(default_factory=list)  # (old value, new value)
+    correction_context: Dict[Tuple[str, str], str] = field(default_factory=dict)  # pair -> the sentence that stated it
     replaces: Dict[str, str] = field(default_factory=dict)  # new key -> existing key it updates
 
 
@@ -244,13 +245,28 @@ def _contains_amount(text: str, value: str) -> bool:
 
 def extract_corrections(text: str) -> List[Tuple[str, str]]:
     """(old, new) value pairs stated as corrections in free text."""
-    out: List[Tuple[str, str]] = []
-    for new, old in _CORRECTION_NOT_RE.findall(text):
-        out.append((old, new))
-    for new, old in _CORRECTION_WAS_RE.findall(text):
-        if (old, new) not in out:
-            out.append((old, new))
+    return [(old, new) for old, new, _sentence in extract_corrections_with_context(text)]
+
+
+def extract_corrections_with_context(text: str) -> List[Tuple[str, str, str]]:
+    """(old, new, sentence) for each correction; the sentence anchors which facts it may retire."""
+    out: List[Tuple[str, str, str]] = []
+    seen = set()
+    masked = _TITLE_RE.sub(lambda m: m.group(1) + "\u2024", " ".join(text.split()))
+    for sentence in _SENTENCE_SPLIT_RE.split(masked):
+        sentence = sentence.replace("\u2024", ".").strip()
+        pairs = [(old, new) for new, old in _CORRECTION_NOT_RE.findall(sentence)]
+        pairs += [(old, new) for new, old in _CORRECTION_WAS_RE.findall(sentence)]
+        for old, new in pairs:
+            if (old, new) not in seen:
+                seen.add((old, new))
+                out.append((old, new, sentence))
     return out
+
+
+# Corrections are taken from what the user and the agent said, never from tool results: an
+# email body or newsletter saying "now $49 (was $99)" is content, not a correction of memory.
+_CORRECTION_TAGS = frozenset({"agent_request", "agent_response"})
 _CAPITALISED_RE = re.compile(r"\b([A-Z][a-z]{1,30})\b")
 _NOT_A_NAME = frozenset(
     "Calling Round Email To From Subject Cc Bcc Draft Drafted Sent Reply Ask Asked Find Found "
@@ -310,9 +326,11 @@ class HeuristicExtractor:
                 name = _name_before(payload, match.start())
                 if name:
                     out.facts.append((f"{name} email", match.group(0)))
-            for old, new in extract_corrections(text):
-                if (old, new) not in out.corrections:
-                    out.corrections.append((old, new))
+            if tag in _CORRECTION_TAGS:
+                for old, new, sentence in extract_corrections_with_context(text):
+                    if (old, new) not in out.corrections:
+                        out.corrections.append((old, new))
+                        out.correction_context[(old, new)] = sentence
         return out
 
 
@@ -362,15 +380,21 @@ class LLMExtractor:
                         for f in raw_facts if f.get("replaces") and str(f["replaces"]).strip()}
             corrections = [(str(c.get("old", "")).strip(), str(c.get("new", "")).strip())
                            for c in data.get("corrections", []) if isinstance(c, dict) and c.get("old") and c.get("new")]
-            # Corrections stated in the log are a regex fact, not a judgement call: union the
-            # deterministic ones so a correction never depends on the model noticing it.
-            for pair in extract_corrections(rendered):
-                if pair not in corrections:
-                    corrections.append(pair)
+            # Corrections stated by the user or the agent are a regex fact, not a judgement
+            # call: union the deterministic ones so a correction never depends on the model
+            # noticing it. Tool results (email bodies) are never a source.
+            context: Dict[Tuple[str, str], str] = {}
+            for tag, _ts, payload in entries:
+                if tag in _CORRECTION_TAGS:
+                    for old, new, sentence in extract_corrections_with_context(" ".join(payload.split())):
+                        if (old, new) not in corrections:
+                            corrections.append((old, new))
+                        context.setdefault((old, new), sentence)
             return Extraction(
                 facts=[(str(f["key"]).strip(), str(f["value"]).strip()) for f in raw_facts],
                 replaces=replaces,
                 corrections=corrections,
+                correction_context=context,
                 threads=[Thread(subject=str(t.get("subject", ""))[:120],
                                 last_action=str(t.get("last_action", ""))[:240],
                                 waiting_on=str(t.get("waiting_on", ""))[:120])
@@ -586,14 +610,22 @@ class AgentMemory:
                 pass
         self._tasks.clear()
 
+    @staticmethod
+    def _tail_corrections(tail: Sequence[LogEntry]) -> Extraction:
+        extraction = Extraction()
+        for tag, _ts, payload in tail:
+            if tag not in _CORRECTION_TAGS:
+                continue
+            for old, new, sentence in extract_corrections_with_context(" ".join(payload.split())):
+                if (old, new) not in extraction.corrections:
+                    extraction.corrections.append((old, new))
+                    extraction.correction_context[(old, new)] = sentence
+        return extraction
+
     def _apply_tail_corrections(self, state: MemoryState, tail: Sequence[LogEntry], now_ts: str) -> None:
-        corrections = []
-        for _tag, _ts, payload in tail:
-            for pair in extract_corrections(" ".join(payload.split())):
-                if pair not in corrections:
-                    corrections.append(pair)
-        if corrections:
-            self._merge(state, Extraction(corrections=corrections), now_ts)
+        extraction = self._tail_corrections(tail)
+        if extraction.corrections:
+            self._merge(state, extraction, now_ts)
 
     def _merge(self, state: MemoryState, extraction: Extraction, now_ts: str) -> None:
         # facts: temporal invalidation on key collision
@@ -619,23 +651,31 @@ class AgentMemory:
         # provided its key shares a token with the fact that carries the new value (so an
         # unrelated $500 elsewhere is left alone).
         # The old value may sit in the key ("Hannah refund $3579: confirmed by Nov 4"), which is
-        # how the live extractor writes amounts, so key and value are both searched. With no
-        # fact carrying the new value, every fact asserting the exact old value is retired.
+        # how the live extractor writes amounts, so key and value are both searched. A correction
+        # may only retire a fact it is *about*: one whose key shares a word with a fact carrying
+        # the new value, or with the sentence that stated the correction ("Priya ... invoice").
+        # With nothing to anchor on, nothing is retired.
         for old_value, new_value in extraction.corrections:
             old_norm = old_value.strip().lower()
             new_norm = new_value.strip().lower()
             if not old_norm:
                 continue
             carriers = [set(normalise_key(k).split()) for k, v in extraction.facts
-                        if new_norm and new_norm in f"{k} {v}".lower()]
+                        if new_norm and _contains_amount(f"{k} {v}".lower(), new_norm)]
             carriers += [set(normalise_key(f.key).split()) for f in state.facts
-                         if f.active and new_norm and new_norm in f"{f.key} {f.value}".lower()]
+                         if f.active and new_norm and _contains_amount(f"{f.key} {f.value}".lower(), new_norm)]
+            sentence = extraction.correction_context.get((old_value, new_value), "")
+            if sentence:
+                carriers.append({t for t in normalise_key(sentence).split() if not t.isdigit()})
+            carriers = [c for c in carriers if c]
+            if not carriers:
+                continue
             for fact in state.facts:
                 text = f"{fact.key} {fact.value}".lower()
-                if not fact.active or not _contains_amount(text, old_norm) or (new_norm and new_norm in text):
+                if not fact.active or not _contains_amount(text, old_norm) or (new_norm and _contains_amount(text, new_norm)):
                     continue
                 fact_tokens = set(normalise_key(fact.key).split())
-                if not carriers or any(fact_tokens & c for c in carriers):
+                if any(fact_tokens & c for c in carriers):
                     fact.invalidated_at = now_ts
                     fact.superseded_by = new_value
         # cap facts: drop oldest *invalidated* first; only then the oldest active ones
@@ -705,8 +745,10 @@ class AgentMemory:
         # Display-time pass: a correction that landed in the tail since the last compaction
         # retires the fact it contradicts (not persisted; the next compaction persists it).
         recent = entries[state.compacted_through :]
-        state = copy.deepcopy(state)
-        self._apply_tail_corrections(state, recent, recent[-1][1] if recent else "")
+        tail_extraction = self._tail_corrections(recent)
+        if tail_extraction.corrections:
+            state = copy.deepcopy(state)
+            self._merge(state, tail_extraction, recent[-1][1] if recent else "")
 
         parts: List[str] = [*self._render_commitments(state), "# Memory (compressed from earlier activity)"]
         facts = state.active_facts()
@@ -743,7 +785,9 @@ class AgentMemory:
 # Singleton wiring
 # --------------------------------------------------------------------------------------
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+from ...paths import data_dir
+
+_DATA_DIR = data_dir()
 _MEMORY_DIR = _DATA_DIR / "execution_agents"
 _memory: Optional[AgentMemory] = None
 
@@ -773,6 +817,7 @@ __all__ = [
     "Thread",
     "extract_commitments",
     "extract_corrections",
+    "extract_corrections_with_context",
     "get_agent_memory",
     "normalise_key",
 ]

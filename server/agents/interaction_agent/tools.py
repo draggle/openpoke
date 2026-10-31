@@ -1,7 +1,6 @@
 """Tool definitions for interaction agent."""
 
 import asyncio
-import hashlib
 import json
 import os
 from dataclasses import dataclass
@@ -141,8 +140,22 @@ TOOL_SCHEMAS = [
 
 _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 
-# (agent, message) pairs the did-you-mean guard already challenged: a repeat is an override.
+# One challenge per (agent, interaction turn): the model's second attempt in the same turn,
+# repeated or rephrased, is honoured, so the guard can never loop the tool-iteration budget.
 _GUARD_SEEN: set = set()
+_TURN = 0
+
+
+def begin_turn() -> int:
+    """Called by the runtime at the start of each user or agent turn."""
+    global _TURN
+    _TURN += 1
+    _GUARD_SEEN.clear()
+    return _TURN
+
+
+def current_turn() -> int:
+    return _TURN
 
 
 def _guard_enabled() -> bool:
@@ -159,7 +172,7 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
         logger.info(f"Consolidated new agent '{agent_name}' into existing '{duplicate.name}'")
         agent_name = duplicate.name
     if _guard_enabled() and agent_name in registry:
-        key = (agent_name, hashlib.sha1(instructions.strip().lower().encode()).hexdigest())
+        key = (agent_name, _TURN)
         if key not in _GUARD_SEEN:
             mismatch = registry.routing_mismatch(agent_name, instructions)
             if mismatch is not None:

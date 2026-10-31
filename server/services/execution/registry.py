@@ -245,6 +245,41 @@ def _full_names(entities: set) -> set:
     return {e for e in entities if " " in e}
 
 
+# Words that introduce a person in an instruction ("email to Bob", "ask Priya", "with Alice")
+# or follow one ("Priya says", "Bob replied"). Capitalised runs elsewhere ("a Zoom call",
+# "the Acme role") are products, companies or dates, not people.
+_PERSON_BEFORE = frozenset(
+    "to from with ask cc bcc tell email remind nudge chase invite whether if about for and ping thank".split()
+)
+_PERSON_AFTER = frozenset(
+    "says said replied replies confirmed asked asks wants has had is was will can could sent".split()
+)
+_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\u2019-]*")
+
+
+def _people_in(description: str) -> set:
+    """Tokens of the people an instruction names, by the words around each capitalised run."""
+    text = " ".join(description.split())
+    out: set = set()
+    starts = {m.start(1) for m in _SENTENCE_START_RE.finditer(text)}
+    for m in re.finditer(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", text):
+        run = m.group(0)
+        words = run.split()
+        if m.start() in starts:
+            words = words[1:]
+            if not words:
+                continue
+        tokens = {t for t in tokenize(" ".join(words)) if t not in _PERIOD_TOKENS}
+        if not tokens:
+            continue
+        before = _WORD_RE.findall(text[: m.start()])
+        after = _WORD_RE.findall(text[m.end():])
+        possessive = text[m.end(): m.end() + 2] in ("'s", "\u2019s")
+        if possessive or (before and before[-1].lower() in _PERSON_BEFORE) or (after and after[0].lower() in _PERSON_AFTER):
+            out |= tokens
+    return out
+
+
 # --------------------------------------------------------------------------------------
 # Registry
 # --------------------------------------------------------------------------------------
@@ -556,8 +591,7 @@ class AgentRegistry:
             return None
         people: set = set()
         for record in self._records.values():
-            for entity in _entities(record.description):
-                people.update(tokenize(entity))
+            people.update(_people_in(record.description))
         query_tokens = set(tokenize(message))
         mentioned = sorted(query_tokens & people)
         if not mentioned:
@@ -571,17 +605,30 @@ class AgentRegistry:
         def about(record: AgentRecord) -> bool:
             return needed <= set(tokenize(f"{record.name} {record.description}"))
 
+        # Archived agents are candidates too: an old thread about the right person is still
+        # the right thread (search_agents returns it), and a live agent about the wrong topic
+        # is not a better suggestion than it.
         ranked: List[str] = []
-        for record, _score in self.search(message, limit=12, include_archived=False, statuses=statuses):
+        for record, _score in self.search(message, limit=12, include_archived=True, statuses=statuses):
             if record.name != chosen.name and about(record) and record.name not in ranked:
                 ranked.append(record.name)
         for record in sorted(self._records.values(), key=lambda r: -r.last_used_at):
             if len(ranked) >= 3:
                 break
-            if (record.name != chosen.name and statuses[record.name] != AgentStatus.ARCHIVED
-                    and about(record) and record.name not in ranked):
+            if record.name != chosen.name and about(record) and record.name not in ranked:
                 ranked.append(record.name)
         if not ranked:
+            return None
+        # Anchored pick: the message shares a word with the chosen agent's *name* that none of
+        # the candidates has ("reply to the recruiter and cc Priya" to the "Acme recruiter"
+        # agent). The model chose on that word; the person is incidental. "flight", shared by
+        # chosen and candidate alike, anchors nothing.
+        candidate_tokens: set = set()
+        for name in ranked[:3]:
+            record = self.get(name)
+            if record is not None:
+                candidate_tokens |= set(tokenize(f"{record.name} {record.description}"))
+        if (query_tokens & set(tokenize(chosen.name))) - candidate_tokens:
             return None
         return RoutingMismatch(tokens=mentioned, candidates=ranked[:3])
 
@@ -795,7 +842,9 @@ def _relative_time(seconds: float) -> str:
 # Singleton wiring
 # --------------------------------------------------------------------------------------
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+from ...paths import data_dir
+
+_DATA_DIR = data_dir()
 _REGISTRY_PATH = _DATA_DIR / "execution_agents" / "registry.json"
 _LEGACY_ROSTER_PATH = _DATA_DIR / "execution_agents" / "roster.json"
 

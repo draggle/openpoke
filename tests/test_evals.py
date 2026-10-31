@@ -285,3 +285,21 @@ def test_buried_needles_are_scored_with_a_realistic_query(tmp_path):
 
     score_retention(needles, "", search)
     assert seen and all(q in {n.query for n in buried} for q in seen)
+
+
+def test_data_dir_override_isolates_server_state(monkeypatch, tmp_path):
+    """evals.session_probe must never touch server/data: every store honours OPENPOKE_DATA_DIR."""
+    import inspect
+    from server import paths
+    from server.services import timezone_store, triggers
+    from server.services.conversation import log as conversation_log
+    from server.services.execution import log_store, memory, registry, roster
+    from server.services.llm import usage
+
+    monkeypatch.setenv("OPENPOKE_DATA_DIR", str(tmp_path / "probe-data"))
+    assert paths.data_dir() == (tmp_path / "probe-data").resolve()
+    monkeypatch.delenv("OPENPOKE_DATA_DIR")
+    assert paths.data_dir().name == "data"
+    for module in (log_store, memory, registry, roster, usage, triggers, timezone_store, conversation_log):
+        assert module._DATA_DIR == paths.data_dir(), module.__name__
+        assert "data_dir()" in inspect.getsource(module), module.__name__

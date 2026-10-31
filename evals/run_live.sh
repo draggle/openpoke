@@ -13,7 +13,7 @@
 #           ROUTING_STRATEGIES=budgeted ONLY_ROUTING=1 bash evals/run_live.sh -> re-run routing only
 #           ROUTING_EXTRA_ARGS="" bash evals/run_live.sh -> round-one style (no history, sampled kinds, one seed)
 # Round three adds evals.recall_eval (search_history usage) and evals.session_probe (calls per turn
-# through the in-process app; clears the server's chat state) and the held-out email set.
+# through the in-process app, in an isolated temporary data dir) and the held-out email set.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -141,7 +141,7 @@ fi
 if [ "${ONLY_JEV:-0}" != "1" ]; then
   # Round three: does the execution model use search_history; calls/cost per turn through the app.
   run python -m evals.recall_eval --live --rounds 40
-  run python -m evals.session_probe --live --clear-state
+  run python -m evals.session_probe --live
 fi
 
 echo

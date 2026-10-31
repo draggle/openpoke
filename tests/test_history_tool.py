@@ -151,3 +151,36 @@ def test_snippet_window_covers_the_most_query_tokens(tmp_path):
     assert len(payload) > 900
     snippet = _window(payload, "deposit $2532 Hannah reference number", ["deposit", "2532", "hannah", "reference", "number"])
     assert "REF-29252" in snippet
+
+
+# ---- review fix pass: keys survive the log's newline encoding; unkeyed rows get no context ---
+
+
+def test_raw_key_survives_payloads_with_newlines(tmp_path):
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    body = "Thanks for reaching out. " * 20
+    store.record_request("a", "Find the $50 parking email")
+    raw0 = '{"emails": [{"snippet": "line one\\nline two", "clean_text": "%sOur internal reference is REF-PARK."}]}' % body
+    store.record_tool_response("a", "gmail_fetch_emails", raw0[:500] + "\n", raw=raw0)
+    store.record_request("a", "Ask Hannah whether the refund for $182 can be settled by Nov 1")
+    raw1 = '{"emails": [{"snippet": "first\\nsecond", "clean_text": "%sOur internal reference is REF-182A."}]}' % body
+    store.record_tool_response("a", "gmail_fetch_emails", raw1[:500] + "\n", raw=raw1)
+    hit = next(m for m in search_history("a", "$182 refund reference", limit=5, log_store=store)["matches"]
+               if m["tag"] == "tool_response_raw")
+    assert "REF-182A" in hit["text"] and "$182" in hit["context"]
+
+
+def test_unkeyed_legacy_raw_rows_get_no_context(tmp_path):
+    from server.services.execution.log_store import ExecutionAgentLogStore
+
+    store = ExecutionAgentLogStore(tmp_path / "logs")
+    store.record_request("a", "Find the $50 parking email")
+    store.record_tool_response("a", "createTrigger", '{"id": 1}', raw='{"id": 1}')  # identical: no raw row
+    store.record_request("a", "Ask Hannah about the $182 refund")
+    store._append_raw("a", "gmail_fetch_emails", "Our internal reference is REF-182A.")  # round-two row, no key
+    store.record_tool_response("a", "gmail_fetch_emails", "compacted", raw=None)
+    hit = next(m for m in search_history("a", "reference", limit=5, log_store=store)["matches"]
+               if m["tag"] == "tool_response_raw")
+    assert "REF-182A" in hit["text"] and hit["context"] == ""

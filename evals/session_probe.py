@@ -9,11 +9,12 @@ with it off (round two / upstream loop) so the saving is measured, not modelled.
 The session is the one used for the round-two cache probe: create a reminder with a standing
 rule, move it, ask what is set. Composio need not be connected; only reminder tools run.
 
-WARNING: this clears the server's conversation state (DELETE /api/v1/chat/history) before each
-run, exactly as the UI's "clear history" does. Pass ``--clear-state`` to acknowledge that.
+State isolation: the probe sets ``OPENPOKE_DATA_DIR`` to a fresh temporary directory before the
+app is imported, so a working installation's conversation, agents, memory and reminders under
+``server/data`` are never read or cleared. (Round two's probe cleared the real state.)
 
 Usage:
-    python -m evals.session_probe --live --clear-state [--out evals/out]
+    python -m evals.session_probe --live [--out evals/out]
 """
 
 from __future__ import annotations
@@ -31,6 +32,9 @@ TURNS: List[str] = [
     "manager on any emails related to this.",
     "Change the reminder time from 9am to 10am tomorrow.",
     "What reminders do I have set?",
+    # Two requests in one message: the early-exit loop must not drop the second dispatch.
+    "Also remind me Friday at 8am to call the dentist, and set a separate reminder for Monday at "
+    "noon to renew the car insurance.",
 ]
 
 
@@ -82,6 +86,7 @@ async def _settle(client, previous: int, timeout_s: float = 120.0, quiet_s: floa
 async def _run_session(early_exit: bool) -> Dict[str, Any]:
     import httpx
 
+    assert os.environ.get("OPENPOKE_DATA_DIR"), "run() sets a temporary data dir before importing the app"
     from server.app import app
     from server.services.llm import set_usage_ledger
     from server.services.llm.usage import UsageLedger
@@ -99,17 +104,32 @@ async def _run_session(early_exit: bool) -> Dict[str, Any]:
             count = await _settle(client, count)
         history = (await client.get("/api/v1/chat/history")).json().get("messages", [])
         replies = [m["content"] for m in history if m.get("role") == "assistant"]
+        agents = (await client.get("/api/v1/meta/agents")).json()
         await client.delete("/api/v1/chat/history")
     # Let fire-and-forget tasks (background compaction, agent result relays) drain.
     await asyncio.sleep(2.0)
     set_usage_ledger(None)
     out = report(ledger.totals()["by_role"], early_exit=early_exit, turns=len(TURNS))
     out["replies"] = replies
+    out["agents_after"] = _agent_names(agents)
     return out
 
 
+def _agent_names(payload: Any) -> List[str]:
+    items = payload.get("agents", payload) if isinstance(payload, dict) else payload
+    names = []
+    for item in items if isinstance(items, list) else []:
+        name = item.get("name") if isinstance(item, dict) else None
+        if name:
+            names.append(name)
+    return names
+
+
 async def run(out_dir: Path) -> Dict[str, Any]:
-    results = {"what": "three-turn reminder session through the in-process app; ledger reset per run",
+    import tempfile
+
+    os.environ["OPENPOKE_DATA_DIR"] = tempfile.mkdtemp(prefix="openpoke-probe-")
+    results = {"what": "four-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
                "turns": TURNS, "with_early_exit": await _run_session(True),
                "without_early_exit": await _run_session(False)}
     a, b = results["with_early_exit"], results["without_early_exit"]
@@ -124,13 +144,10 @@ async def run(out_dir: Path) -> Dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--live", action="store_true")
-    parser.add_argument("--clear-state", action="store_true", help="acknowledge that the server's chat state is cleared")
     parser.add_argument("--out", default="evals/out")
     args = parser.parse_args()
     if not args.live:
-        raise SystemExit("session_probe only has a live mode: pass --live --clear-state")
-    if not args.clear_state:
-        raise SystemExit("this clears the server's conversation state; pass --clear-state to proceed")
+        raise SystemExit("session_probe only has a live mode: pass --live")
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     results = asyncio.run(run(out_dir))
@@ -140,6 +157,7 @@ def main() -> None:
               f"{r['total']['prompt_tokens']} prompt tok, {r['cached_share']:.0%} cached, ${r['total']['cost_usd']}")
         for role, row in r["by_role"].items():
             print(f"  {role:<12} calls {row['calls']:<3} cached {row['cached_share']:.0%}  ${row['cost_usd']}")
+        print(f"  agents after: {r.get('agents_after')}")
     print(f"\nsaving: {results['saving']}")
 
 

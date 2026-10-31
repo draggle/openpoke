@@ -65,7 +65,9 @@ class TimezoneStore:
         return candidate
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+from ..paths import data_dir
+
+_DATA_DIR = data_dir()
 _TIMEZONE_PATH = _DATA_DIR / "timezone.txt"
 
 _timezone_store = TimezoneStore(_TIMEZONE_PATH)

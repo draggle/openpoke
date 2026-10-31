@@ -453,3 +453,22 @@ def test_routing_mismatch(tmp_path, clock, message, chosen, expect):
         assert mismatch is not None
         assert mismatch.candidates[: len(expect)] == expect
         assert "bob" in mismatch.tokens
+
+
+# ---- review fix pass: the guard sees people, not weekdays, products or topic anchors --------
+
+
+@pytest.mark.parametrize("message,chosen,fires", [
+    ("Tell them I'm free Monday", "Acme recruiter", False),
+    ("Send the Zoom link for the invoice review", "Priya October Invoice", False),
+    ("Draft a reply to the recruiter and cc Priya", "Acme recruiter", False),
+    ("what did bob say about the flight confirmation?", "Follow up with Tomasz - flight", True),
+])
+def test_routing_guard_precision(tmp_path, clock, message, chosen, fires):
+    reg = make_registry(tmp_path, clock)
+    reg.register("Acme recruiter", "Reply to the recruiter at Acme about the senior role")
+    reg.register("Zoom call with Bob", "Set up a Zoom call with Bob on Monday")
+    reg.register("Priya October Invoice", "Chase Priya for the October invoice")
+    reg.register("Follow up with Tomasz - flight", "Check whether Tomasz has replied about the flight confirmation")
+    reg.register("Flight Confirmation with Bob", "Find the latest email from Bob about the flight confirmation")
+    assert (reg.routing_mismatch(chosen, message) is not None) is fires

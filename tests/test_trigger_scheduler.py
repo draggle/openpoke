@@ -87,11 +87,13 @@ async def test_due_triggers_for_same_agent_coalesce(scheduler, monkeypatch):
 
 
 async def test_coalesced_failure_marks_every_trigger(scheduler, monkeypatch):
+    """A failed combined run is retried one trigger at a time; each then gets its own
+    bookkeeping: one-shot cleared, recurring rescheduled (as upstream)."""
     monkeypatch.delenv("OPENPOKE_TRIGGER_COALESCE", raising=False)
     FakeManager.succeed = False
     sched, service = scheduler([_record(1, "Alice Lunch", "a"), _record(2, "Alice Lunch", "b", "FREQ=DAILY")])
     await _poll_and_drain(sched)
-    assert len(FakeManager.calls) == 1
+    assert len(FakeManager.calls) == 3  # the combined run, then each alone
     assert sorted(service.failed) == [1, 2]
     assert service.cleared == [1]  # one-shot: next fire cleared
     assert service.completed == [2]  # recurring: rescheduled despite the failure (as upstream)
@@ -103,3 +105,23 @@ async def test_coalesce_flag_off_dispatches_separately(scheduler, monkeypatch):
     await _poll_and_drain(sched)
     assert len(FakeManager.calls) == 2
     assert sorted(service.completed) == [1, 2]
+
+
+async def test_coalesced_groups_are_capped(scheduler, monkeypatch):
+    monkeypatch.delenv("OPENPOKE_TRIGGER_COALESCE", raising=False)
+    monkeypatch.delenv("OPENPOKE_TRIGGER_COALESCE_MAX", raising=False)
+    sched, service = scheduler([_record(i, "Alice Lunch", f"r{i}") for i in range(1, 6)])
+    await _poll_and_drain(sched)
+    assert len(FakeManager.calls) == 2  # 3 + 2
+    assert sorted(service.completed) == [1, 2, 3, 4, 5]
+
+
+async def test_coalesced_failure_retries_each_trigger_alone(scheduler, monkeypatch):
+    monkeypatch.delenv("OPENPOKE_TRIGGER_COALESCE", raising=False)
+    FakeManager.succeed = False
+    sched, service = scheduler([_record(1, "Alice Lunch", "a"), _record(2, "Alice Lunch", "b")])
+    await _poll_and_drain(sched)
+    # one combined run failed, then each reminder got its own run before any bookkeeping
+    assert len(FakeManager.calls) == 3
+    assert "Trigger ID: 1" in FakeManager.calls[1][1] and "Trigger ID: 2" not in FakeManager.calls[1][1]
+    assert sorted(service.failed) == [1, 2] and sorted(service.cleared) == [1, 2]

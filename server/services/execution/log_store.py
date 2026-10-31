@@ -12,7 +12,9 @@ from ...logging_config import logger
 from ...utils.timezones import now_in_user_timezone
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+from ...paths import data_dir
+
+_DATA_DIR = data_dir()
 _EXECUTION_LOG_DIR = _DATA_DIR / "execution_agents"
 
 
@@ -133,9 +135,12 @@ class ExecutionAgentLogStore:
         rendered into prompts; the raw form goes to a sidecar journal (``<agent>.raw.jsonl``)
         that only ``search_history`` reads, so nothing a later turn might need is unrecoverable.
         """
-        self._append(agent_name, "tool_response", f"{tool_name}: {response}")
+        payload = f"{tool_name}: {response}"
+        self._append(agent_name, "tool_response", payload)
         if raw is not None and raw != response:
-            self._append_raw(agent_name, tool_name, raw, key=raw_key(f"{tool_name}: {response}"))
+            # Key the row to the payload *as iter_entries will return it* (the log's newline
+            # encoding is not a round trip for literal "\n" or "\r\n").
+            self._append_raw(agent_name, tool_name, raw, key=raw_key(_decode_payload(_encode_payload(payload))))
 
     _RAW_LIMIT = 20_000
 

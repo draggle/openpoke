@@ -78,10 +78,12 @@ class TriggerScheduler:
         # execution is a full strong-model run over that agent's history.
         groups: List[List[TriggerRecord]] = []
         if self._coalesce_enabled():
+            cap = self._coalesce_max()
             by_agent: Dict[str, List[TriggerRecord]] = {}
             for trigger in pending:
                 by_agent.setdefault(trigger.agent_name, []).append(trigger)
-            groups = list(by_agent.values())
+            for triggers in by_agent.values():
+                groups.extend(triggers[i : i + cap] for i in range(0, len(triggers), cap))
         else:
             groups = [[t] for t in pending]
         for group in groups:
@@ -93,6 +95,14 @@ class TriggerScheduler:
     @staticmethod
     def _coalesce_enabled() -> bool:
         return os.getenv("OPENPOKE_TRIGGER_COALESCE", "1") != "0"
+
+    @staticmethod
+    def _coalesce_max() -> int:
+        """A combined run shares one timeout and one tool-iteration budget; keep groups small."""
+        try:
+            return max(1, int(os.getenv("OPENPOKE_TRIGGER_COALESCE_MAX", "3")))
+        except ValueError:
+            return 3
 
     async def _execute_trigger(self, trigger: TriggerRecord) -> None:
         await self._execute_triggers([trigger])
@@ -120,6 +130,14 @@ class TriggerScheduler:
                 instructions,
                 source="trigger",
             )
+            if not result.success and len(triggers) > 1:
+                # The combined run failed (timeout, iteration budget, model error). Do not
+                # charge every reminder for it: give each its own run, with its own bookkeeping.
+                logger.warning("Coalesced trigger run failed; retrying each trigger alone",
+                               extra={"trigger_ids": [t.id for t in triggers], "agent": agent_name})
+                for trigger in triggers:
+                    await self._execute_triggers([trigger])
+                return
             for trigger in triggers:
                 if result.success:
                     self._handle_success(trigger, fired_at)

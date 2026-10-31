@@ -316,3 +316,38 @@ async def test_early_exit_flag_off_keeps_upstream_loop(monkeypatch, tmp_path):
     result = await runtime.execute("move lunch with alice to thursday")
     assert result.success
     assert calls["n"] == 2
+
+
+def test_send_message_guard_fires_once_per_turn_even_when_rephrased(monkeypatch, tmp_path):
+    reg = _guard_registry(tmp_path)
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+
+    async def fake_execute_agent(agent_name, instructions):
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+    monkeypatch.delenv("OPENPOKE_ROUTING_GUARD", raising=False)
+
+    async def run():
+        tools_module.begin_turn()
+        first = tools_module.send_message_to_agent("Follow up with Tomasz - flight", "What did Bob say about the flight?")
+        assert not first.success
+        second = tools_module.send_message_to_agent("Follow up with Tomasz - flight", "Check Bob's reply on the flight confirmation")
+        assert second.success  # rephrased, same turn: honoured, no loop
+        tools_module.begin_turn()
+        third = tools_module.send_message_to_agent("Follow up with Tomasz - flight", "What did Bob say about the flight?")
+        assert not third.success  # a new turn gets one fresh challenge
+
+    asyncio.run(run())
+
+
+async def test_runtime_begins_a_turn_per_message(monkeypatch, tmp_path):
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [None])
+    before = tools_module.current_turn()
+    await runtime.execute("hi")
+    await runtime.handle_agent_message("[SUCCESS] Alice Lunch: ok")
+    assert tools_module.current_turn() == before + 2

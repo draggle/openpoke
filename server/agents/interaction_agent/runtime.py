@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
 from .agent import build_routing_hint, build_system_prompt, prepare_message_with_history, select_roster
-from .tools import ToolResult, get_tool_schemas, handle_tool_call
+from .tools import ToolResult, begin_turn, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
 from ...services.llm import ROLE_INTERACTION, complete as llm_complete, get_model_router
@@ -67,6 +67,7 @@ class InteractionAgentRuntime:
         """Handle a user-authored message."""
 
         try:
+            begin_turn()
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_user_message(user_message)
 
@@ -105,6 +106,7 @@ class InteractionAgentRuntime:
         """Process a status update emitted by an execution agent."""
 
         try:
+            begin_turn()
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_agent_message(agent_message)
 

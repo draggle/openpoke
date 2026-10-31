@@ -63,19 +63,19 @@ def search_history(
     # render. Search both, so anything compaction dropped is still findable. A raw result is
     # indexed together with the request that led to it: an email body says "our reference is
     # REF-1", the request said "the $182 refund", and the user asks about the $182 refund.
-    by_key, in_order = _request_contexts(entries)
+    by_key = _request_contexts(entries)
     raw_entries = []
     index_text: Dict[int, str] = {}
     context_of: Dict[int, str] = {}
-    unkeyed = 0
     for ts, tool, raw, key in store.iter_raw_tool_responses_keyed(agent_name):
         if key and by_key.get(key):
             # Identical compacted payloads (the same boilerplate under the cap) share a key;
             # raw rows and log entries are both in write order, so consume contexts in order.
             context = by_key[key].pop(0)
-        else:  # rows written before round three: assume one row per tool_response, in order
-            context = in_order[unkeyed] if unkeyed < len(in_order) else ""
-            unkeyed += 1
+        else:
+            # Rows written before the key existed, or whose entry we cannot find: no context
+            # rather than a guessed one (a wrong request is worse than none).
+            context = ""
         index_text[len(entries) + len(raw_entries)] = f"{tool}: {raw} {context}"
         context_of[len(entries) + len(raw_entries)] = context
         raw_entries.append(("tool_response_raw", ts, f"{tool}: {raw}"))
@@ -117,20 +117,17 @@ def search_history(
     return {"query": query, "matches": matches, "total_entries": len(entries)}
 
 
-def _request_contexts(entries: List[tuple]) -> tuple:
-    """The agent request that preceded each ``tool_response`` log entry: keyed by the entry's
-    raw_key (how round-three raw rows are tied to their entry) and as a plain in-order list
-    (fallback for raw rows written before the key existed)."""
+def _request_contexts(entries: List[tuple]) -> Dict[str, List[str]]:
+    """The agent request that preceded each ``tool_response`` log entry, keyed by the entry's
+    raw_key (how raw sidecar rows are tied to their entry), in write order per key."""
     by_key: Dict[str, List[str]] = {}
-    in_order: List[str] = []
     last_request = ""
     for tag, _ts, payload in entries:
         if tag == "agent_request":
             last_request = payload
         elif tag == "tool_response":
             by_key.setdefault(raw_key(payload), []).append(last_request)
-            in_order.append(last_request)
-    return by_key, in_order
+    return by_key
 
 
 def _window(payload: str, query: str, query_tokens: List[str]) -> str:

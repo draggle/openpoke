@@ -1,0 +1,7 @@
+{
+  "queries": 120,
+  "false_fires_on_correct_target": 0,
+  "false_fire_examples": [],
+  "wrong_person_picks": 60,
+  "wrong_person_picks_caught": 60
+}
