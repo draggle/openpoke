@@ -44,7 +44,7 @@ per-query log in [`live_routing_log.txt`](docs/live/round3/live_routing_log.txt)
 | Wrong agent chosen | 42 | 9 | 25 | **5** |
 | Did not delegate (asked the user, or answered from history) | 19 | 22 | 10 | 8 |
 | New agent spawned for an existing thread | 2 | 1 | 0 | 0 |
-| `search_agents`: needed / called / found | — | 6 / 2 / 2 | — | **7 / 7 / 7** |
+| `search_agents`: needed / called / found | — | 6 / 2 / 2 | 0 / 19 / 0 | **7 / 7 / 7** |
 | Did-you-mean guard: fired / helped / hurt | — | — | — | 1 / 1 / 0 |
 | Prompt tokens per query (cached) | 7,307 (4,019) | 5,262 (3,779) | 7,850 (4,368) | **5,499 (3,994)** |
 | Cost of 120 queries | $1.56 | $0.91 | $1.66 | **$0.94** |
@@ -143,21 +143,29 @@ model said no on that run and yes on the sweep run.
 
 ### Calls per turn (the real app, in-process)
 
-Source: [`docs/live/round3/session_probe.json`](docs/live/round3/session_probe.json). The three-turn
-reminder session from round two (create a reminder with a standing rule, move it, ask what is
-set), driven through the FastAPI app with a fresh usage ledger per run.
+Sources: [`docs/live/round3/session_probe.json`](docs/live/round3/session_probe.json) (three turns,
+run before the review; this run cleared the real `server/data`, which the review caught) and
+[`session_probe_4turn.json`](docs/live/round3/session_probe_4turn.json) (four turns, run after the
+review in an isolated temporary data directory; the fourth turn carries two requests in one
+message). The session: create a reminder with a standing rule, move it, ask what is set, then ask
+for two more reminders at once. Fresh usage ledger per run.
 
-| | Round-two loop | **Early exit** |
-|---|---|---|
-| LLM calls, 3 turns | 18 (12 interaction + 6 execution) | **12 (6 + 6)** |
-| Interaction calls per user turn | 4.0 | **2.0** |
-| Prompt tokens | 83,391 | **55,221** |
-| Cached share, interaction / execution | 80% / 65% | 82% / 64% |
-| Cost | $0.103 | **$0.079 (−24%)** |
+| | 3 turns, old loop | **3 turns, early exit** | 4 turns, old loop | **4 turns, early exit** |
+|---|---|---|---|---|
+| Interaction calls (per user turn) | 12 (4.0) | **6 (2.0)** | 13 (3.25) | **9 (2.25)** |
+| Execution calls | 6 | 6 | 8 | 10 |
+| Agents created for the two-request turn | — | — | 1 ("General reminders") | 2 (one per reminder) |
+| Both reminders of the two-request turn set | — | — | yes | **yes** |
+| Cost | $0.103 | **$0.079 (−24%)** | $0.130 | $0.153 |
 
-The six calls removed are the ones that produced nothing the user sees: the follow-up after the
-model had already told the user and dispatched the agent, and the follow-up after it had relayed
-the agent's result. The replies in both runs are in the file.
+The loop change does what it says: the interaction calls removed are exactly the ones that
+produced nothing the user sees, and the two-request turn dispatched both requests under early
+exit (the drop the review warned about did not occur in this run; it remains possible if the
+model chooses to dispatch sequentially after telling the user). The four-turn cost went the other
+way for a reason unrelated to the loop: on that run the model created two agents for the two
+reminders instead of one, which is two execution runs and two cache writes. That is model
+variance in agent naming, which the consolidation rule does not touch (different topics), and it
+is why the cost row is reported per run rather than averaged.
 
 ### Offline (deterministic, no key — `python -m evals.run_all`)
 
@@ -347,13 +355,19 @@ that restores the round-two behaviour.
   both arms rightly asked what the user meant. Both arms are re-run on the new workload.
 - **Wrong-person picks: a did-you-mean guard.** `send_message_to_agent` checks the chosen agent
   against the message: if the message names a person (learned from the agents' own first
-  instructions, no name list), the chosen agent's name and instruction contain none of those
-  people, and another live agent contains all of them, the tool returns an error naming up to
-  three candidates instead of dispatching. A repeated identical call overrides it. A message that
-  also names someone the chosen agent *is* about ("ask Tomasz whether Bob is coming") never
-  fires. On the synthetic workload: 0 false fires on 120 correct picks, 58 of 60 wrong-person
-  picks caught. The prompt also says to search before picking another person's agent.
-  `OPENPOKE_ROUTING_GUARD=0` turns it off; the upstream arm of the eval never has it.
+  instructions by the words around a capitalised run: "email to Bob", "ask Priya", "Priya
+  says"; "a Zoom call" and "on Monday" are not people), the chosen agent's name and instruction
+  contain none of those people, and another agent, archived ones included, contains all of them,
+  the tool returns an error naming up to three candidates instead of dispatching. It challenges
+  once per interaction turn; the model's next attempt, repeated or rephrased, is honoured, so it
+  can never exhaust the tool-iteration budget. A message that also names someone the chosen
+  agent *is* about ("ask Tomasz whether Bob is coming") never fires, and neither does one whose
+  words anchor the pick to the chosen agent's name and to no candidate ("reply to the recruiter
+  and cc Priya" to the recruiter agent). On the synthetic workload
+  ([`guard_check.json`](docs/live/round3/guard_check.json), `python -m evals.guard_check`): 0 false
+  fires on 120 correct picks, 60 of 60 wrong-person picks caught. The prompt also says to search
+  before picking another person's agent. `OPENPOKE_ROUTING_GUARD=0` turns it off; the upstream
+  arm of the eval never has it.
 - **One LLM call fewer per turn.** The interaction loop used to make a follow-up call after the
   model had already told the user and dispatched the agent; that call produces nothing the user
   sees (the reply is always the last `send_message_to_user`). The loop now ends after an
@@ -378,15 +392,23 @@ that restores the round-two behaviour.
 - **Corrections in the extractor contract.** The compactor's JSON gains `replaces` (the existing
   key a renamed fact updates) and `corrections` (`{"old": "$500", "new": "$700"}`), with keys
   fixed to "entity attribute". `_merge` invalidates the named key and any active fact still
-  asserting a corrected value whose key shares a token with the correcting fact. The heuristic
-  extractor reads "it is $700, not $500" and "$900 (was $850)".
+  asserting a corrected value whose key shares a word with a fact carrying the new value or with
+  the sentence that stated the correction ("Priya says the invoice ..."); with nothing to anchor
+  on it retires nothing. Corrections are read from what the user and the agent said, never from
+  tool results: a newsletter in an email body saying "now $49 (was $99)" is content, not a
+  correction of memory. The regex reads "it is $700, not $500" and "$900 (was $850)".
 - **Trigger coalescing.** Several reminders due for one agent in the same scheduler poll become
-  one execution whose instructions list every reminder; completion and failure bookkeeping stay
-  per trigger. `OPENPOKE_TRIGGER_COALESCE=0` dispatches them separately as before.
+  one execution whose instructions list every reminder, at most three per run
+  (`OPENPOKE_TRIGGER_COALESCE_MAX`), because a combined run shares one timeout and one
+  tool-iteration budget. If a combined run fails, each reminder is re-run on its own before any
+  bookkeeping, so a burst never loses its one-shot reminders to one timeout.
+  `OPENPOKE_TRIGGER_COALESCE=0` dispatches them separately as before.
 - **Two measurements that were missing.** `evals/recall_eval.py --live` asks the real execution
   model eight questions after compaction, four answerable only through `search_history` and four
-  answerable from the prompt, and reports tool-call rate and accuracy per class. 
-  `evals/session_probe.py` reports calls, cached share and cost by role for a real session.
+  answerable from the prompt, and reports tool-call rate and accuracy per class.
+  `evals/session_probe.py` reports calls, cached share and cost by role for a real session,
+  driven through the app in a temporary data directory (`OPENPOKE_DATA_DIR`, honoured by every
+  store), so it never reads or clears a working installation's state.
 - **Learned reranker, measured and not shipped.** `evals/learned_selector.py` fits a logistic
   reranker over the signals `select()` already uses (BM25, name overlap, recency rank, log age,
   use count, pinned, named in transcript, waiting) on five synthetic seeds and scores recall@12
@@ -447,9 +469,17 @@ Agent uses, and a quarter of queries carry no retrievable words.
   before picking another person's agent" and the `last_touched` rule help upstream too; the
   baseline is "upstream roster, fork everything else", as in round two. That is why upstream
   moved from 49% to 71% while its roster did not change.
-- **The guard fired once in 120 queries.** It corrected that one. The design was checked offline
-  (0 false fires on 120 correct picks, 58 of 60 wrong-person picks caught); the live rate is low
-  because the prompt rule already stops most wrong-person picks before the tool sees them.
+- **The guard fired once in 120 queries.** It corrected that one. The design is checked offline
+  by `evals/guard_check.py` (0 false fires on 120 correct picks, 60 of 60 wrong-person picks
+  caught, on synthetic instructions); the live rate is low because the prompt rule already stops
+  most wrong-person picks before the tool sees them. The live run predates the review's
+  precision fixes (weekday and product names, anchored picks, one challenge per turn); the
+  offline check is of the shipped code.
+- **Early exit is a trade-off, and the probe's fourth turn measures it.** A user turn ends once
+  the model has told the user and dispatched; a model that chose to dispatch a second request in
+  a *later* iteration would lose it. The system prompt instructs parallel tool calls and the
+  four-turn probe's two-request turn is in the artifact; `OPENPOKE_INTERACTION_EARLY_EXIT=0` is
+  the upstream loop.
 - **Stale facts: the round-three mechanism was verified in three steps, and the README says
   which.** The first live run of this round still showed 2 of 7 corrected amounts asserted as
   current. Inspection showed both corrections sat in the verbatim tail *after* the compaction
@@ -472,7 +502,7 @@ Agent uses, and a quarter of queries carry no retrievable words.
 - **The session probe is one session.** Three turns, reminder tools only, Composio not connected.
   The call count is deterministic (the loop structure), the cost is not.
 - **Trigger coalescing is unit-tested, not live-measured**: the live evals never fire two
-  reminders at once. **Consolidation** likewise.
+  reminders at once; the cap and the retry-alone path are table tests. **Consolidation** likewise.
 - **Not everything turns off with the upstream flags.** `search_history` and its prompt line
   are always present; consolidation, the guard, early exit and coalescing have their own
   switches (`OPENPOKE_AGENT_CONSOLIDATE`, `OPENPOKE_ROUTING_GUARD`,

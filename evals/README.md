@@ -8,7 +8,8 @@ See the "Tests and evaluators" section of the top-level README. Quick start:
     python -m evals.email_eval --live            # prefilter + classifier P/R with missed ids
     python -m evals.live_routing_eval --history --stratified --seeds 7,8,9   # real Interaction model
     python -m evals.recall_eval --live           # does the execution model call search_history?
-    python -m evals.session_probe --live --clear-state   # calls/cost per turn through the app (clears chat state)
+    python -m evals.session_probe --live        # calls/cost per turn through the app (temporary data dir)
+    python -m evals.guard_check                  # offline: did-you-mean guard false fires / catches
     python -m evals.learned_selector             # offline: learned reranker vs select()
     bash evals/run_live.sh [path/to/.env]        # everything live, one command
 

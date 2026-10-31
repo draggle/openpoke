@@ -1,0 +1,13 @@
+
+with_early_exit: 19 calls (4.75/turn), 86260 prompt tok, 64% cached, $0.1533
+  execution    calls 10  cached 56%  $0.0936
+  interaction  calls 9   cached 72%  $0.0597
+  agents after: ['Car insurance renewal reminder', 'Dentist call reminder', 'Alice lunch invoice reminder']
+
+without_early_exit: 21 calls (5.25/turn), 98774 prompt tok, 75% cached, $0.1299
+  execution    calls 8   cached 68%  $0.0634
+  interaction  calls 13  cached 79%  $0.0665
+  agents after: ['General reminders', 'Alice lunch invoice reminder']
+
+saving: {'calls': 2, 'cost_share': -0.18}
+RERUN_DONE
