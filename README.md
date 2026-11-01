@@ -508,20 +508,46 @@ Measured by the probe's third arm on the same four-turn session
 ([`docs/live/relay/session_probe.json`](docs/live/relay/session_probe.json), replies in the
 [log](docs/live/relay/session_probe_log.txt)):
 
-| 4 turns, one session | Old loop | Early exit | **Early exit + relay** |
+| 4 turns, three runs of the same session | Old loop | Early exit | **Early exit + relay** |
 |---|---|---|---|
-| Interaction calls | 14 | 9 | **4 (one per user turn)** |
-| Execution calls | 10 | 10 | 10 |
-| Total calls (per turn) | 24 (6.0) | 19 (4.75) | **14 (3.5)** |
-| Prompt tokens, cached share | 113k, 73% | 88k, 63% | **65k, 80%** |
-| Cost | $0.157 | $0.160 | **$0.086 (−46%)** |
-| User told the right things (10am move, invoice listed, both new reminders, no internal ids) | 4 / 4 | 4 / 4 | **4 / 4** |
+| Interaction calls | 14 / 14 / 15 | 9 / 8 / 9 | **4 / 4 / 4 (one per user turn)** |
+| Execution calls | 10 / 10 / 10 | 10 / 8 / 10 | 10 / 10 / 8 |
+| Total calls | 24 / 24 / 25 | 19 / 16 / 19 | **14 / 14 / 12** |
+| Cost | $0.157 / $0.156 / $0.145 | $0.160 / $0.124 / $0.145 | **$0.086 / $0.084 / $0.085** |
+| Relay's saving against early exit, by run | | | **−46% / −32% / −42%** |
+| User told the right things (10am move, invoice listed, both new reminders, no internal ids) | 4 / 4 each run | 4 / 4, 3 / 4\*, 4 / 4 | **4 / 4 each run** |
+
+\* Run 2's early-exit arm shows the probe's own fault, not the loop's: the probe read the
+history 8 s after the last change, the two-reminder execution took longer than that, and the
+confirmation landed after the read. The probe now waits until no execution is pending and no
+result delivery is in flight (`_work_in_flight` in `evals/session_probe.py`); run 3 is with that
+fix. Run 1 is [`session_probe.json`](docs/live/relay/session_probe.json), run 2 is in the full
+live re-run's [`live_log.txt`](docs/live/relay/live_log.txt), run 3 is
+[`session_probe_run3.json`](docs/live/relay/session_probe_run3.json). In run 3 the relay arm's
+fourth turn reused the invoice agent for the two new reminders (8 execution calls, one agent):
+the interaction model's choice on an "also remind me" message, nothing the relay touches, and
+the user was still told both were set.
+
+The path the relay must *not* take is measured too. `evals/trigger_probe.py` creates a
+reminder through the real app, moves its next fire to now, runs the real scheduler and watches
+the conversation ([`docs/live/relay/trigger_probe.json`](docs/live/relay/trigger_probe.json)):
+the user was told ("Hey! Time to stretch your legs after the standup.") 21 s after the fire, the
+run was billed to the trigger role, the interaction agent made the delivering call, and nothing
+internal leaked. Five checks, five passes, one run.
 
 What the relay gives up: the interaction agent's voice on the relayed lines. In the artifact the
 relayed replies read "reminder moved to 10am tomorrow" where the interaction agent wrote "done,
-moved to 10am tomorrow"; the content is the same, the wit is not. One session, one run; the
-earlier probe runs show the model's agent-naming variance moves the cost row by about 15%
-between runs, so the 46% here is well outside that, and the call count is deterministic.
+moved to 10am tomorrow"; the content is the same, the wit is not. Three runs: the relay arm's
+interaction-call count is the same every time (one per user turn) and its cost sits within two
+cents across runs, while the other arms move by up to 25% with the model's agent-naming choices.
+
+The full live suite was also re-run on this branch with the same models, seeds and workload
+([`docs/live/relay/`](docs/live/relay/)): routing 90.8% on the budgeted roster (CI 84–95;
+upstream arm 64.2%), memory 2,692 tokens at 136 entries (43% of upstream, every retention row
+100% and stale 0%; the live extractor's fact count moves this cell between 37% and 43% across
+runs), `search_history` 8 of 8, email dev 1.00 / 1.00 and held-out 1.00 / 1.00 with the sweep
+now naming (0.08, 0.5) as the best gate. None of those paths touch the relay; they are here to
+show nothing regressed.
 
 ## Tests and evaluators
 
@@ -559,6 +585,7 @@ bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 | `evals.live_routing_eval` | the real Interaction model choosing an agent: `--history` for both arms, `--stratified` kinds, `--seeds`, Wilson CIs, `search_agents` call/need/hit counts, the model's words on every non-delegation, did-you-mean guard fired/helped/hurt | yes |
 | `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
 | `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real four-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told | yes |
+| `evals.trigger_probe` | a reminder created through the app is forced to fire under the real scheduler; checks the user is notified by the interaction agent, the run is billed to the trigger role, nothing internal leaks | yes |
 | `evals.learned_selector` | logistic reranker trained on synthetic seeds vs `select()` on held-out seeds, recall@12 | no |
 
 The synthetic workload (`evals/synthetic.py`) is seeded and adversarial: the same person recurs
@@ -636,7 +663,7 @@ Fixed in this fork:
   instead of dismissing.
 - **Constraints lost to summarisation** — the verbatim commitments tier.
 - **Nothing recoverable after compaction** — `search_history`.
-- **Zero tests** — 252 now, plus ten evaluators.
+- **Zero tests** — 252 now, plus eleven evaluators.
 
 Built in round three (each measured above): the wasted follow-up call per turn, the
 did-you-mean guard and search rule, corrections in the extractor contract, the classifier
@@ -677,5 +704,5 @@ server/services/gmail/importance_classifier.py    category prompt, two-sided Jev
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
 tests/                                            252 tests + 46 labelled emails + 14 held-out
-evals/                                            10 evaluators, synthetic workload, paraphrase set, stats
+evals/                                            11 evaluators, synthetic workload, paraphrase set, stats
 ```

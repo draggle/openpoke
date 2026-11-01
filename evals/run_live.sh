@@ -142,6 +142,7 @@ if [ "${ONLY_JEV:-0}" != "1" ]; then
   # Round three: does the execution model use search_history; calls/cost per turn through the app.
   run python -m evals.recall_eval --live --rounds 40
   run python -m evals.session_probe --live
+  run python -m evals.trigger_probe --live
 fi
 
 echo

@@ -217,4 +217,4 @@ class ExecutionBatchManager:
             asyncio.run(runtime.handle_agent_message(payload))
             return
 
-        loop.create_task(runtime.handle_agent_message(payload))
+        loop.create_task(runtime.handle_agent_message(payload), name="interaction-agent-message")

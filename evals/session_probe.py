@@ -69,8 +69,18 @@ def report(by_role: Dict[str, Dict[str, Any]], *, early_exit: bool, turns: int, 
     }
 
 
-async def _settle(client, previous: int, timeout_s: float = 120.0, quiet_s: float = 8.0) -> int:
-    """Wait until the chat history has grown past ``previous`` and stayed still for ``quiet_s``."""
+def _work_in_flight() -> bool:
+    """An execution agent still running, or an interaction turn still delivering its result."""
+    from server.agents.interaction_agent.tools import _EXECUTION_BATCH_MANAGER
+
+    if _EXECUTION_BATCH_MANAGER.get_pending_executions():
+        return True
+    return any(t.get_name() == "interaction-agent-message" and not t.done() for t in asyncio.all_tasks())
+
+
+async def _settle(client, previous: int, timeout_s: float = 180.0, quiet_s: float = 4.0) -> int:
+    """Wait until the chat history has grown past ``previous``, no execution or result delivery
+    is in flight, and the history has stayed still for ``quiet_s``."""
     deadline = time.monotonic() + timeout_s
     last_count, last_change = previous, time.monotonic()
     while time.monotonic() < deadline:
@@ -79,7 +89,7 @@ async def _settle(client, previous: int, timeout_s: float = 120.0, quiet_s: floa
         count = len(response.json().get("messages", []))
         if count != last_count:
             last_count, last_change = count, time.monotonic()
-        elif count > previous and time.monotonic() - last_change >= quiet_s:
+        elif count > previous and not _work_in_flight() and time.monotonic() - last_change >= quiet_s:
             break
     return last_count
 
