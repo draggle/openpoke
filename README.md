@@ -137,11 +137,12 @@ alert, the recruiter and the visa update, because Jev scored them 0.10–0.30 an
 (one edge at 0.5) dismissed them before the model ever saw them. The sweep over recorded
 probabilities found the cheapest two-sided gate that keeps the model's recall: dismiss below 0.1,
 summarise-only at or above 0.5, let the full classifier decide in between (the low edge ships
-as 0.08: the lowest recorded positive sits at exactly 0.10 and nothing was recorded between 0.03
-and 0.10, so the calls are the same and a rounding error cannot dismiss it). It costs 4 more LLM
+as 0.08: the lowest recorded positive sat at exactly 0.10 on that run and at 0.09 on the hardened
+re-run, so 0.1 was one rounding error from a miss and then an actual miss). It costs 4 more LLM
 calls per 34 emails and was chosen on the dev set; the held-out set, run once with those
 defaults, scored 1.00 / 1.00. The remaining dev miss is the recruiter mail at p = 0.10, where the
-model said no on that run and yes on the sweep run.
+model said no on that run and yes on the sweep run; on the hardened re-run it was caught (see
+"Re-run on the hardened code" below).
 
 ### Calls per turn (the real app, in-process)
 
@@ -168,6 +169,43 @@ way for a reason unrelated to the loop: on that run the model created two agents
 reminders instead of one, which is two execution runs and two cache writes. That is model
 variance in agent naming, which the consolidation rule does not touch (different topics), and it
 is why the cost row is reported per run rather than averaged.
+
+### Re-run on the hardened code
+
+After the review's thirteen minor findings were fixed (section 7), every live evaluator was run
+again with the same models, seeds and workload. Sources: [`docs/live/hardening/`](docs/live/hardening/)
+(`live_log.txt` holds every per-query line). Round-three cells above stand as the measured
+history; this table is the current state of the branch.
+
+| | Round 3 | **Hardened re-run** |
+|---|---|---|
+| Routing, budgeted roster, 120 queries (95% CI) | 89.2% (82–94) | **89.2% (82–94)** |
+| …by kind: person + topic / person / topic / keyword-free | 100 / 90 / 77 / 90 | 97 / 83 / 83 / 93 |
+| …upstream arm on the same workload | 70.8% | 69.2% |
+| Wrong agent / did not delegate | 5 / 8 | 7 / 6 |
+| `search_agents` needed / called / found | 7 / 7 / 7 | 7 / 7 / 6 |
+| Did-you-mean guard fired / helped / hurt | 1 / 1 / 0 | 1 / 1 / 0 |
+| Cost of 120 queries | $0.94 | $0.95 |
+| Memory: prompt at 136 entries (LLM extractor) | 2,344 tokens (38%) | **2,275 (37%)** |
+| Memory: surface / commitments / constraints / corrected / stale / recoverable | 100 / 100 / 100 / 100 / 0 / 100 | **same** |
+| `search_history`: buried answered / surface answered | 4 / 4, 4 / 4 | **4 / 4, 4 / 4** |
+| Email, dev set, precision / recall | 1.00 / 0.95 | **1.00 / 1.00** |
+| Email, held-out set | 1.00 / 1.00 | **1.00 / 1.00** |
+| LLM calls per 34 kept emails under the shipped gate | 21 (gate 0.1 / 0.5) | 22 (gate 0.08 / 0.5) |
+| Jev yes/no alone, recall | 0.81 | 0.86 |
+| Jev as agent router | 40% vs LLM 90% | 40% vs LLM 87.5% |
+| 4-turn probe: interaction calls, old loop → early exit | 13 → 9 | 13 → **8** |
+| 4-turn probe: execution calls, old loop → early exit | 8 → 10 | 8 → 10 |
+| 4-turn probe: cost, old loop → early exit | $0.130 → $0.153 | $0.133 → $0.136 |
+| Offline: roster, paraphrases, Jev bench, 40-round heuristic memory | — | identical to round 3 |
+
+Two things in this table are worth a sentence. The recruiter email that the dev set kept missing
+was scored **0.09** by Jev on this run: the round-three edge at 0.1 would have dismissed it
+before the model saw it, and the hardened edge at 0.08 sent it through (one noise email landed
+exactly on 0.08 and cost a model call, which is the right side to err on). And the four-turn
+probe again created one more agent under early exit than without it (three versus two), which
+is why its cost row is flat while its interaction calls fell by five; the dispatch-then-reply
+exit removed one more call than round three's loop did.
 
 ### Offline (deterministic, no key — `python -m evals.run_all`)
 
@@ -452,7 +490,8 @@ file that owns the code):
 - An unused variable in the reranker experiment is gone, and the README cells the review found
   missing (upstream's `search_agents` calls, the guard check's source) are filled.
 
-The live evaluators were re-run on the hardened code and the tables above cite the files.
+The live evaluators were re-run on the hardened code; "Re-run on the hardened code" under
+the results compares every headline row with round three.
 
 ## Tests and evaluators
 

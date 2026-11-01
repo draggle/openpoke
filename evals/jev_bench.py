@@ -86,7 +86,7 @@ async def email_offline() -> Dict[str, Dict]:
     return out
 
 
-def gate_sweep(rows: List[Dict], *, lows=(0.1, 0.2, 0.3, 0.4, 0.5), highs=(0.5, 0.6, 0.7, 0.8, 0.9, 0.95)) -> List[Dict]:
+def gate_sweep(rows: List[Dict], *, lows=(0.05, 0.08, 0.1, 0.2, 0.3, 0.4, 0.5), highs=(0.5, 0.6, 0.7, 0.8, 0.9, 0.95)) -> List[Dict]:
     """Recall / precision / LLM calls of a two-sided gate over recorded per-email rows.
 
     Each row: ``p`` (Jev P(important)), ``llm_important`` (what the full classifier said when

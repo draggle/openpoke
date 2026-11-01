@@ -1,0 +1,109 @@
+{
+  "what": "four-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
+  "turns": [
+    "Set a reminder for tomorrow at 9am to send Alice the lunch invoice. Important: never cc her manager on any emails related to this.",
+    "Change the reminder time from 9am to 10am tomorrow.",
+    "What reminders do I have set?",
+    "Also remind me Friday at 8am to call the dentist, and set a separate reminder for Monday at noon to renew the car insurance."
+  ],
+  "with_early_exit": {
+    "early_exit": true,
+    "turns": 4,
+    "calls_per_turn": 4.5,
+    "cached_share": 0.67,
+    "total": {
+      "calls": 18,
+      "prompt_tokens": 81886,
+      "completion_tokens": 2029,
+      "cached_tokens": 54986,
+      "cache_write_tokens": 10730,
+      "cost_usd": 0.1357
+    },
+    "by_role": {
+      "execution": {
+        "calls": 10,
+        "calls_per_turn": 2.5,
+        "prompt_tokens": 44398,
+        "completion_tokens": 1210,
+        "cached_tokens": 25034,
+        "cached_share": 0.56,
+        "cost_usd": 0.0918
+      },
+      "interaction": {
+        "calls": 8,
+        "calls_per_turn": 2.0,
+        "prompt_tokens": 37488,
+        "completion_tokens": 819,
+        "cached_tokens": 29952,
+        "cached_share": 0.8,
+        "cost_usd": 0.0439
+      }
+    },
+    "replies": [
+      "Got it. Setting a reminder for tomorrow at 9am about the lunch invoice for Alice\u2014and noted, no cc to her manager.",
+      "Perfect, you're all set. Reminder's on for 9am tomorrow\u2014and I've noted that her manager stays off these emails.",
+      "Changing it to 10am tomorrow.",
+      "All set\u2014reminder moved to 10am tomorrow.",
+      "Let me check your reminders.",
+      "You've got one reminder set for tomorrow (November 1st) at 10am: \"Send Alice the lunch invoice\"",
+      "Setting those up for you\u2014Friday at 8am for the dentist call and Monday at noon for the car insurance renewal.",
+      "Perfect\u2014both reminders are set. Friday at 8am to call the dentist, and Monday at noon for the car insurance renewal."
+    ],
+    "agents_after": [
+      "Car insurance renewal reminder",
+      "Dentist call reminder",
+      "Alice lunch invoice reminder"
+    ]
+  },
+  "without_early_exit": {
+    "early_exit": false,
+    "turns": 4,
+    "calls_per_turn": 5.25,
+    "cached_share": 0.74,
+    "total": {
+      "calls": 21,
+      "prompt_tokens": 99116,
+      "completion_tokens": 2159,
+      "cached_tokens": 73712,
+      "cache_write_tokens": 3584,
+      "cost_usd": 0.1334
+    },
+    "by_role": {
+      "execution": {
+        "calls": 8,
+        "calls_per_turn": 2.0,
+        "prompt_tokens": 36918,
+        "completion_tokens": 1367,
+        "cached_tokens": 25040,
+        "cached_share": 0.68,
+        "cost_usd": 0.0663
+      },
+      "interaction": {
+        "calls": 13,
+        "calls_per_turn": 3.25,
+        "prompt_tokens": 62198,
+        "completion_tokens": 792,
+        "cached_tokens": 48672,
+        "cached_share": 0.78,
+        "cost_usd": 0.0671
+      }
+    },
+    "replies": [
+      "got it, setting that up for you",
+      "all set\u2014you'll get reminded tomorrow at 9am. and don't worry, noted about keeping her manager off those emails",
+      "changing it to 10am",
+      "done\u2014moved to 10am tomorrow",
+      "let me check",
+      "you've got one reminder set for tomorrow at 10am to send Alice the lunch invoice (and I've got it noted to never cc her manager on that)",
+      "on it, setting those up"
+    ],
+    "agents_after": [
+      "Dentist and car insurance reminders",
+      "Alice lunch invoice reminder"
+    ]
+  },
+  "saving": {
+    "calls": 3,
+    "cost_share": -0.017
+  }
+}

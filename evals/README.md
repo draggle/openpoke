@@ -18,5 +18,5 @@ model IDs, and by default runs routing with `--history --stratified --seeds 7,8,
 (`ROUTING_EXTRA_ARGS=""` for the round-one style single-seed run).
 
 Outputs land in `evals/out/` (gitignored). The results cited in the README are archived under
-`docs/live/round3/`; round-two results stay in `docs/live/round2/` and round-one in `docs/live/`
+`docs/live/round3/`, and the re-run after the hardening pass in `docs/live/hardening/`; round-two results stay in `docs/live/round2/` and round-one in `docs/live/`
 for the record. `email_eval` reports the 46-row dev set and the 14-row held-out set separately.

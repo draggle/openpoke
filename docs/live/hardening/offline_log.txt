@@ -1,0 +1,127 @@
+    N strategy  entries  tokens  recall   live  +search arch.tgt  by kind
+   10 all          10.0     112    1.00   1.00     1.00        0  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+   10 budgeted     10.0     425    1.00   1.00     1.00        0  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+   25 all          25.0     280    1.00   1.00     1.00       51  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+   25 budgeted     12.0     506    0.83   1.00     1.00       51  keyword=0.80 name_only=0.82 recency=1.00 topic_only=0.84
+   50 all          50.0     555    1.00   1.00     1.00       35  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+   50 budgeted     12.0     513    0.88   1.00     1.00       35  keyword=0.84 name_only=0.94 recency=1.00 topic_only=0.83
+  100 all         100.0    1120    1.00   1.00     1.00       18  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+  100 budgeted     12.0     524    0.94   1.00     1.00       18  keyword=0.91 name_only=0.94 recency=1.00 topic_only=1.00
+  200 all         200.0    2245    1.00   1.00     1.00       12  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+  200 budgeted     12.0     520    0.96   1.00     1.00       12  keyword=0.93 name_only=0.96 recency=1.00 topic_only=0.99
+  400 all         400.0    4476    1.00   1.00     1.00       17  keyword=1.00 name_only=1.00 recency=1.00 topic_only=1.00
+  400 budgeted     12.0     512    0.93   0.99     0.99       17  keyword=0.88 name_only=0.95 recency=1.00 topic_only=1.00
+
+chart: evals/out/roster_tokens_vs_agents.png
+json:  evals/out/roster_results.json
+2026-10-31 22:18:47 - openpoke.server - INFO - [Email to Hannah] memory compacted: 108 entries -> 5 facts, 6 threads, 40 episodes
+2026-10-31 22:18:47 - openpoke.server - INFO - [Email to Marcus] memory compacted: 108 entries -> 3 facts, 9 threads, 40 episodes
+2026-10-31 22:18:47 - openpoke.server - INFO - [Email to Marcus] memory compacted: 120 entries -> 6 facts, 7 threads, 40 episodes
+rounds entries upstream_tok compacted_tok  ratio compactions  retention
+     5      16          660           722   1.09           0  buried=0.00 changed_current=1.00 commitment=1.00 constraint=1.00 surface=1.00 stale=0.00 recoverable=1.00
+    10      34         1545          1608   1.04           0  buried=0.00 changed_current=1.00 commitment=1.00 constraint=1.00 surface=1.00 stale=0.00 recoverable=1.00
+    20      68         3009          3110   1.03           0  buried=0.00 changed_current=1.00 commitment=1.00 constraint=1.00 surface=1.00 stale=0.00 recoverable=1.00
+    40     136         6220          2692   0.43           1  buried=0.00 changed_current=0.71 commitment=1.00 constraint=1.00 surface=0.88 stale=0.00 recoverable=1.00
+    80     274        12598          3683   0.29           2  buried=0.00 changed_current=0.43 commitment=1.00 constraint=1.00 surface=0.63 stale=0.00 recoverable=1.00
+
+chart: evals/out/memory_tokens_vs_history.png
+[dev] prefilter (rules only):
+  emails                   46
+  skipped                  12
+  skip_rate                0.26
+  skip_precision           1.00
+  noise_caught_by_rules    0.48
+  wrongly_skipped_ids      []
+[heldout] prefilter (rules only):
+  emails                   14
+  skipped                  1
+  skip_rate                0.07
+  skip_precision           1.00
+  noise_caught_by_rules    0.14
+  wrongly_skipped_ids      []
+inputs: 200 agents, 160-entry agent history (see evals/out/cost_results.json for every assumption)
+
+config            $/day   $/month  vs upstream  tokens/day
+upstream           5.72    171.70           0%   1,719,436
+routing_only       5.00    149.92          13%   1,680,748
+context_only       3.91    117.17          32%   1,104,075
+both               3.10     93.02          46%   1,065,387
+
+by role ($/day):
+role                    upstream  routing_only  context_only          both
+email_classifier           0.504         0.100         0.504         0.100
+execution                  3.139         3.139         1.744         1.744
+execution_search           0.405         0.108         0.405         0.108
+interaction                1.642         1.642         1.112         1.112
+memory_compactor           0.000         0.000         0.108         0.029
+summarizer                 0.033         0.009         0.033         0.009
+
+sensitivity (saving vs upstream, both fixes):
+runs/turn  history  upstream $/d  fixed $/d  saving  exec share
+      0.5        0          2.27       1.73     24%         22%
+      0.5       40          2.50       1.97     21%         31%
+      0.5       80          2.72       2.20     19%         38%
+      0.5      160          3.20       2.08     35%         35%
+      1.2        0          2.79       2.26     19%         40%
+      1.2       40          3.35       2.84     15%         52%
+      1.2       80          3.88       3.38     13%         60%
+      1.2      160          5.03       3.10     38%         56%
+offline mode: Jev is an oracle; latency model {'llm_classify': 1.8, 'llm_summarise': 1.8, 'jev': 0.15} (edit in evals/jev_bench.py)
+
+EMAIL importance
+  before (prefilter + LLM) @ fixture base rate 62%
+      llm_calls_per_day                          88.7
+      jev_calls_per_day                          0.0
+      usd_per_day                                0.0993
+      model_seconds_per_day                      159.7
+      p50_decision_latency_s                     1.8
+  after  (prefilter + Jev gate + LLM summary) @ fixture base rate 62%
+      llm_calls_per_day                          54.8
+      jev_calls_per_day                          88.7
+      usd_per_day                                0.0675
+      model_seconds_per_day                      111.9
+      p50_decision_latency_s                     0.15
+  before (prefilter + LLM) @ realistic inbox 10%
+      llm_calls_per_day                          88.7
+      jev_calls_per_day                          0.0
+      usd_per_day                                0.0993
+      model_seconds_per_day                      159.7
+      p50_decision_latency_s                     1.8
+  after  (prefilter + Jev gate + LLM summary) @ realistic inbox 10%
+      llm_calls_per_day                          8.9
+      jev_calls_per_day                          88.7
+      usd_per_day                                0.0161
+      model_seconds_per_day                      29.3
+      p50_decision_latency_s                     0.15
+
+AGENT routing
+  after: Jev choice over budgeted roster (oracle)
+      candidates_contain_target                  0.97
+      oracle_hint_correct                        0.97
+      jev_tokens_per_decision                    392
+      jev_usd_per_decision                       2.3e-05
+      llm_usd_per_extra_reasoning_call(3k prompt) 0.01125
+      latency_model_s                            {'jev': 0.15, 'llm_call': 1.8}
+      note                                       offline Jev is an oracle; accuracy needs --live
+
+json: evals/out/jev_bench.json
+
+================================================================================
+$ -m evals.roster_eval
+================================================================================
+
+================================================================================
+$ -m evals.memory_eval
+================================================================================
+
+================================================================================
+$ -m evals.email_eval
+================================================================================
+
+================================================================================
+$ -m evals.cost_eval
+================================================================================
+
+================================================================================
+$ -m evals.jev_bench
+================================================================================
