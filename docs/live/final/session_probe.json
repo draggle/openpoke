@@ -1,0 +1,199 @@
+{
+  "what": "four-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
+  "turns": [
+    "Set a reminder for tomorrow at 9am to send Alice the lunch invoice. Important: never cc her manager on any emails related to this.",
+    "Change the reminder time from 9am to 10am tomorrow.",
+    "What reminders do I have set?",
+    "Also remind me Friday at 8am to call the dentist, and set a separate reminder for Monday at noon to renew the car insurance."
+  ],
+  "with_early_exit": {
+    "early_exit": true,
+    "turns": 4,
+    "direct_relay": false,
+    "calls_per_turn": 4.5,
+    "cached_share": 0.67,
+    "total": {
+      "calls": 18,
+      "prompt_tokens": 84539,
+      "completion_tokens": 2320,
+      "cached_tokens": 56729,
+      "cache_write_tokens": 11141,
+      "cost_usd": 0.1436
+    },
+    "by_role": {
+      "execution": {
+        "calls": 10,
+        "calls_per_turn": 2.5,
+        "prompt_tokens": 46172,
+        "completion_tokens": 1509,
+        "cached_tokens": 25993,
+        "cached_share": 0.56,
+        "cost_usd": 0.0993
+      },
+      "interaction": {
+        "calls": 8,
+        "calls_per_turn": 2.0,
+        "prompt_tokens": 38367,
+        "completion_tokens": 811,
+        "cached_tokens": 30736,
+        "cached_share": 0.8,
+        "cost_usd": 0.0443
+      }
+    },
+    "replies": [
+      "got it, setting that up for you",
+      "all set\u2014you'll get a reminder tomorrow at 9am. and noted, no cc'ing her manager on anything related to this.",
+      "changing it to 10am",
+      "done\u2014moved to 10am tomorrow",
+      "checking your reminders",
+      "you have one reminder set for tomorrow at 10am\u2014send alice the lunch invoice. and i've got the note about not cc'ing her manager on anything related to this.",
+      "setting those up for you",
+      "done\u2014you'll get reminded friday at 8am to call the dentist, and monday at noon to renew car insurance"
+    ],
+    "checks": {
+      "moved_to_10am_confirmed": true,
+      "reminder_list_names_the_invoice": true,
+      "dentist_and_insurance_confirmed": true,
+      "no_internal_ids_shown": true,
+      "replies": 8
+    },
+    "agents_after": [
+      "Car insurance renewal reminder",
+      "Dentist call reminder",
+      "Alice lunch invoice reminder"
+    ],
+    "agent_checks": {
+      "dentist_has_own_agent": true,
+      "insurance_has_own_agent": true,
+      "three_agents": true
+    }
+  },
+  "without_early_exit": {
+    "early_exit": false,
+    "turns": 4,
+    "direct_relay": false,
+    "calls_per_turn": 6.0,
+    "cached_share": 0.8,
+    "total": {
+      "calls": 24,
+      "prompt_tokens": 114305,
+      "completion_tokens": 2243,
+      "cached_tokens": 90922,
+      "cache_write_tokens": 0,
+      "cost_usd": 0.1311
+    },
+    "by_role": {
+      "execution": {
+        "calls": 10,
+        "calls_per_turn": 2.5,
+        "prompt_tokens": 46111,
+        "completion_tokens": 1357,
+        "cached_tokens": 37134,
+        "cached_share": 0.81,
+        "cost_usd": 0.0584
+      },
+      "interaction": {
+        "calls": 14,
+        "calls_per_turn": 3.5,
+        "prompt_tokens": 68194,
+        "completion_tokens": 886,
+        "cached_tokens": 53788,
+        "cached_share": 0.79,
+        "cost_usd": 0.0726
+      }
+    },
+    "replies": [
+      "Got it, setting that reminder for tomorrow at 9am. I'll make sure to keep this just between you and Alice\u2014no cc to her manager.",
+      "shifting it to 10am tomorrow",
+      "checking your reminders",
+      "You've got one reminder set for tomorrow at 10am\u2014send Alice the lunch invoice (and I won't cc her manager).",
+      "setting those up for you",
+      "All set\u2014Friday at 8am you'll get the dentist reminder, and Monday at noon for the car insurance."
+    ],
+    "checks": {
+      "moved_to_10am_confirmed": true,
+      "reminder_list_names_the_invoice": true,
+      "dentist_and_insurance_confirmed": true,
+      "no_internal_ids_shown": true,
+      "replies": 6
+    },
+    "agents_after": [
+      "Car insurance renewal reminder",
+      "Dentist call reminder",
+      "Alice lunch invoice reminder"
+    ],
+    "agent_checks": {
+      "dentist_has_own_agent": true,
+      "insurance_has_own_agent": true,
+      "three_agents": true
+    }
+  },
+  "with_relay": {
+    "early_exit": true,
+    "turns": 4,
+    "direct_relay": true,
+    "calls_per_turn": 4.0,
+    "cached_share": 0.65,
+    "total": {
+      "calls": 16,
+      "prompt_tokens": 75814,
+      "completion_tokens": 2089,
+      "cached_tokens": 49071,
+      "cache_write_tokens": 11151,
+      "cost_usd": 0.1346
+    },
+    "by_role": {
+      "execution": {
+        "calls": 10,
+        "calls_per_turn": 2.5,
+        "prompt_tokens": 46326,
+        "completion_tokens": 1440,
+        "cached_tokens": 26019,
+        "cached_share": 0.56,
+        "cost_usd": 0.0987
+      },
+      "interaction": {
+        "calls": 6,
+        "calls_per_turn": 1.5,
+        "prompt_tokens": 29488,
+        "completion_tokens": 649,
+        "cached_tokens": 23052,
+        "cached_share": 0.78,
+        "cost_usd": 0.036
+      }
+    },
+    "replies": [
+      "Got it. Setting a reminder for tomorrow at 9am about the lunch invoice for Alice\u2014and I'll make sure her manager never gets cc'd on anything related to this.",
+      "reminder set for tomorrow at 9am to send alice the lunch invoice (won't cc her manager)",
+      "moving it to 10am",
+      "reminder moved to 10am tomorrow",
+      "I'll check what reminders you have set.",
+      "you have one reminder set for tomorrow at 10am to send alice the lunch invoice (won't cc her manager)",
+      "I'll set up both of those reminders for you.",
+      "reminder set for monday at noon to renew the car insurance\nreminder set for friday at 8am to call the dentist"
+    ],
+    "checks": {
+      "moved_to_10am_confirmed": true,
+      "reminder_list_names_the_invoice": true,
+      "dentist_and_insurance_confirmed": true,
+      "no_internal_ids_shown": true,
+      "replies": 8
+    },
+    "agents_after": [
+      "Car Insurance Renewal Reminder",
+      "Dentist Call Reminder",
+      "Alice Lunch Invoice Reminder"
+    ],
+    "agent_checks": {
+      "dentist_has_own_agent": true,
+      "insurance_has_own_agent": true,
+      "three_agents": true
+    }
+  },
+  "saving": {
+    "calls": 6,
+    "cost_share": -0.095,
+    "relay_calls_vs_early_exit": 2,
+    "relay_cost_share_vs_early_exit": 0.063
+  }
+}

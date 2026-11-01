@@ -1,0 +1,125 @@
+{
+  "rounds": 40,
+  "entries": 136,
+  "history_chars": 7334,
+  "scores": {
+    "buried": {
+      "n": 4,
+      "call_rate": 1.0,
+      "accuracy": 1.0,
+      "search_returned_answer": 1.0
+    },
+    "surface": {
+      "n": 4,
+      "call_rate": 1.0,
+      "accuracy": 1.0,
+      "search_returned_answer": 1.0
+    }
+  },
+  "rows": [
+    {
+      "kind": "buried",
+      "answer": "REF-80639",
+      "question": "What internal reference number did Hannah give in their email about the refund for $182? Reply with the reference only.",
+      "called_search": true,
+      "text": "REF-80639",
+      "queries": [
+        "refund $182 reference number Hannah"
+      ],
+      "correct": true,
+      "in_prompt": false,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "buried",
+      "answer": "REF-94407",
+      "question": "What internal reference number did Hannah give in their email about the deposit for $454? Reply with the reference only.",
+      "called_search": true,
+      "text": "REF-94407",
+      "queries": [
+        "Hannah deposit $454 reference number"
+      ],
+      "correct": true,
+      "in_prompt": false,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "buried",
+      "answer": "REF-29252",
+      "question": "What internal reference number did Hannah give in their email about the deposit for $2532? Reply with the reference only.",
+      "called_search": true,
+      "text": "REF-29252",
+      "queries": [
+        "deposit $2532 reference number Hannah"
+      ],
+      "correct": true,
+      "in_prompt": false,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "buried",
+      "answer": "REF-93866",
+      "question": "What internal reference number did Hannah give in their email about the refund for $3401? Reply with the reference only.",
+      "called_search": true,
+      "text": "REF-93866",
+      "queries": [
+        "refund $3401 reference number"
+      ],
+      "correct": true,
+      "in_prompt": false,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "surface",
+      "answer": "$182",
+      "question": "What was the amount of the refund Hannah was asked about to be settled by Nov 1? Reply with the amount only.",
+      "called_search": true,
+      "text": "$182",
+      "queries": [
+        "refund Nov 1"
+      ],
+      "correct": true,
+      "in_prompt": true,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "surface",
+      "answer": "$454",
+      "question": "What was the amount of the deposit Hannah was asked about to be settled by Dec 17? Reply with the amount only.",
+      "called_search": true,
+      "text": "$454",
+      "queries": [
+        "deposit Dec 17"
+      ],
+      "correct": true,
+      "in_prompt": true,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "surface",
+      "answer": "$2532",
+      "question": "What was the amount of the deposit Hannah was asked about to be settled by Dec 16? Reply with the amount only.",
+      "called_search": true,
+      "text": "$2532",
+      "queries": [
+        "deposit Dec 16"
+      ],
+      "correct": true,
+      "in_prompt": true,
+      "answer_returned_by_search": true
+    },
+    {
+      "kind": "surface",
+      "answer": "$3401",
+      "question": "What was the amount of the refund Hannah was asked about to be settled by Dec 28? Reply with the amount only.",
+      "called_search": true,
+      "text": "$3401",
+      "queries": [
+        "refund Dec 28"
+      ],
+      "correct": true,
+      "in_prompt": true,
+      "answer_returned_by_search": true
+    }
+  ]
+}

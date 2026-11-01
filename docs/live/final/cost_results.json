@@ -1,0 +1,108 @@
+{
+  "inputs": {
+    "agents": 200,
+    "history_entries": 160,
+    "roster_tokens_all": 2245.0,
+    "roster_tokens_budgeted": 519.7,
+    "history_tokens_full": 6220.5,
+    "history_tokens_tiered": 2344.75,
+    "strong_model": "anthropic/claude-sonnet-4",
+    "cheap_model": "anthropic/claude-3.5-haiku",
+    "prices_usd_per_1M": {
+      "anthropic/claude-sonnet-4": [
+        3.0,
+        15.0
+      ],
+      "anthropic/claude-3.5-haiku": [
+        0.8,
+        4.0
+      ],
+      "anthropic/claude-3-haiku": [
+        0.25,
+        1.25
+      ]
+    }
+  },
+  "assumptions": {
+    "user_turns_per_day": 40,
+    "interaction_calls_per_user_turn": 1.6,
+    "agent_result_turns_per_user_turn": 0.8,
+    "interaction_calls_per_agent_turn": 1.2,
+    "interaction_base_prompt_tokens": 2500,
+    "interaction_completion_tokens": 120,
+    "execution_runs_per_user_turn": 1.2,
+    "execution_calls_per_run": 2.5,
+    "execution_base_prompt_tokens": 1500,
+    "execution_completion_tokens": 200,
+    "email_searches_per_user_turn": 0.3,
+    "email_search_calls": 3,
+    "email_search_prompt_tokens": 3000,
+    "email_search_completion_tokens": 150,
+    "emails_classified_per_day": 120,
+    "classifier_prompt_tokens": 1200,
+    "classifier_completion_tokens": 40,
+    "summaries_per_day": 1,
+    "summary_prompt_tokens": 8000,
+    "summary_completion_tokens": 600,
+    "prefilter_skip_rate": 0.26,
+    "compactions_per_day": 6,
+    "compaction_prompt_tokens": 4000,
+    "compaction_completion_tokens": 400
+  },
+  "results": [
+    {
+      "config": "upstream",
+      "usd_per_day": 5.723184,
+      "usd_per_month": 171.69552,
+      "by_role": {
+        "interaction": 1.642,
+        "execution": 3.1392,
+        "execution_search": 0.405,
+        "email_classifier": 0.504,
+        "summarizer": 0.033
+      },
+      "tokens_per_day": 1719436
+    },
+    {
+      "config": "routing_only",
+      "usd_per_day": 4.99744,
+      "usd_per_month": 149.9232,
+      "by_role": {
+        "interaction": 1.642,
+        "execution": 3.1392,
+        "execution_search": 0.108,
+        "email_classifier": 0.0995,
+        "summarizer": 0.0088
+      },
+      "tokens_per_day": 1680748
+    },
+    {
+      "config": "context_only",
+      "usd_per_day": 3.9055968,
+      "usd_per_month": 117.16790400000001,
+      "by_role": {
+        "interaction": 1.1118,
+        "execution": 1.7438,
+        "execution_search": 0.405,
+        "email_classifier": 0.504,
+        "summarizer": 0.033,
+        "memory_compactor": 0.108
+      },
+      "tokens_per_day": 1104075
+    },
+    {
+      "config": "both",
+      "usd_per_day": 3.1006528,
+      "usd_per_month": 93.01958400000001,
+      "by_role": {
+        "interaction": 1.1118,
+        "execution": 1.7438,
+        "execution_search": 0.108,
+        "email_classifier": 0.0995,
+        "summarizer": 0.0088,
+        "memory_compactor": 0.0288
+      },
+      "tokens_per_day": 1065387
+    }
+  ]
+}

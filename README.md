@@ -559,13 +559,22 @@ moved to 10am tomorrow"; the content is the same, the wit is not. Three runs: th
 interaction-call count is the same every time (one per user turn) and its cost sits within two
 cents across runs, while the other arms move by up to 25% with the model's agent-naming choices.
 
-The full live suite was also re-run on this branch with the same models, seeds and workload
-([`docs/live/relay/`](docs/live/relay/)): routing 90.8% on the budgeted roster (CI 84–95;
-upstream arm 64.2%), memory 2,692 tokens at 136 entries (43% of upstream, every retention row
-100% and stale 0%; the live extractor's fact count moves this cell between 37% and 43% across
-runs), `search_history` 8 of 8, email dev 1.00 / 1.00 and held-out 1.00 / 1.00 with the sweep
-now naming (0.08, 0.5) as the best gate. None of those paths touch the relay; they are here to
-show nothing regressed.
+The full live suite was run twice on this branch with the same models, seeds and workload:
+once before the reminder-rule change ([`docs/live/relay/`](docs/live/relay/)) and once on the
+branch tip ([`docs/live/final/`](docs/live/final/)). Branch tip: routing **90.0%** on the
+budgeted roster (CI 83–94; upstream arm 65.0%; 11 `search_agents` calls for 7 needed, the new
+rule makes the model search before it creates), memory **2,548 tokens** at 136 entries (41% of
+upstream; every retention row 100%, stale 0%; the live extractor's fact count moves this cell
+between 37% and 43% across runs), `search_history` **8 of 8**, email **1.00 / 1.00** on the dev
+set and **1.00 / 1.00** held-out, Jev as router 42.5% vs LLM 87.5% (still off), the reminder
+probe **5 of 5** in 20 s, and the session probe's agent checks 3 of 3 arms. Across the six
+probe runs on this branch the relay arm's interaction calls were 4 / 4 / 4 / 5 / 6 / 6 against
+8–11 for early exit, and its cost saving against early exit was 46 / 32 / 42 / 48 / 11 / 6%:
+the call count is the signal, the cost spread is the execution agents' cache share (56–81%
+between arms), which the relay does not touch. Two "interaction loop exited without assistant
+content" warnings in the final run match the two confirmations missing from the old-loop arm's
+replies (it has 6 where the other arms have 8): there the model chose `wait` after a trivial
+change instead of confirming, which the upstream loop allows.
 
 ## Tests and evaluators
 

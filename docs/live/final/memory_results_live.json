@@ -1,0 +1,53 @@
+[
+  {
+    "rounds": 10,
+    "entries": 34,
+    "upstream_chars": 6181,
+    "compacted_chars": 6434,
+    "ratio": 1.0409318880440057,
+    "retention": {
+      "buried": 0.0,
+      "changed_current": 1.0,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 1.0,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 0
+  },
+  {
+    "rounds": 20,
+    "entries": 68,
+    "upstream_chars": 12038,
+    "compacted_chars": 12442,
+    "ratio": 1.0335603920917096,
+    "retention": {
+      "buried": 0.0,
+      "changed_current": 1.0,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 1.0,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 0
+  },
+  {
+    "rounds": 40,
+    "entries": 136,
+    "upstream_chars": 24882,
+    "compacted_chars": 10195,
+    "ratio": 0.40973394421670284,
+    "retention": {
+      "buried": 0.0,
+      "changed_current": 1.0,
+      "commitment": 1.0,
+      "constraint": 1.0,
+      "surface": 1.0,
+      "stale": 0.0,
+      "recoverable": 1.0
+    },
+    "compactions": 1
+  }
+]
