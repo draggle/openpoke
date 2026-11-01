@@ -1,0 +1,994 @@
+{
+  "all": {
+    "days": 60,
+    "tokens_day_5": 159,
+    "tokens_day_last": 1971,
+    "tokens_mean": 1001.8,
+    "tokens_per_day_slope": 32.95,
+    "total_agents_last": 180,
+    "live_agents_last": 180,
+    "live_agents_peak": 180,
+    "archived_last": 0,
+    "shown_last": 180,
+    "reminder_owners": 15,
+    "reminder_owners_archived": 0,
+    "per_day": [
+      {
+        "day": 0,
+        "total": 3,
+        "live": 3,
+        "archived": 0,
+        "shown": 3,
+        "tokens": 32
+      },
+      {
+        "day": 1,
+        "total": 6,
+        "live": 6,
+        "archived": 0,
+        "shown": 6,
+        "tokens": 64
+      },
+      {
+        "day": 2,
+        "total": 9,
+        "live": 9,
+        "archived": 0,
+        "shown": 9,
+        "tokens": 95
+      },
+      {
+        "day": 3,
+        "total": 12,
+        "live": 12,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 130
+      },
+      {
+        "day": 4,
+        "total": 15,
+        "live": 15,
+        "archived": 0,
+        "shown": 15,
+        "tokens": 159
+      },
+      {
+        "day": 5,
+        "total": 18,
+        "live": 18,
+        "archived": 0,
+        "shown": 18,
+        "tokens": 193
+      },
+      {
+        "day": 6,
+        "total": 21,
+        "live": 21,
+        "archived": 0,
+        "shown": 21,
+        "tokens": 227
+      },
+      {
+        "day": 7,
+        "total": 24,
+        "live": 24,
+        "archived": 0,
+        "shown": 24,
+        "tokens": 258
+      },
+      {
+        "day": 8,
+        "total": 27,
+        "live": 27,
+        "archived": 0,
+        "shown": 27,
+        "tokens": 290
+      },
+      {
+        "day": 9,
+        "total": 30,
+        "live": 30,
+        "archived": 0,
+        "shown": 30,
+        "tokens": 323
+      },
+      {
+        "day": 10,
+        "total": 33,
+        "live": 33,
+        "archived": 0,
+        "shown": 33,
+        "tokens": 357
+      },
+      {
+        "day": 11,
+        "total": 36,
+        "live": 36,
+        "archived": 0,
+        "shown": 36,
+        "tokens": 387
+      },
+      {
+        "day": 12,
+        "total": 39,
+        "live": 39,
+        "archived": 0,
+        "shown": 39,
+        "tokens": 420
+      },
+      {
+        "day": 13,
+        "total": 42,
+        "live": 42,
+        "archived": 0,
+        "shown": 42,
+        "tokens": 453
+      },
+      {
+        "day": 14,
+        "total": 45,
+        "live": 45,
+        "archived": 0,
+        "shown": 45,
+        "tokens": 487
+      },
+      {
+        "day": 15,
+        "total": 48,
+        "live": 48,
+        "archived": 0,
+        "shown": 48,
+        "tokens": 522
+      },
+      {
+        "day": 16,
+        "total": 51,
+        "live": 51,
+        "archived": 0,
+        "shown": 51,
+        "tokens": 556
+      },
+      {
+        "day": 17,
+        "total": 54,
+        "live": 54,
+        "archived": 0,
+        "shown": 54,
+        "tokens": 588
+      },
+      {
+        "day": 18,
+        "total": 57,
+        "live": 57,
+        "archived": 0,
+        "shown": 57,
+        "tokens": 623
+      },
+      {
+        "day": 19,
+        "total": 60,
+        "live": 60,
+        "archived": 0,
+        "shown": 60,
+        "tokens": 656
+      },
+      {
+        "day": 20,
+        "total": 63,
+        "live": 63,
+        "archived": 0,
+        "shown": 63,
+        "tokens": 690
+      },
+      {
+        "day": 21,
+        "total": 66,
+        "live": 66,
+        "archived": 0,
+        "shown": 66,
+        "tokens": 725
+      },
+      {
+        "day": 22,
+        "total": 69,
+        "live": 69,
+        "archived": 0,
+        "shown": 69,
+        "tokens": 760
+      },
+      {
+        "day": 23,
+        "total": 72,
+        "live": 72,
+        "archived": 0,
+        "shown": 72,
+        "tokens": 793
+      },
+      {
+        "day": 24,
+        "total": 75,
+        "live": 75,
+        "archived": 0,
+        "shown": 75,
+        "tokens": 827
+      },
+      {
+        "day": 25,
+        "total": 78,
+        "live": 78,
+        "archived": 0,
+        "shown": 78,
+        "tokens": 858
+      },
+      {
+        "day": 26,
+        "total": 81,
+        "live": 81,
+        "archived": 0,
+        "shown": 81,
+        "tokens": 890
+      },
+      {
+        "day": 27,
+        "total": 84,
+        "live": 84,
+        "archived": 0,
+        "shown": 84,
+        "tokens": 924
+      },
+      {
+        "day": 28,
+        "total": 87,
+        "live": 87,
+        "archived": 0,
+        "shown": 87,
+        "tokens": 958
+      },
+      {
+        "day": 29,
+        "total": 90,
+        "live": 90,
+        "archived": 0,
+        "shown": 90,
+        "tokens": 989
+      },
+      {
+        "day": 30,
+        "total": 93,
+        "live": 93,
+        "archived": 0,
+        "shown": 93,
+        "tokens": 1020
+      },
+      {
+        "day": 31,
+        "total": 96,
+        "live": 96,
+        "archived": 0,
+        "shown": 96,
+        "tokens": 1052
+      },
+      {
+        "day": 32,
+        "total": 99,
+        "live": 99,
+        "archived": 0,
+        "shown": 99,
+        "tokens": 1084
+      },
+      {
+        "day": 33,
+        "total": 102,
+        "live": 102,
+        "archived": 0,
+        "shown": 102,
+        "tokens": 1117
+      },
+      {
+        "day": 34,
+        "total": 105,
+        "live": 105,
+        "archived": 0,
+        "shown": 105,
+        "tokens": 1150
+      },
+      {
+        "day": 35,
+        "total": 108,
+        "live": 108,
+        "archived": 0,
+        "shown": 108,
+        "tokens": 1183
+      },
+      {
+        "day": 36,
+        "total": 111,
+        "live": 111,
+        "archived": 0,
+        "shown": 111,
+        "tokens": 1216
+      },
+      {
+        "day": 37,
+        "total": 114,
+        "live": 114,
+        "archived": 0,
+        "shown": 114,
+        "tokens": 1252
+      },
+      {
+        "day": 38,
+        "total": 117,
+        "live": 117,
+        "archived": 0,
+        "shown": 117,
+        "tokens": 1283
+      },
+      {
+        "day": 39,
+        "total": 120,
+        "live": 120,
+        "archived": 0,
+        "shown": 120,
+        "tokens": 1314
+      },
+      {
+        "day": 40,
+        "total": 123,
+        "live": 123,
+        "archived": 0,
+        "shown": 123,
+        "tokens": 1349
+      },
+      {
+        "day": 41,
+        "total": 126,
+        "live": 126,
+        "archived": 0,
+        "shown": 126,
+        "tokens": 1383
+      },
+      {
+        "day": 42,
+        "total": 129,
+        "live": 129,
+        "archived": 0,
+        "shown": 129,
+        "tokens": 1414
+      },
+      {
+        "day": 43,
+        "total": 132,
+        "live": 132,
+        "archived": 0,
+        "shown": 132,
+        "tokens": 1447
+      },
+      {
+        "day": 44,
+        "total": 135,
+        "live": 135,
+        "archived": 0,
+        "shown": 135,
+        "tokens": 1480
+      },
+      {
+        "day": 45,
+        "total": 138,
+        "live": 138,
+        "archived": 0,
+        "shown": 138,
+        "tokens": 1513
+      },
+      {
+        "day": 46,
+        "total": 141,
+        "live": 141,
+        "archived": 0,
+        "shown": 141,
+        "tokens": 1546
+      },
+      {
+        "day": 47,
+        "total": 144,
+        "live": 144,
+        "archived": 0,
+        "shown": 144,
+        "tokens": 1578
+      },
+      {
+        "day": 48,
+        "total": 147,
+        "live": 147,
+        "archived": 0,
+        "shown": 147,
+        "tokens": 1610
+      },
+      {
+        "day": 49,
+        "total": 150,
+        "live": 150,
+        "archived": 0,
+        "shown": 150,
+        "tokens": 1643
+      },
+      {
+        "day": 50,
+        "total": 153,
+        "live": 153,
+        "archived": 0,
+        "shown": 153,
+        "tokens": 1676
+      },
+      {
+        "day": 51,
+        "total": 156,
+        "live": 156,
+        "archived": 0,
+        "shown": 156,
+        "tokens": 1709
+      },
+      {
+        "day": 52,
+        "total": 159,
+        "live": 159,
+        "archived": 0,
+        "shown": 159,
+        "tokens": 1741
+      },
+      {
+        "day": 53,
+        "total": 162,
+        "live": 162,
+        "archived": 0,
+        "shown": 162,
+        "tokens": 1775
+      },
+      {
+        "day": 54,
+        "total": 165,
+        "live": 165,
+        "archived": 0,
+        "shown": 165,
+        "tokens": 1809
+      },
+      {
+        "day": 55,
+        "total": 168,
+        "live": 168,
+        "archived": 0,
+        "shown": 168,
+        "tokens": 1840
+      },
+      {
+        "day": 56,
+        "total": 171,
+        "live": 171,
+        "archived": 0,
+        "shown": 171,
+        "tokens": 1874
+      },
+      {
+        "day": 57,
+        "total": 174,
+        "live": 174,
+        "archived": 0,
+        "shown": 174,
+        "tokens": 1906
+      },
+      {
+        "day": 58,
+        "total": 177,
+        "live": 177,
+        "archived": 0,
+        "shown": 177,
+        "tokens": 1939
+      },
+      {
+        "day": 59,
+        "total": 180,
+        "live": 180,
+        "archived": 0,
+        "shown": 180,
+        "tokens": 1971
+      }
+    ]
+  },
+  "budgeted": {
+    "days": 60,
+    "tokens_day_5": 494,
+    "tokens_day_last": 495,
+    "tokens_mean": 488.7,
+    "tokens_per_day_slope": 1.06,
+    "total_agents_last": 180,
+    "live_agents_last": 59,
+    "live_agents_peak": 59,
+    "archived_last": 121,
+    "shown_last": 12,
+    "reminder_owners": 15,
+    "reminder_owners_archived": 0,
+    "per_day": [
+      {
+        "day": 0,
+        "total": 3,
+        "live": 3,
+        "archived": 0,
+        "shown": 3,
+        "tokens": 177
+      },
+      {
+        "day": 1,
+        "total": 6,
+        "live": 6,
+        "archived": 0,
+        "shown": 6,
+        "tokens": 277
+      },
+      {
+        "day": 2,
+        "total": 9,
+        "live": 9,
+        "archived": 0,
+        "shown": 9,
+        "tokens": 381
+      },
+      {
+        "day": 3,
+        "total": 12,
+        "live": 12,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 491
+      },
+      {
+        "day": 4,
+        "total": 15,
+        "live": 15,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 494
+      },
+      {
+        "day": 5,
+        "total": 18,
+        "live": 18,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 499
+      },
+      {
+        "day": 6,
+        "total": 21,
+        "live": 21,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 500
+      },
+      {
+        "day": 7,
+        "total": 24,
+        "live": 24,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 492
+      },
+      {
+        "day": 8,
+        "total": 27,
+        "live": 27,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 493
+      },
+      {
+        "day": 9,
+        "total": 30,
+        "live": 30,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 495
+      },
+      {
+        "day": 10,
+        "total": 33,
+        "live": 33,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 498
+      },
+      {
+        "day": 11,
+        "total": 36,
+        "live": 36,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 488
+      },
+      {
+        "day": 12,
+        "total": 39,
+        "live": 39,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 489
+      },
+      {
+        "day": 13,
+        "total": 42,
+        "live": 42,
+        "archived": 0,
+        "shown": 12,
+        "tokens": 493
+      },
+      {
+        "day": 14,
+        "total": 45,
+        "live": 43,
+        "archived": 2,
+        "shown": 12,
+        "tokens": 495
+      },
+      {
+        "day": 15,
+        "total": 48,
+        "live": 44,
+        "archived": 4,
+        "shown": 12,
+        "tokens": 501
+      },
+      {
+        "day": 16,
+        "total": 51,
+        "live": 46,
+        "archived": 5,
+        "shown": 12,
+        "tokens": 505
+      },
+      {
+        "day": 17,
+        "total": 54,
+        "live": 48,
+        "archived": 6,
+        "shown": 12,
+        "tokens": 498
+      },
+      {
+        "day": 18,
+        "total": 57,
+        "live": 49,
+        "archived": 8,
+        "shown": 12,
+        "tokens": 508
+      },
+      {
+        "day": 19,
+        "total": 60,
+        "live": 48,
+        "archived": 12,
+        "shown": 12,
+        "tokens": 507
+      },
+      {
+        "day": 20,
+        "total": 63,
+        "live": 48,
+        "archived": 15,
+        "shown": 12,
+        "tokens": 507
+      },
+      {
+        "day": 21,
+        "total": 66,
+        "live": 47,
+        "archived": 19,
+        "shown": 12,
+        "tokens": 510
+      },
+      {
+        "day": 22,
+        "total": 69,
+        "live": 48,
+        "archived": 21,
+        "shown": 12,
+        "tokens": 511
+      },
+      {
+        "day": 23,
+        "total": 72,
+        "live": 49,
+        "archived": 23,
+        "shown": 12,
+        "tokens": 508
+      },
+      {
+        "day": 24,
+        "total": 75,
+        "live": 48,
+        "archived": 27,
+        "shown": 12,
+        "tokens": 513
+      },
+      {
+        "day": 25,
+        "total": 78,
+        "live": 48,
+        "archived": 30,
+        "shown": 12,
+        "tokens": 508
+      },
+      {
+        "day": 26,
+        "total": 81,
+        "live": 50,
+        "archived": 31,
+        "shown": 12,
+        "tokens": 499
+      },
+      {
+        "day": 27,
+        "total": 84,
+        "live": 52,
+        "archived": 32,
+        "shown": 12,
+        "tokens": 503
+      },
+      {
+        "day": 28,
+        "total": 87,
+        "live": 50,
+        "archived": 37,
+        "shown": 12,
+        "tokens": 513
+      },
+      {
+        "day": 29,
+        "total": 90,
+        "live": 50,
+        "archived": 40,
+        "shown": 12,
+        "tokens": 502
+      },
+      {
+        "day": 30,
+        "total": 93,
+        "live": 50,
+        "archived": 43,
+        "shown": 12,
+        "tokens": 494
+      },
+      {
+        "day": 31,
+        "total": 96,
+        "live": 51,
+        "archived": 45,
+        "shown": 12,
+        "tokens": 496
+      },
+      {
+        "day": 32,
+        "total": 99,
+        "live": 50,
+        "archived": 49,
+        "shown": 12,
+        "tokens": 497
+      },
+      {
+        "day": 33,
+        "total": 102,
+        "live": 52,
+        "archived": 50,
+        "shown": 12,
+        "tokens": 503
+      },
+      {
+        "day": 34,
+        "total": 105,
+        "live": 53,
+        "archived": 52,
+        "shown": 12,
+        "tokens": 500
+      },
+      {
+        "day": 35,
+        "total": 108,
+        "live": 52,
+        "archived": 56,
+        "shown": 12,
+        "tokens": 503
+      },
+      {
+        "day": 36,
+        "total": 111,
+        "live": 52,
+        "archived": 59,
+        "shown": 12,
+        "tokens": 504
+      },
+      {
+        "day": 37,
+        "total": 114,
+        "live": 52,
+        "archived": 62,
+        "shown": 12,
+        "tokens": 515
+      },
+      {
+        "day": 38,
+        "total": 117,
+        "live": 52,
+        "archived": 65,
+        "shown": 12,
+        "tokens": 508
+      },
+      {
+        "day": 39,
+        "total": 120,
+        "live": 55,
+        "archived": 65,
+        "shown": 12,
+        "tokens": 494
+      },
+      {
+        "day": 40,
+        "total": 123,
+        "live": 55,
+        "archived": 68,
+        "shown": 12,
+        "tokens": 496
+      },
+      {
+        "day": 41,
+        "total": 126,
+        "live": 54,
+        "archived": 72,
+        "shown": 12,
+        "tokens": 502
+      },
+      {
+        "day": 42,
+        "total": 129,
+        "live": 54,
+        "archived": 75,
+        "shown": 12,
+        "tokens": 500
+      },
+      {
+        "day": 43,
+        "total": 132,
+        "live": 52,
+        "archived": 80,
+        "shown": 12,
+        "tokens": 488
+      },
+      {
+        "day": 44,
+        "total": 135,
+        "live": 54,
+        "archived": 81,
+        "shown": 12,
+        "tokens": 496
+      },
+      {
+        "day": 45,
+        "total": 138,
+        "live": 54,
+        "archived": 84,
+        "shown": 12,
+        "tokens": 496
+      },
+      {
+        "day": 46,
+        "total": 141,
+        "live": 55,
+        "archived": 86,
+        "shown": 12,
+        "tokens": 502
+      },
+      {
+        "day": 47,
+        "total": 144,
+        "live": 56,
+        "archived": 88,
+        "shown": 12,
+        "tokens": 504
+      },
+      {
+        "day": 48,
+        "total": 147,
+        "live": 55,
+        "archived": 92,
+        "shown": 12,
+        "tokens": 499
+      },
+      {
+        "day": 49,
+        "total": 150,
+        "live": 55,
+        "archived": 95,
+        "shown": 12,
+        "tokens": 505
+      },
+      {
+        "day": 50,
+        "total": 153,
+        "live": 54,
+        "archived": 99,
+        "shown": 12,
+        "tokens": 506
+      },
+      {
+        "day": 51,
+        "total": 156,
+        "live": 55,
+        "archived": 101,
+        "shown": 12,
+        "tokens": 503
+      },
+      {
+        "day": 52,
+        "total": 159,
+        "live": 56,
+        "archived": 103,
+        "shown": 12,
+        "tokens": 500
+      },
+      {
+        "day": 53,
+        "total": 162,
+        "live": 57,
+        "archived": 105,
+        "shown": 12,
+        "tokens": 493
+      },
+      {
+        "day": 54,
+        "total": 165,
+        "live": 58,
+        "archived": 107,
+        "shown": 12,
+        "tokens": 496
+      },
+      {
+        "day": 55,
+        "total": 168,
+        "live": 58,
+        "archived": 110,
+        "shown": 12,
+        "tokens": 491
+      },
+      {
+        "day": 56,
+        "total": 171,
+        "live": 58,
+        "archived": 113,
+        "shown": 12,
+        "tokens": 492
+      },
+      {
+        "day": 57,
+        "total": 174,
+        "live": 57,
+        "archived": 117,
+        "shown": 12,
+        "tokens": 496
+      },
+      {
+        "day": 58,
+        "total": 177,
+        "live": 57,
+        "archived": 120,
+        "shown": 12,
+        "tokens": 495
+      },
+      {
+        "day": 59,
+        "total": 180,
+        "live": 59,
+        "archived": 121,
+        "shown": 12,
+        "tokens": 495
+      }
+    ]
+  }
+}

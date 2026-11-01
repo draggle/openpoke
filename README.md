@@ -54,6 +54,11 @@ send and both arms rightly asked what the user meant). Both arms were re-run on 
 the round-two column is the old one.
 Source: [`docs/live/round3/live_routing_results_history.json`](docs/live/round3/live_routing_results_history.json),
 per-query log in [`live_routing_log.txt`](docs/live/round3/live_routing_log.txt).
+Both arms answer the same 120 queries, so the test that counts is paired. On the branch-tip
+run (`python -m evals.stats docs/live/final/live_routing_results_history.json`): the fork is
+right where upstream is wrong on 32 queries, the reverse on 5, exact McNemar p = 7 × 10⁻⁶,
+difference +22.5 points with a paired-bootstrap 95% interval of +14 to +32. The three live
+runs of this round give +20.0, +20.8 and +22.5 with intervals that never include zero.
 
 | n = 120 per arm | Upstream, round 2 | Fork, round 2 | **Upstream, round 3** | **Fork, round 3** |
 |---|---|---|---|---|
@@ -191,6 +196,18 @@ reminders instead of one, which is two execution runs and two cache writes. That
 variance in agent naming, which the consolidation rule does not touch (different topics), and it
 is why the cost row is reported per run rather than averaged.
 
+The lifecycle rows come from `python -m evals.lifecycle_eval`
+([`docs/live/final/lifecycle_results.json`](docs/live/final/lifecycle_results.json)), a
+deterministic replay against the registry with a controllable clock: every day the user opens
+three threads, returns to two, and sets a reminder every fourth day; after each day's traffic a
+bare follow-up is rendered through both strategies. Upstream's roster grows by about 33 tokens
+a day without limit; the fork's stays at the budget, archiving retires idle agents after 14
+days, and an agent that owns a reminder is never archived (that is the mechanism the
+unit tests pin; the simulation shows it holding over 45 reminders and 180 days). The honest
+other half: below about 45 agents the fork's roster costs *more* than upstream's, 494 tokens
+against 159 on day 5, because each shown agent carries a description. That is the price of the
+flat line, and a user with a dozen agents pays it for nothing.
+
 ### Re-run on the hardened code
 
 After the review's thirteen minor findings were fixed (section 7), every live evaluator was run
@@ -243,6 +260,8 @@ Sources: [`docs/live/round3/roster_results.json`](docs/live/round3/roster_result
 | History in prompt, 136 entries (heuristic extractor, no LLM) | 6,220 tokens | **2,692 (43%)**; commitments and constraints 100%, surface facts 88%, buried facts 0% in prompt and **100% recoverable** by a user-style query |
 | Modelled cost, 200 agents, 40 turns/day, long (136-entry, nearest measured) histories | $5.72/day | **$3.10/day (−46%)** with the measured 26% prefilter skip rate; the sensitivity table's matching row says −38%, and 15% with short histories that never compact |
 | **Learned reranker vs hand-tuned `select()`**, recall@12, 900 held-out queries | — | learned **1.00** vs `select()` 0.95 |
+| **Sixty simulated days** (3 new threads, 2 reuses, a reminder every 4th day): roster tokens day 5 → day 60, slope | 159 → 1,971, +33 tokens/day | **494 → 495, +1 token/day**; 59 of 180 agents live, 12 shown, 0 of 15 reminder owners archived |
+| …the same for 180 days | 159 → 6,014 | **494 → 508**; 88 of 539 live |
 
 The reranker result is reported and not shipped. It was trained and tested on the same synthetic
 generator, whose structure (the target is the most recent agent matching the words) its features

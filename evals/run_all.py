@@ -14,6 +14,7 @@ STEPS = [
     [sys.executable, "-m", "evals.email_eval"],
     [sys.executable, "-m", "evals.cost_eval"],
     [sys.executable, "-m", "evals.jev_bench"],
+    [sys.executable, "-m", "evals.lifecycle_eval"],
 ]
 
 
