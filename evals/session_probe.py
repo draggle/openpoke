@@ -38,7 +38,7 @@ TURNS: List[str] = [
 ]
 
 
-def report(by_role: Dict[str, Dict[str, Any]], *, early_exit: bool, turns: int) -> Dict[str, Any]:
+def report(by_role: Dict[str, Dict[str, Any]], *, early_exit: bool, turns: int, relay: bool = False) -> Dict[str, Any]:
     """Summarise ledger totals-by-role for one session."""
     roles: Dict[str, Dict[str, Any]] = {}
     total = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0,
@@ -61,6 +61,7 @@ def report(by_role: Dict[str, Dict[str, Any]], *, early_exit: bool, turns: int) 
     return {
         "early_exit": early_exit,
         "turns": turns,
+        "direct_relay": relay,
         "calls_per_turn": round(total["calls"] / max(1, turns), 2),
         "cached_share": round(total["cached_tokens"] / total["prompt_tokens"], 2) if total["prompt_tokens"] else 0.0,
         "total": total,
@@ -83,7 +84,7 @@ async def _settle(client, previous: int, timeout_s: float = 120.0, quiet_s: floa
     return last_count
 
 
-async def _run_session(early_exit: bool) -> Dict[str, Any]:
+async def _run_session(early_exit: bool, relay: bool = False) -> Dict[str, Any]:
     import httpx
 
     assert os.environ.get("OPENPOKE_DATA_DIR"), "run() sets a temporary data dir before importing the app"
@@ -92,6 +93,7 @@ async def _run_session(early_exit: bool) -> Dict[str, Any]:
     from server.services.llm.usage import UsageLedger
 
     os.environ["OPENPOKE_INTERACTION_EARLY_EXIT"] = "1" if early_exit else "0"
+    os.environ["OPENPOKE_DIRECT_RELAY"] = "1" if relay else "0"
     ledger = UsageLedger()
     set_usage_ledger(ledger)
     transport = httpx.ASGITransport(app=app)
@@ -109,10 +111,23 @@ async def _run_session(early_exit: bool) -> Dict[str, Any]:
     # Let fire-and-forget tasks (background compaction, agent result relays) drain.
     await asyncio.sleep(2.0)
     set_usage_ledger(None)
-    out = report(ledger.totals()["by_role"], early_exit=early_exit, turns=len(TURNS))
+    out = report(ledger.totals()["by_role"], early_exit=early_exit, turns=len(TURNS), relay=relay)
     out["replies"] = replies
+    out["checks"] = _checks(replies)
     out["agents_after"] = _agent_names(agents)
     return out
+
+
+def _checks(replies: List[str]) -> Dict[str, bool]:
+    """Did the user get told what they needed? Cheap substring checks on the assistant replies."""
+    text = "\n".join(replies).lower()
+    return {
+        "moved_to_10am_confirmed": "10" in text,
+        "reminder_list_names_the_invoice": "invoice" in text,
+        "dentist_and_insurance_confirmed": "dentist" in text and "insurance" in text,
+        "no_internal_ids_shown": "trigger" not in text and "rrule" not in text,
+        "replies": len(replies),
+    }
 
 
 def _agent_names(payload: Any) -> List[str]:
@@ -131,11 +146,14 @@ async def run(out_dir: Path) -> Dict[str, Any]:
     os.environ["OPENPOKE_DATA_DIR"] = tempfile.mkdtemp(prefix="openpoke-probe-")
     results = {"what": "four-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
                "turns": TURNS, "with_early_exit": await _run_session(True),
-               "without_early_exit": await _run_session(False)}
-    a, b = results["with_early_exit"], results["without_early_exit"]
+               "without_early_exit": await _run_session(False),
+               "with_relay": await _run_session(True, relay=True)}
+    a, b, c = results["with_early_exit"], results["without_early_exit"], results["with_relay"]
     results["saving"] = {
         "calls": b["total"]["calls"] - a["total"]["calls"],
         "cost_share": round(1 - a["total"]["cost_usd"] / b["total"]["cost_usd"], 3) if b["total"]["cost_usd"] else 0.0,
+        "relay_calls_vs_early_exit": a["total"]["calls"] - c["total"]["calls"],
+        "relay_cost_share_vs_early_exit": round(1 - c["total"]["cost_usd"] / a["total"]["cost_usd"], 3) if a["total"]["cost_usd"] else 0.0,
     }
     (out_dir / "session_probe.json").write_text(json.dumps(results, indent=2))
     return results
@@ -151,13 +169,16 @@ def main() -> None:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     results = asyncio.run(run(out_dir))
-    for label in ("with_early_exit", "without_early_exit"):
+    for label in ("with_early_exit", "without_early_exit", "with_relay"):
         r = results[label]
         print(f"\n{label}: {r['total']['calls']} calls ({r['calls_per_turn']}/turn), "
               f"{r['total']['prompt_tokens']} prompt tok, {r['cached_share']:.0%} cached, ${r['total']['cost_usd']}")
         for role, row in r["by_role"].items():
             print(f"  {role:<12} calls {row['calls']:<3} cached {row['cached_share']:.0%}  ${row['cost_usd']}")
         print(f"  agents after: {r.get('agents_after')}")
+        print(f"  checks: {r.get('checks')}")
+        for reply in r.get("replies", []):
+            print(f"    > {reply[:160]!r}")
     print(f"\nsaving: {results['saving']}")
 
 

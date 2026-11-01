@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from .relay import relay_enabled, relay_message, strip_summary
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
 
@@ -31,6 +32,12 @@ class _BatchState:
     created_at: datetime = field(default_factory=datetime.now)
     pending: int = 0
     results: List[ExecutionResult] = field(default_factory=list)
+
+
+def _conversation_log():
+    from ...services.conversation import get_conversation_log  # lazy: avoids an import cycle
+
+    return get_conversation_log()
 
 
 class ExecutionBatchManager:
@@ -141,11 +148,20 @@ class ExecutionBatchManager:
 
             if state.pending == 0:
                 dispatch_payload = self._format_batch_payload(state.results)
+                relay = relay_message(state.results) if relay_enabled() else None
                 agent_names = [entry.agent_name for entry in state.results]
                 logger.info(f"Execution batch completed: {', '.join(agent_names)}")
                 self._batch_state = None
 
-        if dispatch_payload:
+        if dispatch_payload and relay:
+            # Every agent succeeded and wrote its user-facing line: record the results for the
+            # transcript and the line as the reply; the interaction agent's follow-up call would
+            # only have rephrased it.
+            log = _conversation_log()
+            log.record_agent_message(dispatch_payload)
+            log.record_reply(relay)
+            logger.info("Execution batch relayed to the user directly")
+        elif dispatch_payload:
             await self._dispatch_to_interaction_agent(dispatch_payload)
 
     # Return list of currently pending execution requests for monitoring purposes
@@ -178,12 +194,12 @@ class ExecutionBatchManager:
         entries: List[str] = []
         for result in results:
             status = "SUCCESS" if result.success else "FAILED"
-            response_text = (result.response or "(no response provided)").strip()
+            response_text = strip_summary(result.response) or "(no response provided)"
             entries.append(f"[{status}] {result.agent_name}: {response_text}")
         return "\n".join(entries)
 
     # Forward combined execution results to interaction agent for user response generation
-    async def _dispatch_to_interaction_agent(self, payload: str) -> None:
+    async def _dispatch_to_interaction_agent(self, payload: str) -> None:  # noqa: D401
         """Send the aggregated execution summary to the interaction agent."""
 
         from ..interaction_agent.runtime import InteractionAgentRuntime
