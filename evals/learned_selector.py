@@ -1,6 +1,6 @@
 """Experiment: a learned roster reranker vs the hand-tuned ``select()``.
 
-Question an interviewer will ask: "why hand-tune the roster selection instead of learning it?"
+Question a reviewer will ask: "why hand-tune the roster selection instead of learning it?"
 This answers it with a number. A logistic reranker is trained on synthetic workloads (seeds
 1-5) to score (query, agent) pairs, and its recall@12 on held-out seeds (7-9) is compared with
 ``AgentRegistry.select()`` on the same workloads. Features are the signals ``select()`` already
@@ -131,7 +131,6 @@ def evaluate(*, train_seeds: Sequence[int], test_seeds: Sequence[int], n_agents:
     X, y = np.vstack(Xs), np.concatenate(ys)
     w, b = fit(X, y)
     learned, hand, n_test = [], [], 0
-    by_kind: Dict[str, List[float]] = {}
     for seed in test_seeds:
         w_ = generate(n_agents, seed=seed, n_queries=n_queries, stratified=True)
         reg = build_registry(w_, tmp_dir / f"learn_{seed}", RegistryConfig())

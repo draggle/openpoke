@@ -252,9 +252,12 @@ def test_send_message_guard_flag_off(monkeypatch, tmp_path):
 # ---- round three: the turn ends once the user is told and the agent dispatched ------------
 
 
-def _loop_fixture(monkeypatch, tmp_path, script):
+def _loop_fixture(monkeypatch, tmp_path, script, extra_agents=()):
     reg = AgentRegistry(tmp_path / "l.json", config=RegistryConfig(max_roster=12))
     reg.register("Alice Lunch", "schedule lunch with Alice")
+    for name, description in extra_agents:
+        reg.register(name, description)
+    tools_module._GUARD_SEEN.clear()
     monkeypatch.setattr(agent_module, "get_agent_registry", lambda: reg)
     monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
     monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
@@ -351,3 +354,38 @@ async def test_runtime_begins_a_turn_per_message(monkeypatch, tmp_path):
     await runtime.execute("hi")
     await runtime.handle_agent_message("[SUCCESS] Alice Lunch: ok")
     assert tools_module.current_turn() == before + 2
+
+
+# ---- hardening: `wait` is not a reply; delegate-then-reply exits; a guarded dispatch loops ---
+
+WAIT = tool_call("wait", {"reason": "waiting for the agent"}, "w1")
+
+
+async def test_wait_after_delegate_is_not_a_reply(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENPOKE_INTERACTION_EARLY_EXIT", raising=False)
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[DELEGATE, WAIT], [ANNOUNCE], None])
+    result = await runtime.execute("move lunch with alice to thursday")
+    assert result.success and result.response == "on it"
+    assert calls["n"] == 2  # the wait did not end the turn; the reply did
+
+
+async def test_delegate_then_reply_exits_without_a_third_call(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENPOKE_INTERACTION_EARLY_EXIT", raising=False)
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[DELEGATE], [ANNOUNCE], None])
+    result = await runtime.execute("move lunch with alice to thursday")
+    assert result.success and result.response == "on it" and result.execution_agents_used == 1
+    assert calls["n"] == 2
+
+
+async def test_guard_failed_dispatch_keeps_the_loop_going(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENPOKE_INTERACTION_EARLY_EXIT", raising=False)
+    monkeypatch.delenv("OPENPOKE_ROUTING_GUARD", raising=False)
+    wrong = tool_call("send_message_to_agent",
+                      {"agent_name": "Alice Lunch", "instructions": "What did Bob say about the flight confirmation?"}, "g1")
+    right = tool_call("send_message_to_agent",
+                      {"agent_name": "Bob Flight", "instructions": "What did Bob say about the flight confirmation?"}, "g2")
+    runtime, calls = _loop_fixture(monkeypatch, tmp_path, [[ANNOUNCE, wrong], [right], None],
+                                   extra_agents=[("Bob Flight", "Find the latest email from Bob about the flight confirmation")])
+    result = await runtime.execute("what did bob say about the flight?")
+    assert result.success and result.execution_agents_used == 1
+    assert calls["n"] == 2  # guard refused the first pick; the corrected pick ended the turn

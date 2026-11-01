@@ -140,19 +140,39 @@ def _window(payload: str, query: str, query_tokens: List[str]) -> str:
     if position < 0:
         # No exact hit: put the window where the most distinct query tokens fall, not at the
         # first one ("Hannah" in a sender field at the top; the reference code at the bottom).
-        hits = [(m.start(), t) for t in set(query_tokens) for m in re.finditer(re.escape(t), lowered)]
-        best, best_count = 0, -1
-        for start_pos, _t in hits:
-            covered = {t for p, t in hits if start_pos <= p < start_pos + _SNIPPET_CHARS}
-            if len(covered) > best_count:
-                best, best_count = start_pos, len(covered)
+        # Whole tokens only ("ref" is not inside "preference"); one sliding pass over the hits.
+        hits = sorted(
+            (m.start(), t)
+            for t in set(query_tokens)
+            for m in re.finditer(r"(?<!\w)" + re.escape(t) + r"(?!\w)", lowered)
+        )
+        # The snippet shows two thirds of its length after ``position`` (one third before), so
+        # that is the span a hit must fall in to be shown.
+        shown_after = _SNIPPET_CHARS - _SNIPPET_CHARS // 3
+        best, best_count, distinct, right = 0, -1, 0, 0
+        counts: Dict[str, int] = {}
+        for start_pos, token in hits:
+            while right < len(hits) and hits[right][0] < start_pos + shown_after:
+                t = hits[right][1]
+                counts[t] = counts.get(t, 0) + 1
+                distinct += counts[t] == 1
+                right += 1
+            if distinct > best_count:
+                best, best_count = start_pos, distinct
+            counts[token] -= 1
+            distinct -= counts[token] == 0
         position = best
     start = max(0, position - _SNIPPET_CHARS // 3)
     end = min(len(payload), start + _SNIPPET_CHARS)
     start = max(0, end - _SNIPPET_CHARS)
     prefix = "…" if start > 0 else ""
     suffix = "…" if end < len(payload) else ""
-    return (prefix + payload[start:end] + suffix)[: _SNIPPET_CHARS]
+    body = payload[start:end]
+    budget = _SNIPPET_CHARS - len(prefix) - len(suffix)
+    if len(body) > budget:
+        # The match sits a third of the way in, so the ellipsis is paid for at the near edge.
+        body = body[len(body) - budget :] if prefix else body[:budget]
+    return prefix + body + suffix
 
 
 def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:

@@ -125,19 +125,31 @@ def _env_float(name: str, fallback: float) -> float:
         return fallback
 
 
+# The round-three sweep over recorded probabilities picked (0.1, 0.5) on the dev set (recall 1.0
+# at precision 1.0 with 21 of 34 LLM calls), checked on the held-out set. The lowest recorded
+# positive sits at exactly p = 0.10 and the dismissed noise at 0.03, so the low edge is set
+# under the positive with margin: same calls, no dependence on a rounding error.
+DEFAULT_GATE: Tuple[float, float] = (0.08, 0.5)
+
+
 def gate_thresholds() -> Tuple[float, float]:
     """(low, high) for the two-sided Jev gate.
 
     p < low      -> dismissed, no chat model
     low <= p < high -> the full classifier prompt decides (and summarises)
     p >= high    -> summary-only prompt; the LLM cannot veto
-    Defaults (0.1, 0.5) come from the round-three sweep over recorded probabilities on the dev
-    set (recall 1.0 at precision 1.0 with 21 of 34 LLM calls) and were checked on the held-out
-    set. ``OPENPOKE_JEV_EMAIL_THRESHOLD=0.5`` alone restores the round-two one-edge gate.
+    ``OPENPOKE_JEV_EMAIL_THRESHOLD=0.5`` alone restores the round-two one-edge gate; a value
+    that is not a number is ignored, as round two ignored it.
     """
-    legacy = os.getenv("OPENPOKE_JEV_EMAIL_THRESHOLD")
-    low = _env_float("OPENPOKE_JEV_EMAIL_LOW", float(legacy) if legacy else 0.1)
-    high = _env_float("OPENPOKE_JEV_EMAIL_HIGH", float(legacy) if legacy else 0.5)
+    legacy_raw = os.getenv("OPENPOKE_JEV_EMAIL_THRESHOLD")
+    legacy: Optional[float] = None
+    if legacy_raw:
+        try:
+            legacy = float(legacy_raw)
+        except ValueError:
+            logger.warning(f"Ignoring non-numeric OPENPOKE_JEV_EMAIL_THRESHOLD={legacy_raw!r}")
+    low = _env_float("OPENPOKE_JEV_EMAIL_LOW", legacy if legacy is not None else DEFAULT_GATE[0])
+    high = _env_float("OPENPOKE_JEV_EMAIL_HIGH", legacy if legacy is not None else DEFAULT_GATE[1])
     return low, max(low, high)
 
 
@@ -199,13 +211,14 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
             "Importance classification failed",
             extra={"message_id": email.id, "error": str(exc)},
         )
-        return None
+        # Jev already decided this one matters: a transport error must not drop it.
+        return _fallback_summary(email) if jev_decided else None
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception(
             "Unexpected error during importance classification",
             extra={"message_id": email.id},
         )
-        return None
+        return _fallback_summary(email) if jev_decided else None
 
     choice = (response.get("choices") or [{}])[0]
     message = choice.get("message") or {}
@@ -223,7 +236,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
                 "Importance tool returned invalid arguments",
                 extra={"message_id": email.id},
             )
-            return None
+            return _fallback_summary(email) if jev_decided else None
 
         important = bool(arguments.get("important")) or jev_decided
         summary = arguments.get("summary")

@@ -16,7 +16,7 @@ second reviewed those claims adversarially, fixed three correctness bugs, and re
 fair baseline and confidence intervals. This round takes each row of that table where the loss
 was and attacks it at its measured cause, adds two measurements that were missing (does the
 execution model actually use its retrieval tool; how many LLM calls does a turn cost), and runs
-one experiment an interviewer will ask about (a learned roster reranker). Every number below
+one experiment a reviewer will ask about (a learned roster reranker). Every number below
 names the file it comes from; where round three changed a workload, both arms were re-run on it
 and the round-two number stands beside it.
 
@@ -136,7 +136,9 @@ prompt the classifier alone reaches recall 1.00, but the shipped pipeline still 
 alert, the recruiter and the visa update, because Jev scored them 0.10–0.30 and the round-two gate
 (one edge at 0.5) dismissed them before the model ever saw them. The sweep over recorded
 probabilities found the cheapest two-sided gate that keeps the model's recall: dismiss below 0.1,
-summarise-only at or above 0.5, let the full classifier decide in between. It costs 4 more LLM
+summarise-only at or above 0.5, let the full classifier decide in between (the low edge ships
+as 0.08: the lowest recorded positive sits at exactly 0.10 and nothing was recorded between 0.03
+and 0.10, so the calls are the same and a rounding error cannot dismiss it). It costs 4 more LLM
 calls per 34 emails and was chosen on the dev set; the held-out set, run once with those
 defaults, scored 1.00 / 1.00. The remaining dev miss is the recruiter mail at p = 0.10, where the
 model said no on that run and yes on the sweep run.
@@ -180,7 +182,7 @@ Sources: [`docs/live/round3/roster_results.json`](docs/live/round3/roster_result
 | Correct agent in the roster, 400 agents (300 queries) | 100% | 93%, **99% with `search_agents`** |
 | 32 hand-written paraphrases ("yuki car thing", "Priyaa invoice?") | — | 91% in roster, **100% with search** |
 | History in prompt, 136 entries (heuristic extractor, no LLM) | 6,220 tokens | **2,692 (43%)**; commitments and constraints 100%, surface facts 88%, buried facts 0% in prompt and **100% recoverable** by a user-style query |
-| Modelled cost, 200 agents, 40 turns/day, long (136-entry, nearest measured) histories | $5.72/day | **$3.07/day (−46%)**; the sensitivity table's matching row says −39%, and 16% with short histories that never compact |
+| Modelled cost, 200 agents, 40 turns/day, long (136-entry, nearest measured) histories | $5.72/day | **$3.10/day (−46%)** with the measured 26% prefilter skip rate; the sensitivity table's matching row says −38%, and 15% with short histories that never compact |
 | **Learned reranker vs hand-tuned `select()`**, recall@12, 900 held-out queries | — | learned **1.00** vs `select()` 0.95 |
 
 The reranker result is reported and not shipped. It was trained and tested on the same synthetic
@@ -347,7 +349,8 @@ Round two's table said where the loss was. Each item below is one row of it, wit
 that restores the round-two behaviour.
 
 - **Bare follow-ups.** The roster marks the thread the user touched last
-  (`last_touched="true"`) and the system prompt says a message with no name and no topic
+  (`last_touched="true"`; a reminder firing in the background does not count as a touch) and
+  the system prompt says a message with no name and no topic
   ("ok send it", "did she reply?", "and then?") refers to it: delegate, do not ask. The synthetic
   keyword-free queries are now drawn from the follow-ups that are coherent with that thread's
   state (a draft gets "ok send it"; an awaited reply gets "did she reply?"; a reminder gets
@@ -370,11 +373,12 @@ that restores the round-two behaviour.
   arm of the eval never has it.
 - **One LLM call fewer per turn.** The interaction loop used to make a follow-up call after the
   model had already told the user and dispatched the agent; that call produces nothing the user
-  sees (the reply is always the last `send_message_to_user`). The loop now ends after an
-  iteration that both told the user and dispatched (user turn), or that answered the user without
-  dispatching (agent turn). An iteration that only tells the user keeps looping, so the
-  announce-then-delegate pattern still works; any `search_agents` call or failed dispatch keeps
-  looping too. `OPENPOKE_INTERACTION_EARLY_EXIT=0` restores the upstream loop. Measured by
+  sees (the reply is always the last `send_message_to_user`). The loop now ends once the user
+  has been told and an agent dispatched, in either order and across iterations (user turn), or
+  after an iteration that answered the user without dispatching (agent turn). An iteration that
+  only tells the user keeps looping, so the announce-then-delegate pattern still works, and so
+  does one that only dispatches; `wait` is not a reply; a dispatch the guard refused does not
+  count; any `search_agents` call keeps looping too. `OPENPOKE_INTERACTION_EARLY_EXIT=0` restores the upstream loop. Measured by
   `evals/session_probe.py`, which drives the real app in-process with the flag on and off.
 - **Classifier prompt** names the categories it missed (a person replying, money and account
   alerts, recruiter outreach, government and immigration status, security codes, deadlines and
@@ -415,13 +419,48 @@ that restores the round-two behaviour.
   on three held-out seeds against `select()`. Result and why it stays an experiment are in the
   offline table.
 
+### 7. Hardening after the review
+
+The independent review of round three left thirteen minor findings. All are fixed, each with a
+test that failed first (`tests/test_batch_manager.py` is new; the rest sit at the end of the
+file that owns the code):
+
+- **Amounts compare by value.** "$500" now matches "$500.00" and "$1,200" matches "$1200" when
+  a correction looks for the fact it retires; "$500" still never matches "$5000".
+- **Jev-decided mail is never dropped.** A transport error, an unexpected exception or an
+  unparsable tool call from the summariser now falls back to the subject-and-sender summary when
+  Jev had already said the email matters; without Jev those paths still return nothing.
+- **A non-numeric `OPENPOKE_JEV_EMAIL_THRESHOLD`** is ignored with a warning instead of raising.
+- **The low gate ships at 0.08**, under the positive recorded at exactly 0.10 (see above).
+- **`last_touched` skips background reminder fires**: the marker goes to the first shown agent
+  whose last use was the user's, so a reminder that just fired cannot become "ok send it".
+- **The snippet window is linear** (one sliding pass over the hits instead of a window per hit),
+  counts whole tokens only ("ref" is not inside "preference"), and no longer loses its last
+  characters to the leading ellipsis.
+- **`wait` is not a reply.** A turn that dispatched and then waited used to end with nothing said
+  to the user; it now keeps looping until the model replies.
+- **Dispatch-then-reply exits too.** Dispatching in one iteration and replying in the next ends
+  the turn; before, only the same-iteration order did.
+- **A dispatch the guard refused** is no longer counted as an agent used, and a test pins that a
+  refused dispatch keeps the loop going until the corrected pick lands.
+- **Runs for the same agent are serialised** in the batch manager (`asyncio.Lock` per agent), so
+  two concurrent runs can no longer interleave the agent's log and raw-result journal and swap
+  the request context `search_history` attaches to a match. Runs for different agents still
+  overlap.
+- **The cost model uses the measured prefilter skip rate** (26% on the dev set, not the 50%
+  guess); the modelled saving is unchanged at −46%.
+- An unused variable in the reranker experiment is gone, and the README cells the review found
+  missing (upstream's `search_agents` calls, the guard check's source) are filled.
+
+The live evaluators were re-run on the hardened code and the tables above cite the files.
+
 ## Tests and evaluators
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 205 tests, ~2s, no network
+python -m pytest                 # 245 tests, ~3s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 ```
@@ -493,7 +532,7 @@ Agent uses, and a quarter of queries carry no retrievable words.
   the request that produced them. The memory table reports the run after that fix.
 - **The email prompt was written against the dev set.** The held-out set is the number to trust
   and it was run once, after the prompt was frozen. The gate pair (0.1, 0.5) was chosen on the
-  dev set by the sweep.
+  dev set by the sweep; the shipped low edge is 0.08 for margin under the positive at 0.10.
 - **The 100% commitment and constraint rows measure the mechanism**: the planted needles use
   the regex's own trigger words. How often the regex misses a real rule, or records a one-off
   as a rule, is not measured.
@@ -528,7 +567,7 @@ Fixed in this fork:
   instead of dismissing.
 - **Constraints lost to summarisation** — the verbatim commitments tier.
 - **Nothing recoverable after compaction** — `search_history`.
-- **Zero tests** — 205 now, plus ten evaluators.
+- **Zero tests** — 245 now, plus ten evaluators.
 
 Built in round three (each measured above): the wasted follow-up call per turn, the
 did-you-mean guard and search rule, corrections in the extractor contract, the classifier
@@ -568,6 +607,6 @@ server/services/trigger_scheduler.py              touch agent on fire; coalesce 
 server/services/gmail/importance_classifier.py    category prompt, two-sided Jev gate, summary fallback
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            205 tests + 46 labelled emails + 14 held-out
+tests/                                            245 tests + 46 labelled emails + 14 held-out
 evals/                                            10 evaluators, synthetic workload, paraphrase set, stats
 ```

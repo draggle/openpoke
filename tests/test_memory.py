@@ -607,3 +607,24 @@ def test_correction_new_value_is_matched_as_a_whole_amount(tmp_path, store):
     ext = Extraction(corrections=[("$500", "$50")], correction_context={("$500", "$50"): "Priya's invoice is $50, not $500."})
     mem._merge(state, ext, "t1")
     assert state.facts[0].active is False and state.facts[0].superseded_by == "$50"
+
+
+# ---- hardening: amounts compare by value, not by spelling ---------------------------------
+
+
+def test_contains_amount_matches_equal_values_spelled_differently():
+    from server.services.execution.memory import _contains_amount
+
+    assert _contains_amount("deposit is $500.00 as agreed", "$500")
+    assert _contains_amount("invoice total $1,200", "$1200")
+    assert _contains_amount("fee $500", "$500.00")
+    assert not _contains_amount("deposit is $5000", "$500")
+    assert not _contains_amount("deposit is $500.50", "$500")
+
+
+def test_correction_retires_fact_whose_amount_is_spelled_with_cents(tmp_path, store):
+    mem = make_memory(tmp_path, store)
+    state = MemoryState(facts=[Fact(key="Priya invoice amount", value="$500.00", recorded_at="t0")])
+    ext = Extraction(corrections=[("$500", "$700")], correction_context={("$500", "$700"): "Priya's invoice is $700, not $500."})
+    mem._merge(state, ext, "t1")
+    assert state.facts[0].active is False and state.facts[0].superseded_by == "$700"

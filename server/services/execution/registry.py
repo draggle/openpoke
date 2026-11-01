@@ -768,6 +768,13 @@ class AgentRegistry:
             )
 
         lines: List[str] = []
+        # The list is most-recent first and the hot cache always holds the most recently used
+        # live agents, so the first entry the *user* touched (not one whose last use was a
+        # reminder firing in the background) is the referent of a bare "ok send it" /
+        # "did she reply?". With no user-touched entry shown, the first entry stands.
+        touched_index = next(
+            (i for i, e in enumerate(selection.shown) if e.record.last_reason != "trigger"), 0
+        )
         for index, entry in enumerate(selection.shown):
             record = entry.record
             attrs = [
@@ -775,10 +782,7 @@ class AgentRegistry:
                 f'status="{entry.status.value}"',
                 f'last_used="{_relative_time(now - record.last_used_at)}"',
             ]
-            if index == 0:
-                # The list is most-recent first and the hot cache always holds the most
-                # recently used live agent, so the first entry is the thread the user touched
-                # last: the referent of a bare "ok send it" / "did she reply?".
+            if index == touched_index:
                 attrs.append('last_touched="true"')
             if entry.pinned:
                 attrs.append('has_reminders="true"')

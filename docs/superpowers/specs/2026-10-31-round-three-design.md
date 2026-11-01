@@ -11,7 +11,7 @@ slip past the classifier, 2 of 7 corrected amounts keep a stale fact, the cost o
 is dominated by call count rather than tokens, and two mechanisms (`search_history`, Jev gating)
 ship without a measurement of how the model actually uses them. This round attacks each loss at
 its measured cause, adds the two missing measurements, and runs one offline experiment (a learned
-roster reranker) to settle a question an interviewer will ask. Every change lands test-first and
+roster reranker) to settle a question a reviewer will ask. Every change lands test-first and
 every claim gets a fresh live run.
 
 ## Goals (each is a README row that must move or be newly measured)
@@ -174,7 +174,7 @@ reports the number either way.
 - `run_live.sh` adds `recall_eval --live`, `session_probe --live`, held-out email.
 - Results archived in `docs/live/round3/`; README results tables cite round three files, with
   round-two numbers beside them where the workload is unchanged and a note where it changed.
-- `openpoke-interview-answers-round2.md` gets a round-three section (outside the repo).
+- the rehearsal notes get a round-three section (outside the repo).
 
 ## Left to the builder
 

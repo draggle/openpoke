@@ -34,6 +34,7 @@ import hashlib
 import json
 import os
 import re
+from decimal import Decimal, InvalidOperation
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -238,9 +239,23 @@ _CORRECTION_NOT_RE = re.compile(_AMOUNT + r"\s*,?\s*not\s+" + _AMOUNT, re.I)
 _CORRECTION_WAS_RE = re.compile(_AMOUNT + r"\s*(?:\(|,)?\s*(?:was|previously|formerly|up from|down from)\s+" + _AMOUNT, re.I)
 
 
+_AMOUNT_RE = re.compile(_AMOUNT)
+
+
+def _amount_value(value: str) -> Optional[Decimal]:
+    try:
+        return Decimal(value.strip().replace("$", "").replace(",", ""))
+    except InvalidOperation:
+        return None
+
+
 def _contains_amount(text: str, value: str) -> bool:
-    """``value`` occurs in ``text`` as a whole token ("$500" does not match "$5000")."""
-    return re.search(r"(?<![\w$.,])" + re.escape(value) + r"(?![\w.,]?\d)", text) is not None
+    """``value`` occurs in ``text`` as a whole amount, compared by value: "$500" matches
+    "$500.00" and "$1,200" matches "$1200", but never a prefix ("$500" is not in "$5000")."""
+    target = _amount_value(value)
+    if target is None:
+        return re.search(r"(?<![\w$.,])" + re.escape(value) + r"(?![\w.,]?\d)", text) is not None
+    return any(_amount_value(found) == target for found in _AMOUNT_RE.findall(text))
 
 
 def extract_corrections(text: str) -> List[Tuple[str, str]]:

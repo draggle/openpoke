@@ -9,7 +9,7 @@ The first round located the problem and shipped bounded fixes. The review found 
 correctness bugs, a set of eval claims that do not survive replay, and research that points at
 cheap, measurable improvements. This round makes the code trustworthy, makes every headline
 number reproducible with a confidence interval, and adopts the three research results that the
-existing evaluators can verify. The deliverable is a repo an interviewer can clone, run, and
+existing evaluators can verify. The deliverable is a repo a reviewer can clone, run, and
 grill without finding a number that does not hold.
 
 ## Goals

@@ -55,7 +55,7 @@ ASSUMPTIONS: Dict[str, float] = {
     "summaries_per_day": 1,
     "summary_prompt_tokens": 8000,
     "summary_completion_tokens": 600,
-    "prefilter_skip_rate": 0.50,  # measured on tests/fixtures/emails.json (evals/email_eval.py)
+    "prefilter_skip_rate": 0.26,  # measured: 12 of 46 dev emails (evals/email_eval.py, round three)
     "compactions_per_day": 6,  # only when tiered memory is on
     "compaction_prompt_tokens": 4000,
     "compaction_completion_tokens": 400,

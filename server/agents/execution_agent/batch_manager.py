@@ -42,6 +42,9 @@ class ExecutionBatchManager:
         self._pending: Dict[str, PendingExecution] = {}
         self._batch_lock = asyncio.Lock()
         self._batch_state: Optional[_BatchState] = None
+        # One run at a time per agent: concurrent runs would interleave the agent's log and
+        # raw-result journal, and search_history ties each raw row to the request before it.
+        self._agent_locks: Dict[str, asyncio.Lock] = {}
 
     # Run execution agent with timeout handling and batch coordination for interaction agent
     async def execute_agent(
@@ -59,12 +62,13 @@ class ExecutionBatchManager:
         batch_id = await self._register_pending_execution(agent_name, instructions, request_id)
 
         try:
-            logger.info(f"[{agent_name}] Execution started")
-            runtime = ExecutionAgentRuntime(agent_name=agent_name, source=source)
-            result = await asyncio.wait_for(
-                runtime.execute(instructions),
-                timeout=self.timeout_seconds,
-            )
+            async with self._agent_locks.setdefault(agent_name, asyncio.Lock()):
+                logger.info(f"[{agent_name}] Execution started")
+                runtime = ExecutionAgentRuntime(agent_name=agent_name, source=source)
+                result = await asyncio.wait_for(
+                    runtime.execute(instructions),
+                    timeout=self.timeout_seconds,
+                )
             status = "SUCCESS" if result.success else "FAILED"
             logger.info(f"[{agent_name}] Execution finished: {status}")
         except asyncio.TimeoutError:

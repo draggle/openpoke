@@ -472,3 +472,29 @@ def test_routing_guard_precision(tmp_path, clock, message, chosen, fires):
     reg.register("Follow up with Tomasz - flight", "Check whether Tomasz has replied about the flight confirmation")
     reg.register("Flight Confirmation with Bob", "Find the latest email from Bob about the flight confirmation")
     assert (reg.routing_mismatch(chosen, message) is not None) is fires
+
+
+# ---- hardening: a background trigger fire is not "the thread the user touched last" -------
+
+
+def test_last_touched_skips_agents_whose_last_use_was_a_trigger(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=5)
+    reg.register("Tara October Invoice", "chase Tara's invoice")
+    clock.advance(HOUR)
+    reg.register("Bob Flight", "find Bob's flight")
+    clock.advance(HOUR)
+    reg.touch("Tara October Invoice", reason="trigger")  # a reminder fired in the background
+    rendered = reg.render(reg.select("ok send it"))
+    lines = [line for line in rendered.splitlines() if line.startswith("<agent ")]
+    assert rendered.count('last_touched="true"') == 1
+    assert 'name="Tara October Invoice"' in lines[0] and "last_touched" not in lines[0]
+    assert 'name="Bob Flight"' in lines[1] and 'last_touched="true"' in lines[1]
+
+
+def test_last_touched_falls_back_to_first_entry_when_every_use_was_a_trigger(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=5)
+    reg.register("Tara October Invoice", "chase Tara's invoice")
+    clock.advance(HOUR)
+    reg.touch("Tara October Invoice", reason="trigger")
+    rendered = reg.render(reg.select("ok send it"))
+    assert rendered.count('last_touched="true"') == 1

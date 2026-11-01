@@ -184,3 +184,32 @@ def test_unkeyed_legacy_raw_rows_get_no_context(tmp_path):
     hit = next(m for m in search_history("a", "reference", limit=5, log_store=store)["matches"]
                if m["tag"] == "tool_response_raw")
     assert "REF-182A" in hit["text"] and hit["context"] == ""
+
+
+# ---- hardening: the window counts whole tokens and runs in linear time --------------------
+
+
+def test_snippet_window_counts_whole_tokens_not_substrings():
+    """'ref' inside 'preference' is not a hit for the query token 'ref'; the span with the
+    whole-word hits wins."""
+    from server.agents.execution_agent.tools.history import _window
+
+    top = "preference number " * 120          # substring 'ref' + whole 'number' -> 1 real token
+    bottom = "ticket ref 1234 closed"          # whole 'ref' + '1234' -> 2 real tokens
+    payload = top + bottom
+    assert len(payload) > 900
+    snippet = _window(payload, "ref number 1234", ["ref", "number", "1234"])
+    assert "1234" in snippet
+
+
+def test_snippet_window_is_fast_on_dense_payloads():
+    import time
+    from server.agents.execution_agent.tools.history import _window
+
+    payload = ("alpha beta gamma delta " * 1000) + "omega REF-77"  # ~23 KB, ~4000 token hits
+    start = time.perf_counter()
+    for _ in range(5):
+        snippet = _window(payload, "alpha beta gamma omega", ["alpha", "beta", "gamma", "omega"])
+    elapsed = time.perf_counter() - start
+    assert "omega" in snippet
+    assert elapsed < 1.0, f"{elapsed:.2f}s for five windows"

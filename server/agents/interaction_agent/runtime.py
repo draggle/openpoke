@@ -40,6 +40,7 @@ class _LoopSummary:
     user_messages: List[str] = field(default_factory=list)
     tool_names: List[str] = field(default_factory=list)
     execution_agents: Set[str] = field(default_factory=set)
+    dispatched: int = 0  # send_message_to_agent calls that were accepted, across iterations
 
 
 class InteractionAgentRuntime:
@@ -142,19 +143,22 @@ class InteractionAgentRuntime:
     # Tool sets after which another LLM call would produce nothing the user sees. The final
     # reply is always the last send_message_to_user (see _finalize_response), so once the user
     # has been told and the work dispatched, the follow-up call is pure cost.
-    _USER_FACING_TOOLS = frozenset({"send_message_to_user", "send_draft", "wait"})
+    # ``wait`` is not here: it tells the user nothing, so [dispatch, wait] must keep looping
+    # until the model replies.
+    _USER_FACING_TOOLS = frozenset({"send_message_to_user", "send_draft"})
 
     @staticmethod
     def _early_exit_enabled() -> bool:
         return os.getenv("OPENPOKE_INTERACTION_EARLY_EXIT", "1") != "0"
 
     def _turn_is_complete(self, message_type: str, iteration_tools: List[str], summary: _LoopSummary) -> bool:
-        """True when this iteration's tool calls settled the turn.
+        """True when the turn is settled after this iteration's tool calls.
 
-        User turn: the agent was dispatched *and* the user has been told (this iteration or an
-        earlier one). An iteration that only tells the user keeps looping: the model may
-        delegate next ("Always let the user know before calling this tool").
-        Agent turn: the user was answered and nothing was dispatched.
+        User turn: an agent has been dispatched *and* the user has been told, in either order
+        and in this or an earlier iteration. An iteration that only tells the user keeps looping
+        (the model may delegate next: "Always let the user know before calling this tool"), and
+        so does one that only dispatches (the user has not been answered yet).
+        Agent turn: the user was answered this iteration and nothing was dispatched in it.
         Any search_agents call means the model is still deciding.
         """
         if not self._early_exit_enabled() or "search_agents" in iteration_tools:
@@ -162,7 +166,7 @@ class InteractionAgentRuntime:
         told_user = any(name in self._USER_FACING_TOOLS for name in iteration_tools)
         delegated = "send_message_to_agent" in iteration_tools
         if message_type == "user":
-            return delegated and (told_user or bool(summary.user_messages))
+            return summary.dispatched > 0 and (told_user or bool(summary.user_messages))
         return told_user and not delegated
 
     async def _run_interaction_loop(
@@ -203,13 +207,15 @@ class InteractionAgentRuntime:
                 summary.tool_names.append(tool_call.name)
                 iteration_tools.append(tool_call.name)
 
-                if tool_call.name == "send_message_to_agent":
+                result = self._execute_tool(tool_call)
+                iteration_ok.append(result.success)
+
+                # A dispatch the routing guard refused is not an agent used.
+                if tool_call.name == "send_message_to_agent" and result.success:
+                    summary.dispatched += 1
                     agent_name = tool_call.arguments.get("agent_name")
                     if isinstance(agent_name, str) and agent_name:
                         summary.execution_agents.add(agent_name)
-
-                result = self._execute_tool(tool_call)
-                iteration_ok.append(result.success)
 
                 if result.user_message:
                     summary.user_messages.append(result.user_message)

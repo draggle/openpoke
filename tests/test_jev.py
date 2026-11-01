@@ -257,8 +257,10 @@ def test_gate_sweep_counts():
 
 
 async def test_default_gate_is_the_swept_pair(monkeypatch):
-    """Chosen on the dev set by jev_bench's sweep and checked on the held-out set (round three)."""
+    """The sweep picked (0.1, 0.5) on the dev set, checked on the held-out set (round three); the
+    low edge ships at 0.08 so the positive recorded at exactly 0.10 is not one rounding error
+    from being dismissed (nothing was recorded between 0.03 and 0.10, so the calls are the same)."""
     from server.services.gmail import importance_classifier as ic
     for name in ("OPENPOKE_JEV_EMAIL_LOW", "OPENPOKE_JEV_EMAIL_HIGH", "OPENPOKE_JEV_EMAIL_THRESHOLD"):
         monkeypatch.delenv(name, raising=False)
-    assert ic.gate_thresholds() == (0.1, 0.5)
+    assert ic.gate_thresholds() == ic.DEFAULT_GATE == (0.08, 0.5)
