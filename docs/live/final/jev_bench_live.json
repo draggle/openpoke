@@ -10,17 +10,17 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "p50_latency_s": 1.218,
-      "p95_latency_s": 1.434,
-      "usd_per_120_emails": 0.2018
+      "p50_latency_s": 1.214,
+      "p95_latency_s": 1.416,
+      "usd_per_120_emails": 0.2021
     },
     "after: Jev decision only": {
       "emails": 34,
       "precision": 1.0,
       "recall": 0.857,
       "f1": 0.923,
-      "p50_latency_s": 0.16,
-      "p95_latency_s": 0.203,
+      "p50_latency_s": 0.157,
+      "p95_latency_s": 0.193,
       "usd_per_120_emails": 0.0033
     },
     "after: Jev gate + LLM summary": {
@@ -28,16 +28,16 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "p50_latency_s": 1.366,
-      "p95_latency_s": 1.687,
-      "usd_per_120_emails": 0.1102
+      "p50_latency_s": 1.38,
+      "p95_latency_s": 1.564,
+      "usd_per_120_emails": 0.1097
     },
     "per_email": {
       "rows": [
         {
           "id": "i01",
           "truth": true,
-          "p": 0.68,
+          "p": 0.71,
           "llm_important": true
         },
         {
@@ -49,7 +49,7 @@
         {
           "id": "i03",
           "truth": true,
-          "p": 0.95,
+          "p": 0.96,
           "llm_important": true
         },
         {
@@ -61,55 +61,55 @@
         {
           "id": "i05",
           "truth": true,
-          "p": 0.86,
+          "p": 0.85,
           "llm_important": true
         },
         {
           "id": "i06",
           "truth": true,
-          "p": 0.76,
+          "p": 0.73,
           "llm_important": true
         },
         {
           "id": "i07",
           "truth": true,
-          "p": 0.77,
+          "p": 0.76,
           "llm_important": true
         },
         {
           "id": "i08",
           "truth": true,
-          "p": 0.89,
+          "p": 0.88,
           "llm_important": true
         },
         {
           "id": "i09",
           "truth": true,
-          "p": 0.57,
+          "p": 0.6,
           "llm_important": true
         },
         {
           "id": "i10",
           "truth": true,
-          "p": 0.62,
+          "p": 0.63,
           "llm_important": true
         },
         {
           "id": "i11",
           "truth": true,
-          "p": 0.74,
+          "p": 0.73,
           "llm_important": true
         },
         {
           "id": "i12",
           "truth": true,
-          "p": 0.81,
+          "p": 0.8,
           "llm_important": true
         },
         {
           "id": "i13",
           "truth": true,
-          "p": 0.82,
+          "p": 0.81,
           "llm_important": true
         },
         {
@@ -121,13 +121,13 @@
         {
           "id": "i15",
           "truth": true,
-          "p": 0.87,
+          "p": 0.86,
           "llm_important": true
         },
         {
           "id": "i16",
           "truth": true,
-          "p": 0.53,
+          "p": 0.55,
           "llm_important": true
         },
         {
@@ -151,7 +151,7 @@
         {
           "id": "n06",
           "truth": false,
-          "p": 0.03,
+          "p": 0.04,
           "llm_important": false
         },
         {
@@ -211,7 +211,7 @@
         {
           "id": "a01",
           "truth": true,
-          "p": 0.12,
+          "p": 0.11,
           "llm_important": true
         },
         {
@@ -229,13 +229,13 @@
         {
           "id": "a04",
           "truth": true,
-          "p": 0.09,
+          "p": 0.08,
           "llm_important": true
         },
         {
           "id": "a05",
           "truth": true,
-          "p": 0.29,
+          "p": 0.3,
           "llm_important": true
         }
       ]
@@ -437,50 +437,50 @@
         {
           "low": 0.3,
           "high": 0.5,
-          "recall": 0.857,
+          "recall": 0.905,
           "precision": 1.0,
-          "llm_calls": 18,
-          "f1": 0.923
+          "llm_calls": 19,
+          "f1": 0.95
         },
         {
           "low": 0.3,
           "high": 0.6,
-          "recall": 0.857,
+          "recall": 0.905,
           "precision": 1.0,
-          "llm_calls": 18,
-          "f1": 0.923
+          "llm_calls": 19,
+          "f1": 0.95
         },
         {
           "low": 0.3,
           "high": 0.7,
-          "recall": 0.857,
+          "recall": 0.905,
           "precision": 1.0,
-          "llm_calls": 18,
-          "f1": 0.923
+          "llm_calls": 19,
+          "f1": 0.95
         },
         {
           "low": 0.3,
           "high": 0.8,
-          "recall": 0.857,
+          "recall": 0.905,
           "precision": 1.0,
-          "llm_calls": 18,
-          "f1": 0.923
+          "llm_calls": 19,
+          "f1": 0.95
         },
         {
           "low": 0.3,
           "high": 0.9,
-          "recall": 0.857,
+          "recall": 0.905,
           "precision": 1.0,
-          "llm_calls": 18,
-          "f1": 0.923
+          "llm_calls": 19,
+          "f1": 0.95
         },
         {
           "low": 0.3,
           "high": 0.95,
-          "recall": 0.857,
+          "recall": 0.905,
           "precision": 1.0,
-          "llm_calls": 18,
-          "f1": 0.923
+          "llm_calls": 19,
+          "f1": 0.95
         },
         {
           "low": 0.4,
@@ -592,17 +592,17 @@
   },
   "routing": {
     "before: LLM over budgeted roster": {
-      "accuracy": 0.9,
-      "p50_latency_s": 2.49,
-      "p95_latency_s": 4.838,
-      "usd_per_decision": 0.007069
+      "accuracy": 0.875,
+      "p50_latency_s": 2.507,
+      "p95_latency_s": 4.893,
+      "usd_per_decision": 0.007331
     },
     "after: Jev choice": {
       "accuracy": 0.425,
-      "p50_latency_s": 0.156,
-      "p95_latency_s": 0.191,
+      "p50_latency_s": 0.154,
+      "p95_latency_s": 0.194,
       "usd_per_decision": 4e-05,
-      "abstained": 19
+      "abstained": 18
     }
   }
 }

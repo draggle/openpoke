@@ -1,7 +1,7 @@
 {
   "rounds": 40,
   "entries": 136,
-  "history_chars": 7489,
+  "history_chars": 6246,
   "scores": {
     "buried": {
       "n": 4,
@@ -35,9 +35,9 @@
       "answer": "REF-94407",
       "question": "What internal reference number did Hannah give in their email about the deposit for $454? Reply with the reference only.",
       "called_search": true,
-      "text": "REF-94407",
+      "text": "REF-94407\n\n<user_summary>REF-94407</user_summary>",
       "queries": [
-        "Hannah deposit $454 reference number"
+        "deposit $454 reference number"
       ],
       "correct": true,
       "in_prompt": false,
@@ -61,9 +61,9 @@
       "answer": "REF-93866",
       "question": "What internal reference number did Hannah give in their email about the refund for $3401? Reply with the reference only.",
       "called_search": true,
-      "text": "REF-93866",
+      "text": "Based on the search results, I found Hannah's email about the refund for $3401. In that email, she stated: \"Hi, confirming receipt. Our internal reference is REF-93866.\"\n\nREF-93866",
       "queries": [
-        "$3401 refund Hannah reference number"
+        "Hannah refund $3401 reference number"
       ],
       "correct": true,
       "in_prompt": false,

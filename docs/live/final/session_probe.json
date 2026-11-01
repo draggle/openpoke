@@ -10,56 +10,55 @@
     "early_exit": true,
     "turns": 4,
     "direct_relay": false,
-    "calls_per_turn": 4.75,
-    "cached_share": 0.68,
+    "calls_per_turn": 5.0,
+    "cached_share": 0.69,
     "total": {
-      "calls": 19,
-      "prompt_tokens": 89645,
-      "completion_tokens": 2330,
-      "cached_tokens": 61174,
-      "cache_write_tokens": 11141,
-      "cost_usd": 0.1471
+      "calls": 20,
+      "prompt_tokens": 95772,
+      "completion_tokens": 2263,
+      "cached_tokens": 65718,
+      "cache_write_tokens": 11412,
+      "cost_usd": 0.1524
     },
     "by_role": {
       "execution": {
         "calls": 10,
         "calls_per_turn": 2.5,
-        "prompt_tokens": 46040,
-        "completion_tokens": 1494,
-        "cached_tokens": 25993,
-        "cached_share": 0.56,
-        "cost_usd": 0.0987
+        "prompt_tokens": 47088,
+        "completion_tokens": 1366,
+        "cached_tokens": 26628,
+        "cached_share": 0.57,
+        "cost_usd": 0.0984
       },
       "interaction": {
-        "calls": 9,
-        "calls_per_turn": 2.25,
-        "prompt_tokens": 43605,
-        "completion_tokens": 836,
-        "cached_tokens": 35181,
-        "cached_share": 0.81,
-        "cost_usd": 0.0484
+        "calls": 10,
+        "calls_per_turn": 2.5,
+        "prompt_tokens": 48684,
+        "completion_tokens": 897,
+        "cached_tokens": 39090,
+        "cached_share": 0.8,
+        "cost_usd": 0.054
       }
     },
     "replies": [
-      "got it, setting that reminder for tomorrow at 9am. noted about not cc'ing her manager.",
-      "all set \u2713",
+      "got it, setting that reminder for tomorrow at 9am. noted on keeping the manager out of the loop",
       "changing it to 10am",
       "checking your reminders",
-      "you've got one reminder set for tomorrow at 10am to send alice the lunch invoice",
+      "you have one reminder: tomorrow at 10am to send alice the lunch invoice (her manager won't be cc'd)",
       "setting those up for you",
-      "both set \u2013 friday at 8am for the dentist call and monday at noon for car insurance renewal"
+      "both reminders are set\u2014friday at 8am for the dentist call and monday at noon for car insurance"
     ],
     "checks": {
       "moved_to_10am_confirmed": true,
       "reminder_list_names_the_invoice": true,
       "dentist_and_insurance_confirmed": true,
       "no_internal_ids_shown": true,
-      "replies": 7
+      "replies": 6
     },
     "agents_after": [
-      "Car insurance renewal reminder",
-      "Dentist call reminder",
-      "Alice lunch invoice reminder"
+      "Car Insurance Renewal Reminder",
+      "Dentist Call Reminder",
+      "Alice Lunch Invoice Reminder"
     ],
     "agent_checks": {
       "dentist_has_own_agent": true,
@@ -75,53 +74,51 @@
     "cached_share": 0.7,
     "total": {
       "calls": 24,
-      "prompt_tokens": 115885,
-      "completion_tokens": 2394,
-      "cached_tokens": 80745,
-      "cache_write_tokens": 11151,
-      "cost_usd": 0.1739
+      "prompt_tokens": 116009,
+      "completion_tokens": 2283,
+      "cached_tokens": 81328,
+      "cache_write_tokens": 11402,
+      "cost_usd": 0.1712
     },
     "by_role": {
       "execution": {
         "calls": 10,
         "calls_per_turn": 2.5,
-        "prompt_tokens": 46243,
-        "completion_tokens": 1507,
-        "cached_tokens": 26019,
-        "cached_share": 0.56,
-        "cost_usd": 0.0994
+        "prompt_tokens": 46897,
+        "completion_tokens": 1409,
+        "cached_tokens": 26602,
+        "cached_share": 0.57,
+        "cost_usd": 0.0986
       },
       "interaction": {
         "calls": 14,
         "calls_per_turn": 3.5,
-        "prompt_tokens": 69642,
-        "completion_tokens": 887,
+        "prompt_tokens": 69112,
+        "completion_tokens": 874,
         "cached_tokens": 54726,
         "cached_share": 0.79,
-        "cost_usd": 0.0745
+        "cost_usd": 0.0727
       }
     },
     "replies": [
-      "Got it, setting a reminder for tomorrow at 9am. I'll make sure to never cc Alice's manager on anything lunch invoice related.",
-      "all set \ud83d\udc4d",
-      "on it, moving it to 10am",
-      "done, it's now set for 10am tomorrow",
+      "got it, setting a reminder for tomorrow at 9am about sending Alice the lunch invoice. noted on not cc'ing her manager.",
+      "changing it to 10am tomorrow",
       "checking your reminders",
-      "you've got one reminder set for tomorrow at 10am to send alice the lunch invoice (and i'll remember not to cc her manager)",
-      "setting those up now",
-      "done, you've got both reminders set\u2014friday at 8am for the dentist and monday at noon for car insurance"
+      "you have one reminder: tomorrow at 10am to send alice the lunch invoice (won't cc her manager)",
+      "setting those up for you",
+      "both reminders are set\u2014friday at 8am to call the dentist and monday at noon for car insurance"
     ],
     "checks": {
       "moved_to_10am_confirmed": true,
       "reminder_list_names_the_invoice": true,
       "dentist_and_insurance_confirmed": true,
       "no_internal_ids_shown": true,
-      "replies": 8
+      "replies": 6
     },
     "agents_after": [
-      "Car Insurance Renewal Reminder",
-      "Dentist Call Reminder",
-      "Alice Lunch Invoice Reminder"
+      "Car insurance renewal reminder",
+      "Dentist call reminder",
+      "Alice lunch invoice reminder"
     ],
     "agent_checks": {
       "dentist_has_own_agent": true,
@@ -137,40 +134,40 @@
     "cached_share": 0.81,
     "total": {
       "calls": 14,
-      "prompt_tokens": 65184,
-      "completion_tokens": 2091,
-      "cached_tokens": 52806,
+      "prompt_tokens": 65955,
+      "completion_tokens": 2048,
+      "cached_tokens": 53676,
       "cache_write_tokens": 0,
-      "cost_usd": 0.0843
+      "cost_usd": 0.0837
     },
     "by_role": {
       "execution": {
         "calls": 10,
         "calls_per_turn": 2.5,
-        "prompt_tokens": 46193,
-        "completion_tokens": 1434,
-        "cached_tokens": 37170,
-        "cached_share": 0.8,
-        "cost_usd": 0.0597
+        "prompt_tokens": 46997,
+        "completion_tokens": 1390,
+        "cached_tokens": 38040,
+        "cached_share": 0.81,
+        "cost_usd": 0.0591
       },
       "interaction": {
         "calls": 4,
         "calls_per_turn": 1.0,
-        "prompt_tokens": 18991,
-        "completion_tokens": 657,
+        "prompt_tokens": 18958,
+        "completion_tokens": 658,
         "cached_tokens": 15636,
         "cached_share": 0.82,
-        "cost_usd": 0.0246
+        "cost_usd": 0.0245
       }
     },
     "replies": [
-      "setting that up for you",
-      "reminder set for tomorrow at 9am to send alice the lunch invoice (her manager will never be cc'd)",
+      "setting that up for you now",
+      "reminder set for tomorrow at 9am to send alice the lunch invoice (won't cc her manager)",
       "changing it to 10am",
       "reminder moved to 10am tomorrow",
       "checking your reminders",
-      "you have one reminder set for tomorrow at 10am to send alice the lunch invoice (with strict instruction to never cc her manager)",
-      "setting those up",
+      "you have one reminder set for tomorrow at 10am to send alice the lunch invoice",
+      "setting those up now",
       "reminder set for friday at 8am to call the dentist\nreminder set for monday at noon to renew car insurance"
     ],
     "checks": {
@@ -192,9 +189,9 @@
     }
   },
   "saving": {
-    "calls": 5,
-    "cost_share": 0.154,
-    "relay_calls_vs_early_exit": 5,
-    "relay_cost_share_vs_early_exit": 0.427
+    "calls": 4,
+    "cost_share": 0.11,
+    "relay_calls_vs_early_exit": 6,
+    "relay_cost_share_vs_early_exit": 0.451
   }
 }

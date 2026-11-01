@@ -37,8 +37,8 @@
     "rounds": 40,
     "entries": 136,
     "upstream_chars": 24882,
-    "compacted_chars": 10659,
-    "ratio": 0.42838196286472147,
+    "compacted_chars": 10614,
+    "ratio": 0.42657342657342656,
     "retention": {
       "buried": 0.0,
       "changed_current": 1.0,

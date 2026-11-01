@@ -15,14 +15,14 @@
       "next": "2026-11-02T09:00:00Z"
     }
   ],
-  "seconds_to_notify": 25.1,
+  "seconds_to_notify": 21.1,
   "replies_after_fire": [
-    "your standup stretch reminder fired early by mistake\u2014i've rescheduled it for tomorrow at 9am as originally planned"
+    "Hey! Time to stretch your legs after the standup \ud83e\uddb5"
   ],
   "calls_after_fire": {
     "interaction": 2,
     "execution": 2,
-    "execution_trigger": 3
+    "execution_trigger": 1
   },
   "checks": {
     "user_was_notified": true,
@@ -31,5 +31,5 @@
     "interaction_agent_delivered_it": true,
     "nothing_internal_leaked": true
   },
-  "cost_usd": 0.0526
+  "cost_usd": 0.0406
 }
