@@ -32,6 +32,7 @@ class _BatchState:
     created_at: datetime = field(default_factory=datetime.now)
     pending: int = 0
     results: List[ExecutionResult] = field(default_factory=list)
+    user_sourced: bool = True  # False once a trigger-fired run joins the batch
 
 
 def _conversation_log():
@@ -66,7 +67,7 @@ class ExecutionBatchManager:
         if not request_id:
             request_id = str(uuid.uuid4())
 
-        batch_id = await self._register_pending_execution(agent_name, instructions, request_id)
+        batch_id = await self._register_pending_execution(agent_name, instructions, request_id, source)
 
         try:
             async with self._agent_locks.setdefault(agent_name, asyncio.Lock()):
@@ -106,6 +107,7 @@ class ExecutionBatchManager:
         agent_name: str,
         instructions: str,
         request_id: str,
+        source: str = "user",
     ) -> str:
         """Attach a new execution to the active batch, opening one when required."""
 
@@ -115,6 +117,10 @@ class ExecutionBatchManager:
                 self._batch_state = _BatchState(batch_id=batch_id)
             else:
                 batch_id = self._batch_state.batch_id
+            if source != "user":
+                # A reminder firing joins the batch: the interaction agent decides how to tell
+                # the user, so the whole batch takes the full path (see relay.py).
+                self._batch_state.user_sourced = False
 
             self._batch_state.pending += 1
             self._pending[request_id] = PendingExecution(
@@ -148,7 +154,7 @@ class ExecutionBatchManager:
 
             if state.pending == 0:
                 dispatch_payload = self._format_batch_payload(state.results)
-                relay = relay_message(state.results) if relay_enabled() else None
+                relay = relay_message(state.results) if relay_enabled() and state.user_sourced else None
                 agent_names = [entry.agent_name for entry in state.results]
                 logger.info(f"Execution batch completed: {', '.join(agent_names)}")
                 self._batch_state = None

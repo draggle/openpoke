@@ -82,3 +82,12 @@ def test_relay_flag_off_restores_the_old_path(monkeypatch):
     manager, log, dispatched = _manager(monkeypatch, "<user_summary>done</user_summary>")
     asyncio.run(manager.execute_agent("Alice reminder", "move it"))
     assert dispatched == ["[SUCCESS] Alice reminder: done"] and log.replies == []
+
+
+def test_trigger_sourced_runs_are_never_relayed(monkeypatch):
+    """A reminder firing in the background keeps the interaction agent in the loop: it decides
+    how to tell the user, the execution agent's line is written for a request it was given."""
+    monkeypatch.delenv("OPENPOKE_DIRECT_RELAY", raising=False)
+    manager, log, dispatched = _manager(monkeypatch, "<user_summary>reminder: call the dentist</user_summary>")
+    asyncio.run(manager.execute_agent("Dentist reminder", "fire", source="trigger"))
+    assert len(dispatched) == 1 and log.replies == []

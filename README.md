@@ -493,13 +493,43 @@ file that owns the code):
 The live evaluators were re-run on the hardened code; "Re-run on the hardened code" under
 the results compares every headline row with round three.
 
+### 8. Direct relay of execution results (branch `streaming-relay`, measured)
+
+The second interaction call per request was the last structural cost: an execution agent
+finishes, its result goes to the interaction agent, and the interaction agent makes a full
+Sonnet call with the whole transcript to rephrase "trigger created" as "done, 10am tomorrow".
+Now the execution agent ends its final response with one line written for the user inside a
+`<user_summary>` tag (the execution system prompt says how to write it: terse, plain, no ids).
+When every result in a batch succeeded and carries that line, the batch manager records the
+lines as the reply and the interaction agent is not called. Any failure, any result without the
+line, and any batch a background reminder joined take the old path, so the interaction agent
+still decides how to deliver bad news and reminders. `OPENPOKE_DIRECT_RELAY=0` turns it off.
+Measured by the probe's third arm on the same four-turn session
+([`docs/live/relay/session_probe.json`](docs/live/relay/session_probe.json), replies in the
+[log](docs/live/relay/session_probe_log.txt)):
+
+| 4 turns, one session | Old loop | Early exit | **Early exit + relay** |
+|---|---|---|---|
+| Interaction calls | 14 | 9 | **4 (one per user turn)** |
+| Execution calls | 10 | 10 | 10 |
+| Total calls (per turn) | 24 (6.0) | 19 (4.75) | **14 (3.5)** |
+| Prompt tokens, cached share | 113k, 73% | 88k, 63% | **65k, 80%** |
+| Cost | $0.157 | $0.160 | **$0.086 (−46%)** |
+| User told the right things (10am move, invoice listed, both new reminders, no internal ids) | 4 / 4 | 4 / 4 | **4 / 4** |
+
+What the relay gives up: the interaction agent's voice on the relayed lines. In the artifact the
+relayed replies read "reminder moved to 10am tomorrow" where the interaction agent wrote "done,
+moved to 10am tomorrow"; the content is the same, the wit is not. One session, one run; the
+earlier probe runs show the model's agent-naming variance moves the cost row by about 15%
+between runs, so the 46% here is well outside that, and the call count is deterministic.
+
 ## Tests and evaluators
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 245 tests, ~3s, no network
+python -m pytest                 # 252 tests, ~3s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 ```
@@ -528,7 +558,7 @@ bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 | `evals.jev_bench` | email gating and routing hint, offline (oracle) or live; live records per-email probabilities and sweeps the two-sided gate | no / yes + TypeSafe |
 | `evals.live_routing_eval` | the real Interaction model choosing an agent: `--history` for both arms, `--stratified` kinds, `--seeds`, Wilson CIs, `search_agents` call/need/hit counts, the model's words on every non-delegation, did-you-mean guard fired/helped/hurt | yes |
 | `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
-| `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real three-turn session through the in-process app, early exit on vs off | yes |
+| `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real four-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told | yes |
 | `evals.learned_selector` | logistic reranker trained on synthetic seeds vs `select()` on held-out seeds, recall@12 | no |
 
 The synthetic workload (`evals/synthetic.py`) is seeded and adversarial: the same person recurs
@@ -606,7 +636,7 @@ Fixed in this fork:
   instead of dismissing.
 - **Constraints lost to summarisation** — the verbatim commitments tier.
 - **Nothing recoverable after compaction** — `search_history`.
-- **Zero tests** — 245 now, plus ten evaluators.
+- **Zero tests** — 252 now, plus ten evaluators.
 
 Built in round three (each measured above): the wasted follow-up call per turn, the
 did-you-mean guard and search rule, corrections in the extractor contract, the classifier
@@ -646,6 +676,6 @@ server/services/trigger_scheduler.py              touch agent on fire; coalesce 
 server/services/gmail/importance_classifier.py    category prompt, two-sided Jev gate, summary fallback
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            245 tests + 46 labelled emails + 14 held-out
+tests/                                            252 tests + 46 labelled emails + 14 held-out
 evals/                                            10 evaluators, synthetic workload, paraphrase set, stats
 ```
