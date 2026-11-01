@@ -303,3 +303,26 @@ def test_data_dir_override_isolates_server_state(monkeypatch, tmp_path):
     for module in (log_store, memory, registry, roster, usage, triggers, timezone_store, conversation_log):
         assert module._DATA_DIR == paths.data_dir(), module.__name__
         assert "data_dir()" in inspect.getsource(module), module.__name__
+
+
+async def test_live_routing_eval_retries_a_transient_transport_error(monkeypatch):
+    """A 500-agent run died twice on an SSL 'bad record mac' from the transport; one dropped
+    query must not cost a 45-minute run."""
+    from evals import live_routing_eval as lre
+
+    calls = {"n": 0}
+
+    async def flaky(**kwargs):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise OSError("sslv3 alert bad record mac")
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+    monkeypatch.setattr(lre, "complete", flaky)
+    monkeypatch.setattr(lre.asyncio, "sleep", _no_sleep)
+    out = await lre._complete_with_retry(role="interaction", messages=[], system="", tools=[], tag="t")
+    assert out["choices"][0]["message"]["content"] == "ok" and calls["n"] == 3
+
+
+async def _no_sleep(_s):
+    return None

@@ -70,6 +70,21 @@ def _prompt(registry: AgentRegistry, workload: Workload, text: str, history: boo
     return body, shown_names
 
 
+async def _complete_with_retry(*, attempts: int = 4, **kwargs):
+    """The transport occasionally drops a connection mid-run (an SSL "bad record mac" killed two
+    500-agent runs); retry with backoff rather than lose the run."""
+    delay = 2.0
+    for attempt in range(attempts):
+        try:
+            return await complete(**kwargs)
+        except Exception as exc:  # noqa: BLE001 - any transport failure is worth one more try
+            if attempt == attempts - 1:
+                raise
+            print(f"[retry {attempt + 1}/{attempts - 1}] {type(exc).__name__}: {str(exc)[:80]}", flush=True)
+            await asyncio.sleep(delay)
+            delay *= 2
+
+
 async def decide(registry: AgentRegistry, workload: Workload, text: str, *, history: bool = False,
                  target: Optional[str] = None) -> Decision:
     body, shown = _prompt(registry, workload, text, history)
@@ -78,8 +93,8 @@ async def decide(registry: AgentRegistry, workload: Workload, text: str, *, hist
     last_text = ""
     guarded = registry.config.strategy == "budgeted"  # upstream arm has no guard
     for _ in range(4):
-        response = await complete(role=ROLE_INTERACTION, messages=messages, system=build_system_prompt(),
-                                  tools=get_tool_schemas(), tag="live_routing_eval")
+        response = await _complete_with_retry(role=ROLE_INTERACTION, messages=messages, system=build_system_prompt(),
+                                              tools=get_tool_schemas(), tag="live_routing_eval")
         message = (response.get("choices") or [{}])[0].get("message") or {}
         last_text = message.get("content") or last_text
         messages.append({"role": "assistant", "content": message.get("content") or "",

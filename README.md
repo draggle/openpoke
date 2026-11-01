@@ -26,7 +26,7 @@ Five numbers, each with the file it comes from, then the five things the numbers
 
 | What | Upstream | This fork | Source |
 |---|---|---|---|
-| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 65.0% (CI 56–73) | **90.0% (CI 83–94)** | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
+| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 72.5% (CI 64–80) | **94.2% (CI 88–97)**; 82.5% at 500 agents where upstream is at 54% | [`docs/live/final/scale/live_routing_150_agents_after_fixes.json`](docs/live/final/scale/live_routing_150_agents_after_fixes.json) |
 | Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,548 tokens (41%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
 | Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
 | LLM calls for a four-turn reminder session through the real app | 24 | **14** (and the user told the right things, 4 of 4 checks) | [`docs/live/final/session_probe.json`](docs/live/final/session_probe.json) |
@@ -105,6 +105,7 @@ seeds and same 120 queries per size, at three roster sizes
 |---|---|---|---|---|---|---|
 | 50 | 85.0% (78–90) | **90.0%** (83–94) | +5.8 points (−1.7, +14.2) | 0.21 | 5.8k → 5.5k | $0.98 → $0.90 |
 | 150 | 65.0% (56–73) | **90.0%** (83–94) | +22.5 (+14.2, +31.7) | 7 × 10⁻⁶ | 7.7k → 5.8k | $1.62 → $0.99 |
+| 150, after the held-out fixes | 72.5% (64–80) | **94.2%** (88–97) | +21.7 (+14.2, +30.0) | 2 × 10⁻⁷ | 7.9k → 5.6k | $1.66 → $0.94 |
 | 500 | 54.2% (45–63) | **82.5%** (75–88) | +28.3 (+18.3, +38.3) | 6 × 10⁻⁷ | 16.4k → 5.5k | $4.46 → $0.95 |
 
 Read it as a curve, not three wins. At 50 agents upstream is not overloaded: 85% from a list
