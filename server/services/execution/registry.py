@@ -75,6 +75,7 @@ class RegistryConfig:
     pinned_slots: int = 3  # roster slots reserved for the most recent agents that own reminders
     fuzzy: bool = True  # trigram match for query tokens no agent contains (misspelt names)
     fuzzy_min_similarity: float = 0.4
+    fuzzy_min_edit_similarity: float = 0.75  # per-token typo match against people: 1 − edits / length
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
     consolidate_min_overlap: float = 0.75  # fraction of the new name's tokens present in the existing name
@@ -269,6 +270,26 @@ _FOLLOW_UP_RE = re.compile(
 )
 
 
+def _edit_similarity(a: str, b: str) -> float:
+    """1 − (optimal string alignment distance / longer length): transpositions count as one edit,
+    so "pryia" is 0.8 of "priya" and "ingird" 0.83 of "ingrid"."""
+    if not a or not b:
+        return 0.0
+    la, lb = len(a), len(b)
+    d = [[0] * (lb + 1) for _ in range(la + 1)]
+    for i in range(la + 1):
+        d[i][0] = i
+    for j in range(lb + 1):
+        d[0][j] = j
+    for i in range(1, la + 1):
+        for j in range(1, lb + 1):
+            cost = 0 if a[i - 1] == b[j - 1] else 1
+            d[i][j] = min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+            if i > 1 and j > 1 and a[i - 1] == b[j - 2] and a[i - 2] == b[j - 1]:
+                d[i][j] = min(d[i][j], d[i - 2][j - 2] + 1)
+    return 1.0 - d[la][lb] / max(la, lb)
+
+
 def _people_in(description: str) -> set:
     """Tokens of the people an instruction names, by the words around each capitalised run."""
     text = " ".join(description.split())
@@ -277,7 +298,9 @@ def _people_in(description: str) -> set:
     for m in re.finditer(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", text):
         run = m.group(0)
         words = run.split()
+        lead = None  # a sentence-initial verb ("Email Priya ...", "Ask Bob ...") is the word before
         if m.start() in starts:
+            lead = words[0].lower()
             words = words[1:]
             if not words:
                 continue
@@ -287,7 +310,8 @@ def _people_in(description: str) -> set:
         before = _WORD_RE.findall(text[: m.start()])
         after = _WORD_RE.findall(text[m.end():])
         possessive = text[m.end(): m.end() + 2] in ("'s", "\u2019s")
-        if possessive or (before and before[-1].lower() in _PERSON_BEFORE) or (after and after[0].lower() in _PERSON_AFTER):
+        before_word = lead if lead is not None else (before[-1].lower() if before else "")
+        if possessive or before_word in _PERSON_BEFORE or (after and after[0].lower() in _PERSON_AFTER):
             out |= tokens
     return out
 
@@ -584,17 +608,32 @@ class AgentRegistry:
             if score > self.config.min_score:
                 scored.append((record, score))
         if self.config.fuzzy:
-            # Tokens no document contains are probably misspelt names ("Sharanjit"): match them
-            # by trigram on their own and merge, rather than only when nothing matched at all.
+            # A query token no document contains may be a misspelt person ("Sharanjit", "Pryia").
+            # Match it by edit distance against the *people* the agents name, never against
+            # ordinary words ("remind" is a stem of "reminder", not a typo), and merge the hits.
             vocabulary = {t for doc in corpus for t in doc}
             unmatched = [t for t in query_tokens if t not in vocabulary and len(t) >= 4]
             if unmatched:
-                seen = {r.name for r, _ in scored}
-                for record, score in self._fuzzy_search(candidates, unmatched, now):
-                    if record.name in recent:
-                        score += self.config.transcript_boost
-                    if record.name not in seen:
-                        scored.append((record, score + 1.0))  # a name match outranks incidental word overlap
+                people = set()
+                for record in candidates:
+                    people |= _people_in(record.description)
+                by_name = {r.name: i for i, (r, _) in enumerate(scored)}
+                for record in candidates:
+                    record_people = _people_in(record.description) & set(tokenize(record.name))
+                    best = max((_edit_similarity(q, p) for q in unmatched for p in record_people), default=0.0)
+                    if best < self.config.fuzzy_min_edit_similarity:
+                        continue
+                    bonus = 1.0 + best  # a name match outranks incidental word overlap
+                    if record.name in by_name:
+                        r, s = scored[by_name[record.name]]
+                        scored[by_name[record.name]] = (r, s + bonus)
+                    else:
+                        idle = max(0.0, now - record.last_used_at)
+                        recency = 0.5 ** (idle / self.config.recency_half_life_s)
+                        score = bonus + self.config.recency_weight * recency
+                        if record.name in recent:
+                            score += self.config.transcript_boost
+                        scored.append((record, score))
         scored.sort(key=lambda pair: (-pair[1], -pair[0].last_used_at))
         return scored[:limit]
 

@@ -561,3 +561,16 @@ def test_fuzzy_matches_a_misspelt_name_even_when_other_words_match(tmp_path, clo
     assert hits and hits[0] == "Sharanjeet book club"
     hits = [r.name for r, _ in reg.search("what did Katherin say?", limit=3)]
     assert "Sharanjeet book club" not in hits[:1]
+
+
+def test_fuzzy_handles_transposed_letters_and_matches_people_only(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=12, fuzzy=True)
+    reg.register("Priya Nair birthday dinner", "Email Priya Nair to pick a restaurant for her birthday dinner")
+    clock.advance(HOUR)
+    reg.register("Reminder: dentist (Mei)", "Remind me Friday at 8am to call Mei's dentist about the retainer")
+    clock.advance(HOUR)
+    reg.register("Dinner Plans with Ingrid", "Email Ingrid about dinner on Saturday")
+    assert [r.name for r, _ in reg.search("did Pryia reply about dinner?", limit=2)][0] == "Priya Nair birthday dinner"
+    assert [r.name for r, _ in reg.search("did Ingird confirm Saturday?", limit=2)][0] == "Dinner Plans with Ingrid"
+    # A misspelt ordinary word ("retianer") is not a misspelt person: the fuzzy pass ignores it.
+    assert all(r.name != "Reminder: dentist (Mei)" for r, _ in reg.search("any update on the retianer", limit=3))
