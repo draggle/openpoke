@@ -20,6 +20,27 @@ one experiment a reviewer will ask about (a learned roster reranker). Every numb
 names the file it comes from; where round three changed a workload, both arms were re-run on it
 and the round-two number stands beside it.
 
+## Fifteen minutes
+
+Five numbers, each with the file it comes from, then the five things the numbers do not show.
+
+| What | Upstream | This fork | Source |
+|---|---|---|---|
+| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 65.0% (CI 56–73) | **90.0% (CI 83–94)** | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
+| Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,548 tokens (41%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
+| Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
+| LLM calls for a four-turn reminder session through the real app | 24 | **14** (and the user told the right things, 4 of 4 checks) | [`docs/live/final/session_probe.json`](docs/live/final/session_probe.json) |
+| Modelled cost per day, 200 agents, 40 turns, long histories | $5.72 | **$3.10 (−46%)** | [`docs/live/final/cost_results.json`](docs/live/final/cost_results.json) |
+
+What they do not show: every workload is synthetic (no real inbox was replayed); the routing
+number is at one roster size live (the curve to 500 agents is below, and 400 agents offline);
+the memory and recall rows are eight questions on one agent; the email held-out set is 14
+emails; the relay's cost saving ranges 6–48% across runs with the call count the stable part.
+How to read the rest: "Results at a glance" has every table; section 6 says what changed and
+why; section 7 is the review's findings and their fixes; "How to read the numbers" is the
+caveats in full. `python -m pytest` runs 253 tests offline in about three seconds;
+`bash evals/run_live.sh` reproduces every live table for about $10.
+
 ## Results at a glance
 
 ### Live routing: does the real Interaction model pick the right agent?

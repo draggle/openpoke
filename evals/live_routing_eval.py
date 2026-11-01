@@ -159,14 +159,21 @@ def _summary(rows: List[Dict], ledger_totals: Dict, n_queries: int) -> Dict:
 
 
 async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "budgeted"), *,
-              history: bool = False, stratified: bool = False, seeds: Sequence[int] = (7,)) -> Dict[str, Dict]:
+              history: bool = False, stratified: bool = False, seeds: Sequence[int] = (7,),
+              fixture: Optional[Path] = None) -> Dict[str, Dict]:
+    """``fixture`` replaces the generated workload with a hand-written one (evals/heldout_routing.json)."""
     results: Dict[str, Dict] = {}
+    if fixture is not None:
+        from evals.heldout_routing import load_fixture
+
+        seeds = [0]
     for strategy in strategies:
         ledger = UsageLedger()
         set_usage_ledger(ledger)
         rows: List[Dict] = []
         for seed in seeds:
-            workload = generate(n_agents, seed=seed, n_queries=n_queries, stratified=stratified)
+            workload = load_fixture(fixture) if fixture is not None else \
+                generate(n_agents, seed=seed, n_queries=n_queries, stratified=stratified)
             registry = build_registry(workload, out_dir / "tmp", RegistryConfig(strategy=strategy))
             for q in workload.queries:
                 d = await decide(registry, workload, q.text, history=history, target=q.target)
@@ -183,15 +190,28 @@ async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "
         results[strategy] = _summary(rows, ledger.totals()["total"], n_queries)
         results[strategy]["rows"] = rows
     set_usage_ledger(None)
+    if "all" in results and "budgeted" in results:
+        # Both arms answered the same queries: the paired tests are the ones that count.
+        from evals.stats import paired_summary
+
+        results["paired"] = paired_summary(results["all"]["rows"], results["budgeted"]["rows"])
     suffix = "" if set(strategies) == {"all", "budgeted"} else "_" + "_".join(strategies)
     if history:
         suffix += "_history"
+    if fixture is not None:
+        suffix += "_heldout"
     (out_dir / f"live_routing_results{suffix}.json").write_text(json.dumps(results, indent=2))
     return results
 
 
 def print_table(results: Dict[str, Dict]) -> None:
     for strategy, r in results.items():
+        if strategy == "paired":
+            m, bs = r["mcnemar"], r["bootstrap"]
+            print(f"\npaired ({r['pairs']} queries through both arms): budgeted right / upstream wrong {m['b_only']}, "
+                  f"the reverse {m['a_only']}, exact McNemar p = {m['p_value']:.1e}; "
+                  f"difference {bs['diff']:+.1%}, paired bootstrap 95% CI [{bs['ci95'][0]:+.1%}, {bs['ci95'][1]:+.1%}]")
+            continue
         lo, hi = r["ci95"]
         print(f"\n{strategy}: {r['accuracy']:.1%} (n={r['n']}, 95% CI {lo:.0%}-{hi:.0%}); "
               f"no delegation {r['no_delegation']}, new agents {r['spawned_new_agent']}, "
@@ -211,13 +231,15 @@ def main() -> None:
     parser.add_argument("--history", action="store_true", help="give both arms the last 6 interactions")
     parser.add_argument("--stratified", action="store_true", help="equal numbers of each query kind")
     parser.add_argument("--seeds", default="7", help="comma-separated workload seeds")
+    parser.add_argument("--fixture", default=None, help="hand-written workload JSON (evals/heldout_routing.json) instead of the generator")
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     strategies = tuple(s.strip() for s in args.strategies.split(",") if s.strip())
     seeds = [int(s) for s in args.seeds.split(",") if s.strip()]
     results = asyncio.run(run(args.agents, args.queries, out, strategies, history=args.history,
-                              stratified=args.stratified, seeds=seeds))
+                              stratified=args.stratified, seeds=seeds,
+                              fixture=Path(args.fixture) if args.fixture else None))
     print_table(results)
 
 

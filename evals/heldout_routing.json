@@ -1,0 +1,984 @@
+{
+ "what": "Hand-written held-out routing set: 49 agents, 72 follow-ups, written in one sitting before any run and never used for tuning. Kinds and the pass bar are fixed here.",
+ "span_days": 45,
+ "expectations": {
+  "written_before_any_run": true,
+  "budgeted_accuracy_at_least": 0.8,
+  "upstream_accuracy_at_most": 0.75,
+  "paired_bootstrap_ci_excludes_zero": true,
+  "budgeted_by_kind_at_least": {
+   "keyword": 0.9,
+   "recency": 0.8,
+   "lookalike": 0.8,
+   "name_opaque": 0.6,
+   "nickname": 0.6,
+   "typo": 0.5,
+   "paraphrase": 0.5
+  },
+  "notes": "typo and paraphrase are the kinds the roster's lexical matching is weakest on; the trigram fallback ships off. If the fork lands below a bar the README reports it as a miss, not a tuning target."
+ },
+ "agents": [
+  {
+   "name": "Alice lunch invoice",
+   "person": "Alice",
+   "topic": "invoice",
+   "desc": "invoice",
+   "instructions": [
+    "Draft an email to Alice attaching the lunch invoice and asking her to pay by Friday"
+   ],
+   "summary": "Draft ready for your approval; not sent.",
+   "last_used_days_ago": 0.05,
+   "has_trigger": false
+  },
+  {
+   "name": "Lunch with Alice",
+   "person": "Alice",
+   "topic": "lunch",
+   "desc": "lunch",
+   "instructions": [
+    "Schedule lunch with Alice next week"
+   ],
+   "summary": "Alice proposed Tuesday 12:30; waiting for you to confirm.",
+   "last_used_days_ago": 0.3,
+   "has_trigger": false
+  },
+  {
+   "name": "Tomasz Lunch Invite",
+   "person": "Tomasz",
+   "topic": "lunch",
+   "desc": "lunch",
+   "instructions": [
+    "Ask Tomasz if he's free for lunch next Wednesday"
+   ],
+   "summary": "Tomasz said Wednesday works, 12:30.",
+   "last_used_days_ago": 0.6,
+   "has_trigger": false
+  },
+  {
+   "name": "Inbox check",
+   "person": "",
+   "topic": "inbox",
+   "desc": "inbox",
+   "instructions": [
+    "Check my inbox for anything urgent from the last 24 hours"
+   ],
+   "summary": "Two items: a Delta refund update and a message from Priya.",
+   "last_used_days_ago": 0.9,
+   "has_trigger": false
+  },
+  {
+   "name": "Ravi - squash court",
+   "person": "Ravi",
+   "topic": "squash",
+   "desc": "squash",
+   "instructions": [
+    "Tell Ravi I booked the squash court for Friday 6pm"
+   ],
+   "summary": "Sent; Ravi gave a thumbs up.",
+   "last_used_days_ago": 1.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Priya Nair birthday dinner",
+   "person": "Priya",
+   "topic": "dinner",
+   "desc": "dinner",
+   "instructions": [
+    "Email Priya Nair to pick a restaurant for her birthday dinner on the 14th"
+   ],
+   "summary": "Priya likes Osteria Nova; she asked if 7:30 works.",
+   "last_used_days_ago": 1.2,
+   "has_trigger": false
+  },
+  {
+   "name": "Fatima invoice reminder",
+   "person": "Fatima",
+   "topic": "invoice",
+   "desc": "invoice",
+   "instructions": [
+    "Remind me Thursday 10am to send Fatima the invoice"
+   ],
+   "summary": "Reminder set Thursday 10am.",
+   "last_used_days_ago": 1.5,
+   "has_trigger": true
+  },
+  {
+   "name": "Dinner Plans with Ingrid",
+   "person": "Ingrid",
+   "topic": "dinner",
+   "desc": "dinner",
+   "instructions": [
+    "Email Ingrid about dinner on Saturday and whether she's bringing Olaf"
+   ],
+   "summary": "Ingrid confirmed Saturday; Olaf is coming.",
+   "last_used_days_ago": 1.8,
+   "has_trigger": false
+  },
+  {
+   "name": "Tax documents - Ravi",
+   "person": "Ravi",
+   "topic": "tax",
+   "desc": "tax",
+   "instructions": [
+    "Ask Ravi the accountant which documents he still needs for the tax return"
+   ],
+   "summary": "Ravi needs the 1099 and the childcare receipts.",
+   "last_used_days_ago": 2.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Noah soccer carpool",
+   "person": "Noah",
+   "topic": "carpool",
+   "desc": "carpool",
+   "instructions": [
+    "Email Noah's dad about the Saturday soccer carpool rotation"
+   ],
+   "summary": "He'll drive this Saturday; we take next.",
+   "last_used_days_ago": 2.2,
+   "has_trigger": false
+  },
+  {
+   "name": "Priya Nair - October invoice",
+   "person": "Priya",
+   "topic": "invoice",
+   "desc": "invoice",
+   "instructions": [
+    "Ask Priya Nair whether the October invoice for $1,840 has been approved"
+   ],
+   "summary": "Priya said accounts will release it by Friday.",
+   "last_used_days_ago": 2.5,
+   "has_trigger": false
+  },
+  {
+   "name": "Tomasz - flight to Krakow",
+   "person": "Tomasz",
+   "topic": "flight",
+   "desc": "flight",
+   "instructions": [
+    "Ask Tomasz which flight he's on to Krakow so we can match"
+   ],
+   "summary": "Tomasz is on LO 282, Friday 7am.",
+   "last_used_days_ago": 2.8,
+   "has_trigger": false
+  },
+  {
+   "name": "Alexander Chen contract review",
+   "person": "Alexander",
+   "topic": "contract",
+   "desc": "contract",
+   "instructions": [
+    "Send Alexander Chen the consulting contract and ask for redlines by Thursday"
+   ],
+   "summary": "Sent; Alexander acknowledged, redlines due Thursday.",
+   "last_used_days_ago": 3.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Reminder: dentist (Mei)",
+   "person": "Mei",
+   "topic": "dentist",
+   "desc": "dentist",
+   "instructions": [
+    "Remind me Friday at 8am to call Mei's dentist about the retainer"
+   ],
+   "summary": "Reminder set for Friday 8am.",
+   "last_used_days_ago": 3.0,
+   "has_trigger": true
+  },
+  {
+   "name": "Kenji apartment viewing",
+   "person": "Kenji",
+   "topic": "apartment",
+   "desc": "apartment",
+   "instructions": [
+    "Ask Kenji the agent for a viewing of the 2-bed on Elm St this weekend"
+   ],
+   "summary": "Viewing booked Saturday 11am.",
+   "last_used_days_ago": 3.3,
+   "has_trigger": false
+  },
+  {
+   "name": "Marco Lisbon flight",
+   "person": "Marco",
+   "topic": "flight",
+   "desc": "flight",
+   "instructions": [
+    "Find Marco's confirmation email for the Lisbon flight on the 22nd"
+   ],
+   "summary": "Found: TAP flight TP1234, confirmation 7XK2LQ.",
+   "last_used_days_ago": 4.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Carlos October invoice follow-up",
+   "person": "Carlos",
+   "topic": "invoice",
+   "desc": "invoice",
+   "instructions": [
+    "Ask Carlos for the remittance advice for the October invoice"
+   ],
+   "summary": "Carlos sent the remittance advice; it says paid on the 12th.",
+   "last_used_days_ago": 4.5,
+   "has_trigger": false
+  },
+  {
+   "name": "Katherine Ross - lease renewal",
+   "person": "Katherine",
+   "topic": "lease",
+   "desc": "lease",
+   "instructions": [
+    "Reply to Katherine Ross about renewing the apartment lease; ask whether the rent increase is negotiable"
+   ],
+   "summary": "Katherine replied: landlord open to 3% instead of 6%.",
+   "last_used_days_ago": 5.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Mateo vet appointment reminder",
+   "person": "Mateo",
+   "topic": "vet",
+   "desc": "vet",
+   "instructions": [
+    "Remind me Tuesday 9am about Mateo's vet appointment"
+   ],
+   "summary": "Reminder set Tuesday 9am.",
+   "last_used_days_ago": 5.5,
+   "has_trigger": true
+  },
+  {
+   "name": "Marco expense reimbursement",
+   "person": "Marco",
+   "topic": "expenses",
+   "desc": "expenses",
+   "instructions": [
+    "Ask Marco in finance when the conference expenses will be reimbursed"
+   ],
+   "summary": "Marco says reimbursements run on the 25th.",
+   "last_used_days_ago": 6.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Aisha payroll discrepancy",
+   "person": "Aisha",
+   "topic": "payroll",
+   "desc": "payroll",
+   "instructions": [
+    "Ask Aisha in HR about the missing overtime in the last payslip"
+   ],
+   "summary": "Aisha found it; correction on the next run.",
+   "last_used_days_ago": 6.5,
+   "has_trigger": false
+  },
+  {
+   "name": "Samantha Okafor podcast invite",
+   "person": "Samantha",
+   "topic": "podcast",
+   "desc": "podcast",
+   "instructions": [
+    "Reply to Samantha Okafor's invitation to be on her podcast; propose two dates in March"
+   ],
+   "summary": "Proposed March 4 and March 11; no reply yet.",
+   "last_used_days_ago": 7.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Bob flight confirmation",
+   "person": "Bob",
+   "topic": "flight",
+   "desc": "flight",
+   "instructions": [
+    "Find the latest email from Bob about the flight confirmation"
+   ],
+   "summary": "Bob's flight is confirmed, seat 14C.",
+   "last_used_days_ago": 7.5,
+   "has_trigger": false
+  },
+  {
+   "name": "Flight refund - Delta",
+   "person": "",
+   "topic": "refund",
+   "desc": "refund",
+   "instructions": [
+    "Chase Delta about the refund for the cancelled Denver flight"
+   ],
+   "summary": "Delta says 7 to 10 business days; ticket 006-1234567890.",
+   "last_used_days_ago": 8.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Keith gym buddy",
+   "person": "Keith",
+   "topic": "gym",
+   "desc": "gym",
+   "instructions": [
+    "Tell Keith I'll be at the gym Thursday 7am"
+   ],
+   "summary": "Sent.",
+   "last_used_days_ago": 8.5,
+   "has_trigger": false
+  },
+  {
+   "name": "Priya reference letter",
+   "person": "Priya",
+   "topic": "reference letter",
+   "desc": "reference letter",
+   "instructions": [
+    "Draft a reference letter for Priya Nair's visa application"
+   ],
+   "summary": "Letter drafted, waiting for Priya's dates.",
+   "last_used_days_ago": 9.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Yuki parking permit",
+   "person": "Yuki",
+   "topic": "parking",
+   "desc": "parking",
+   "instructions": [
+    "Ask Yuki whether the parking permit covers weekends"
+   ],
+   "summary": "Yuki: weekends included.",
+   "last_used_days_ago": 9.5,
+   "has_trigger": false
+  },
+  {
+   "name": "Reminder: visa (Bob)",
+   "person": "Bob",
+   "topic": "visa",
+   "desc": "visa",
+   "instructions": [
+    "Remind me Monday 9am to check on Bob's visa appointment"
+   ],
+   "summary": "Reminder set for Monday 9am.",
+   "last_used_days_ago": 10.0,
+   "has_trigger": true
+  },
+  {
+   "name": "Sharanjeet book club",
+   "person": "Sharanjeet",
+   "topic": "book club",
+   "desc": "book club",
+   "instructions": [
+    "Email Sharanjeet about moving book club to Thursdays"
+   ],
+   "summary": "Sharanjeet is fine with Thursdays.",
+   "last_used_days_ago": 11.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Hannah refund $182",
+   "person": "Hannah",
+   "topic": "refund",
+   "desc": "refund",
+   "instructions": [
+    "Ask Hannah whether the $182 refund can be settled by Nov 1"
+   ],
+   "summary": "Hannah agreed; reference REF-80639.",
+   "last_used_days_ago": 12.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Wedding photographer",
+   "person": "",
+   "topic": "wedding",
+   "desc": "wedding",
+   "instructions": [
+    "Email Lena at Golden Hour Studio about the wedding photo package and deposit"
+   ],
+   "summary": "Lena quoted $2,400; a $500 deposit holds the date.",
+   "last_used_days_ago": 13.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Email to Felix about rent",
+   "person": "Felix",
+   "topic": "rent",
+   "desc": "rent",
+   "instructions": [
+    "Email Felix to say the rent transfer went through on the 1st"
+   ],
+   "summary": "Sent.",
+   "last_used_days_ago": 14.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Hotel Reservation with Elena",
+   "person": "Elena",
+   "topic": "hotel",
+   "desc": "hotel",
+   "instructions": [
+    "Email Elena to confirm the hotel reservation in Porto for the 19th"
+   ],
+   "summary": "Elena confirmed; two nights, breakfast included.",
+   "last_used_days_ago": 15.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Car service booking",
+   "person": "",
+   "topic": "car service",
+   "desc": "car service",
+   "instructions": [
+    "Book a service at Bellhaven Motors for the Civic, any morning next week"
+   ],
+   "summary": "Bellhaven offered Tuesday 8am; waiting on your confirmation.",
+   "last_used_days_ago": 16.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Email to Greta about job offer",
+   "person": "Greta",
+   "topic": "job offer",
+   "desc": "job offer",
+   "instructions": [
+    "Reply to Greta at Northwind about the offer; ask for the equity details"
+   ],
+   "summary": "Greta sent the equity summary: 0.15% over 4 years.",
+   "last_used_days_ago": 17.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Ben moving boxes",
+   "person": "Ben",
+   "topic": "moving",
+   "desc": "moving",
+   "instructions": [
+    "Ask Ben if I can borrow his moving boxes this weekend"
+   ],
+   "summary": "Ben says yes, pick up Saturday.",
+   "last_used_days_ago": 18.0,
+   "has_trigger": false
+  },
+  {
+   "name": "October Invoice with Carlos",
+   "person": "Carlos",
+   "topic": "invoice",
+   "desc": "invoice",
+   "instructions": [
+    "Email Carlos about the October invoice"
+   ],
+   "summary": "Carlos says it was paid on the 12th.",
+   "last_used_days_ago": 19.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Passport renewal",
+   "person": "",
+   "topic": "passport",
+   "desc": "passport",
+   "instructions": [
+    "Find the email from the Northgate Passport Office about my renewal appointment"
+   ],
+   "summary": "Appointment is on the 3rd at 10:15; bring the old passport.",
+   "last_used_days_ago": 20.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Liam warranty claim",
+   "person": "Liam",
+   "topic": "warranty",
+   "desc": "warranty",
+   "instructions": [
+    "Ask Liam at the store about the laptop warranty claim status"
+   ],
+   "summary": "Liam says the replacement ships next week.",
+   "last_used_days_ago": 21.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Conference talk proposal - Sven",
+   "person": "Sven",
+   "topic": "conference",
+   "desc": "conference",
+   "instructions": [
+    "Email Sven the abstract for the conference talk proposal"
+   ],
+   "summary": "Sent; Sven will reply after the committee meets.",
+   "last_used_days_ago": 23.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Rosa flight confirmation",
+   "person": "Rosa",
+   "topic": "flight",
+   "desc": "flight",
+   "instructions": [
+    "Find Rosa's flight confirmation for the Chicago trip"
+   ],
+   "summary": "Found: UA 455, lands 4:10pm.",
+   "last_used_days_ago": 24.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Reminder: car insurance renewal",
+   "person": "",
+   "topic": "insurance",
+   "desc": "insurance",
+   "instructions": [
+    "Remind me on the 28th at noon to renew the car insurance"
+   ],
+   "summary": "Reminder set for the 28th at noon.",
+   "last_used_days_ago": 26.0,
+   "has_trigger": true
+  },
+  {
+   "name": "Dentist appointment reschedule",
+   "person": "",
+   "topic": "dentist",
+   "desc": "dentist",
+   "instructions": [
+    "Email Dr. Alvarez's office to move my cleaning to the following week"
+   ],
+   "summary": "Office offered the 16th at 2pm; waiting for your ok.",
+   "last_used_days_ago": 27.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Elena - birthday gift ideas",
+   "person": "Elena",
+   "topic": "gift",
+   "desc": "gift",
+   "instructions": [
+    "Ask Elena what her sister would like for her birthday"
+   ],
+   "summary": "Elena suggests the pottery class voucher.",
+   "last_used_days_ago": 29.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Water the plants reminder",
+   "person": "",
+   "topic": "plants",
+   "desc": "plants",
+   "instructions": [
+    "Remind me every Sunday at 6pm to water the plants"
+   ],
+   "summary": "Weekly reminder set.",
+   "last_used_days_ago": 30.0,
+   "has_trigger": true
+  },
+  {
+   "name": "Internet outage - Fibrelink",
+   "person": "",
+   "topic": "internet",
+   "desc": "internet",
+   "instructions": [
+    "Email Fibrelink support about the outage credit"
+   ],
+   "summary": "Fibrelink applied a $20 credit.",
+   "last_used_days_ago": 31.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Leila - warranty paperwork",
+   "person": "Leila",
+   "topic": "warranty",
+   "desc": "warranty",
+   "instructions": [
+    "Send Leila the warranty paperwork for the dishwasher"
+   ],
+   "summary": "Sent; Leila confirmed receipt.",
+   "last_used_days_ago": 33.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Omar consulting invoice",
+   "person": "Omar",
+   "topic": "invoice",
+   "desc": "invoice",
+   "instructions": [
+    "Send Omar the invoice for the March consulting hours"
+   ],
+   "summary": "Sent; due in 30 days.",
+   "last_used_days_ago": 35.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Gym membership freeze",
+   "person": "",
+   "topic": "gym",
+   "desc": "gym",
+   "instructions": [
+    "Email Ironwood Fitness to freeze my membership for June and July"
+   ],
+   "summary": "Ironwood confirmed the freeze; no charge in June.",
+   "last_used_days_ago": 38.0,
+   "has_trigger": false
+  },
+  {
+   "name": "Grandma's birthday flowers",
+   "person": "",
+   "topic": "flowers",
+   "desc": "flowers",
+   "instructions": [
+    "Order flowers from Petal & Stem for Grandma's birthday on the 9th"
+   ],
+   "summary": "Ordered; delivery on the 9th before noon.",
+   "last_used_days_ago": 40.0,
+   "has_trigger": false
+  }
+ ],
+ "queries": [
+  {
+   "kind": "recency",
+   "text": "ok send it",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "send it",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "go ahead",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "looks good, send",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "hold off on that for now",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "add a line thanking her first",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "actually make the deadline next Monday instead",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "recency",
+   "text": "what did the draft say again?",
+   "target": "Alice lunch invoice"
+  },
+  {
+   "kind": "keyword",
+   "text": "what did Priya say about the October invoice?",
+   "target": "Priya Nair - October invoice"
+  },
+  {
+   "kind": "keyword",
+   "text": "did Marco find the Lisbon flight?",
+   "target": "Marco Lisbon flight"
+  },
+  {
+   "kind": "keyword",
+   "text": "any update on Katherine's lease renewal?",
+   "target": "Katherine Ross - lease renewal"
+  },
+  {
+   "kind": "keyword",
+   "text": "where are we on the Delta refund?",
+   "target": "Flight refund - Delta"
+  },
+  {
+   "kind": "keyword",
+   "text": "did Carlos send the remittance for the October invoice?",
+   "target": "Carlos October invoice follow-up"
+  },
+  {
+   "kind": "keyword",
+   "text": "what did Greta say about the equity?",
+   "target": "Email to Greta about job offer"
+  },
+  {
+   "kind": "keyword",
+   "text": "remind me what Hannah agreed on the $182",
+   "target": "Hannah refund $182"
+  },
+  {
+   "kind": "keyword",
+   "text": "is the hotel in Porto confirmed with Elena?",
+   "target": "Hotel Reservation with Elena"
+  },
+  {
+   "kind": "keyword",
+   "text": "did Aisha sort the payroll thing?",
+   "target": "Aisha payroll discrepancy"
+  },
+  {
+   "kind": "keyword",
+   "text": "what time is Kenji's viewing?",
+   "target": "Kenji apartment viewing"
+  },
+  {
+   "kind": "name_only",
+   "text": "anything from Priya?",
+   "target": "Priya Nair birthday dinner"
+  },
+  {
+   "kind": "name_only",
+   "text": "did Tomasz get back to me?",
+   "target": "Tomasz Lunch Invite"
+  },
+  {
+   "kind": "name_only",
+   "text": "nudge Ravi again",
+   "target": "Ravi - squash court"
+  },
+  {
+   "kind": "name_only",
+   "text": "what's the latest with Elena",
+   "target": "Hotel Reservation with Elena"
+  },
+  {
+   "kind": "name_only",
+   "text": "did Marco reply?",
+   "target": "Marco Lisbon flight"
+  },
+  {
+   "kind": "name_only",
+   "text": "anything from Bob?",
+   "target": "Bob flight confirmation"
+  },
+  {
+   "kind": "name_only",
+   "text": "chase Sven",
+   "target": "Conference talk proposal - Sven"
+  },
+  {
+   "kind": "name_only",
+   "text": "did Liam come back to me?",
+   "target": "Liam warranty claim"
+  },
+  {
+   "kind": "topic_only",
+   "text": "is the lease sorted?",
+   "target": "Katherine Ross - lease renewal"
+  },
+  {
+   "kind": "topic_only",
+   "text": "any update on the passport?",
+   "target": "Passport renewal"
+  },
+  {
+   "kind": "topic_only",
+   "text": "where are we on the podcast thing",
+   "target": "Samantha Okafor podcast invite"
+  },
+  {
+   "kind": "topic_only",
+   "text": "is the car service booked?",
+   "target": "Car service booking"
+  },
+  {
+   "kind": "topic_only",
+   "text": "did the warranty claim go through?",
+   "target": "Liam warranty claim"
+  },
+  {
+   "kind": "topic_only",
+   "text": "what's happening with the conference talk",
+   "target": "Conference talk proposal - Sven"
+  },
+  {
+   "kind": "topic_only",
+   "text": "any news on the wedding photos?",
+   "target": "Wedding photographer"
+  },
+  {
+   "kind": "topic_only",
+   "text": "did the internet credit come through?",
+   "target": "Internet outage - Fibrelink"
+  },
+  {
+   "kind": "lookalike",
+   "text": "did Priya send her dates for the reference letter?",
+   "target": "Priya reference letter"
+  },
+  {
+   "kind": "lookalike",
+   "text": "has Priya's invoice been approved yet?",
+   "target": "Priya Nair - October invoice"
+  },
+  {
+   "kind": "lookalike",
+   "text": "which flight is Tomasz on?",
+   "target": "Tomasz - flight to Krakow"
+  },
+  {
+   "kind": "lookalike",
+   "text": "what does Elena's sister want?",
+   "target": "Elena - birthday gift ideas"
+  },
+  {
+   "kind": "lookalike",
+   "text": "when is Bob's visa appointment?",
+   "target": "Reminder: visa (Bob)"
+  },
+  {
+   "kind": "lookalike",
+   "text": "did Marco say when expenses get paid?",
+   "target": "Marco expense reimbursement"
+  },
+  {
+   "kind": "lookalike",
+   "text": "what did Ravi say he still needs for the taxes?",
+   "target": "Tax documents - Ravi"
+  },
+  {
+   "kind": "lookalike",
+   "text": "is Alice free for lunch Tuesday?",
+   "target": "Lunch with Alice"
+  },
+  {
+   "kind": "lookalike",
+   "text": "cancel the dentist reminder for Mei",
+   "target": "Reminder: dentist (Mei)"
+  },
+  {
+   "kind": "lookalike",
+   "text": "move my cleaning appointment again",
+   "target": "Dentist appointment reschedule"
+  },
+  {
+   "kind": "nickname",
+   "text": "did Alex send the redlines?",
+   "target": "Alexander Chen contract review"
+  },
+  {
+   "kind": "nickname",
+   "text": "what did Kate say about the rent increase?",
+   "target": "Katherine Ross - lease renewal"
+  },
+  {
+   "kind": "nickname",
+   "text": "any reply from Sam about the podcast dates?",
+   "target": "Samantha Okafor podcast invite"
+  },
+  {
+   "kind": "nickname",
+   "text": "ping Alex about the contract",
+   "target": "Alexander Chen contract review"
+  },
+  {
+   "kind": "nickname",
+   "text": "is Kate's landlord ok with 3%?",
+   "target": "Katherine Ross - lease renewal"
+  },
+  {
+   "kind": "nickname",
+   "text": "tell Sam March 11 works",
+   "target": "Samantha Okafor podcast invite"
+  },
+  {
+   "kind": "typo",
+   "text": "anything from Sharanjit?",
+   "target": "Sharanjeet book club"
+  },
+  {
+   "kind": "typo",
+   "text": "did Pryia reply about dinner?",
+   "target": "Priya Nair birthday dinner"
+  },
+  {
+   "kind": "typo",
+   "text": "nudge Tomas about lunch",
+   "target": "Tomasz Lunch Invite"
+  },
+  {
+   "kind": "typo",
+   "text": "what did Katherin say?",
+   "target": "Katherine Ross - lease renewal"
+  },
+  {
+   "kind": "typo",
+   "text": "move Fatimah's invoice reminder to 11",
+   "target": "Fatima invoice reminder"
+  },
+  {
+   "kind": "typo",
+   "text": "did Ingird confirm Saturday?",
+   "target": "Dinner Plans with Ingrid"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "the place I'm renting, did they budge on the increase?",
+   "target": "Katherine Ross - lease renewal"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "the airline still owes me for Denver, any progress?",
+   "target": "Flight refund - Delta"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "that retainer call I need to make",
+   "target": "Reminder: dentist (Mei)"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "the big day pictures, how much was the quote?",
+   "target": "Wedding photographer"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "the two-bed on Elm, when are we seeing it?",
+   "target": "Kenji apartment viewing"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "the talk abstract, did the committee decide?",
+   "target": "Conference talk proposal - Sven"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "my missing overtime, sorted?",
+   "target": "Aisha payroll discrepancy"
+  },
+  {
+   "kind": "paraphrase",
+   "text": "the boxes for the move, can I grab them?",
+   "target": "Ben moving boxes"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "did Ironwood get back to me?",
+   "target": "Gym membership freeze"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "what did Bellhaven offer?",
+   "target": "Car service booking"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "when's the Northgate appointment?",
+   "target": "Passport renewal"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "did Lena confirm the date?",
+   "target": "Wedding photographer"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "any word from Fibrelink?",
+   "target": "Internet outage - Fibrelink"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "did Dr. Alvarez's office reply?",
+   "target": "Dentist appointment reschedule"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "what did Northwind say about equity?",
+   "target": "Email to Greta about job offer"
+  },
+  {
+   "kind": "name_opaque",
+   "text": "has Petal & Stem shipped?",
+   "target": "Grandma's birthday flowers"
+  }
+ ]
+}
