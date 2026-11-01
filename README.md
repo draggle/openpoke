@@ -38,7 +38,7 @@ the memory and recall rows are eight questions on one agent; the email held-out 
 emails; the relay's cost saving ranges 6–48% across runs with the call count the stable part.
 How to read the rest: "Results at a glance" has every table; section 6 says what changed and
 why; section 7 is the review's findings and their fixes; "How to read the numbers" is the
-caveats in full. `python -m pytest` runs 253 tests offline in about three seconds;
+caveats in full. `python -m pytest` runs 276 tests offline in about four seconds;
 `bash evals/run_live.sh` reproduces every live table for about $10.
 
 ## Results at a glance
@@ -379,7 +379,9 @@ instruction, rolling one-line summary) and a per-turn selection:
 - **Hot cache**: the 4 most recently used agents are always shown.
 - **Retrieval**: BM25 + token overlap over name/description/summary/recent requests, blended with
   a recency prior (half-life 3 days). An optional character-trigram fallback for misspellings
-  (`OPENPOKE_ROSTER_FUZZY=1`) is off by default: the paraphrase eval shows it adds nothing.
+  (`OPENPOKE_ROSTER_FUZZY`) was off through round three because the paraphrase eval showed it
+  added nothing; the held-out set's misspelt names changed that, and it is now on by default
+  as an edit-distance match against the people the agents name (see the held-out section).
 - **Budget**: at most 12 entries, most recent first, each with status, last-used and summary,
   followed by a `<roster_note>` saying how many are hidden.
 - **`search_agents` tool** for the Interaction Agent: the self-correction step when the agent
@@ -697,7 +699,7 @@ change instead of confirming, which the upstream loop allows.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 252 tests, ~3s, no network
+python -m pytest                 # 276 tests, ~4s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 ```
@@ -728,6 +730,9 @@ bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 | `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
 | `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real four-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told | yes |
 | `evals.trigger_probe` | a reminder created through the app is forced to fire under the real scheduler; checks the user is notified by the interaction agent, the run is billed to the trigger role, nothing internal leaks | yes |
+| `evals.live_routing_eval --fixture evals/heldout_routing.json` | the hand-written held-out routing set through both arms; `python -m evals.heldout_routing <results.json>` grades it against the bars written before the first run | yes |
+| `evals.stats` | exact McNemar and paired bootstrap on the queries both arms answered; `python -m evals.stats <results.json>` | no |
+| `evals.lifecycle_eval` | sixty simulated days of use against the registry: roster tokens per turn, live and archived agents, reminder owners never archived | no |
 | `evals.learned_selector` | logistic reranker trained on synthetic seeds vs `select()` on held-out seeds, recall@12 | no |
 
 The synthetic workload (`evals/synthetic.py`) is seeded and adversarial: the same person recurs
@@ -805,7 +810,7 @@ Fixed in this fork:
   instead of dismissing.
 - **Constraints lost to summarisation** — the verbatim commitments tier.
 - **Nothing recoverable after compaction** — `search_history`.
-- **Zero tests** — 252 now, plus eleven evaluators.
+- **Zero tests** — 276 now, plus fourteen evaluators.
 
 Built in round three (each measured above): the wasted follow-up call per turn, the
 did-you-mean guard and search rule, corrections in the extractor contract, the classifier
@@ -845,6 +850,6 @@ server/services/trigger_scheduler.py              touch agent on fire; coalesce 
 server/services/gmail/importance_classifier.py    category prompt, two-sided Jev gate, summary fallback
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            252 tests + 46 labelled emails + 14 held-out
-evals/                                            11 evaluators, synthetic workload, paraphrase set, stats
+tests/                                            276 tests + 46 labelled emails + 14 held-out emails + 72 held-out routing queries
+evals/                                            14 evaluators, synthetic workload, paraphrase set, held-out routing set, paired stats
 ```

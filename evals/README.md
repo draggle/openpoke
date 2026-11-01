@@ -11,6 +11,10 @@ See the "Tests and evaluators" section of the top-level README. Quick start:
     python -m evals.session_probe --live        # calls/cost per turn through the app: old loop, early exit, + direct relay (temporary data dir)
     python -m evals.trigger_probe --live        # a reminder fires under the real scheduler; the interaction agent must deliver it
     python -m evals.guard_check                  # offline: did-you-mean guard false fires / catches
+    python -m evals.lifecycle_eval               # offline: sixty simulated days; roster cost flat, reminders never archived
+    python -m evals.stats <results.json>         # offline: McNemar + paired bootstrap for a two-arm routing result
+    python -m evals.live_routing_eval --fixture evals/heldout_routing.json --history   # live: the hand-written held-out set
+    python -m evals.heldout_routing <results.json>   # grade a held-out run against its pre-written bars
     python -m evals.learned_selector             # offline: learned reranker vs select()
     bash evals/run_live.sh [path/to/.env]        # everything live, one command
 
