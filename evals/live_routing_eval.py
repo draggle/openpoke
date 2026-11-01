@@ -193,7 +193,7 @@ def _summary(rows: List[Dict], ledger_totals: Dict, n_queries: int) -> Dict:
 
 async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "budgeted"), *,
               history: bool = False, stratified: bool = False, seeds: Sequence[int] = (7,),
-              fixture: Optional[Path] = None) -> Dict[str, Dict]:
+              fixture: Optional[Path] = None, max_roster: Optional[int] = None) -> Dict[str, Dict]:
     """``fixture`` replaces the generated workload with a hand-written one (evals/heldout_routing.json)."""
     results: Dict[str, Dict] = {}
     if fixture is not None:
@@ -207,7 +207,8 @@ async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "
         for seed in seeds:
             workload = load_fixture(fixture) if fixture is not None else \
                 generate(n_agents, seed=seed, n_queries=n_queries, stratified=stratified)
-            registry = build_registry(workload, out_dir / "tmp", RegistryConfig(strategy=strategy))
+            config = RegistryConfig(strategy=strategy) if max_roster is None else RegistryConfig(strategy=strategy, max_roster=max_roster)
+            registry = build_registry(workload, out_dir / "tmp", config)
             for q in workload.queries:
                 d = await decide(registry, workload, q.text, history=history, target=q.target)
                 ok = d.agent == q.target
@@ -267,6 +268,7 @@ def main() -> None:
     parser.add_argument("--stratified", action="store_true", help="equal numbers of each query kind")
     parser.add_argument("--seeds", default="7", help="comma-separated workload seeds")
     parser.add_argument("--fixture", default=None, help="hand-written workload JSON (evals/heldout_routing.json) instead of the generator")
+    parser.add_argument("--max-roster", type=int, default=None, help="override the budgeted roster size (ablation)")
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -274,7 +276,7 @@ def main() -> None:
     seeds = [int(s) for s in args.seeds.split(",") if s.strip()]
     results = asyncio.run(run(args.agents, args.queries, out, strategies, history=args.history,
                               stratified=args.stratified, seeds=seeds,
-                              fixture=Path(args.fixture) if args.fixture else None))
+                              fixture=Path(args.fixture) if args.fixture else None, max_roster=args.max_roster))
     print_table(results)
 
 

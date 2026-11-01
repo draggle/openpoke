@@ -15,6 +15,7 @@ See the "Tests and evaluators" section of the top-level README. Quick start:
     python -m evals.stats <results.json>         # offline: McNemar + paired bootstrap for a two-arm routing result
     python -m evals.live_routing_eval --fixture evals/heldout_routing.json --history   # live: the hand-written held-out set
     python -m evals.heldout_routing <results.json>   # grade a held-out run against its pre-written bars
+    python -m evals.injection_eval --live        # live: injected emails vs the send gate (attempted / executed sends)
     python -m evals.learned_selector             # offline: learned reranker vs select()
     bash evals/run_live.sh [path/to/.env]        # everything live, one command
 

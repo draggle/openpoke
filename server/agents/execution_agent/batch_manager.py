@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from ...services.send_gate import SendAuthorisation, authorise_send
 from .relay import relay_enabled, relay_message, strip_summary
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
@@ -61,18 +62,23 @@ class ExecutionBatchManager:
         instructions: str,
         request_id: Optional[str] = None,
         source: str = "user",
+        send_authorisation: Optional[SendAuthorisation] = None,
     ) -> ExecutionResult:
         """Execute an agent asynchronously and buffer the result for batch dispatch."""
 
         if not request_id:
             request_id = str(uuid.uuid4())
+        if send_authorisation is None:
+            # Nobody vouched for a send: a reminder fire or an unlabelled caller cannot send.
+            send_authorisation = authorise_send("", source=source)
 
         batch_id = await self._register_pending_execution(agent_name, instructions, request_id, source)
 
         try:
             async with self._agent_locks.setdefault(agent_name, asyncio.Lock()):
                 logger.info(f"[{agent_name}] Execution started")
-                runtime = ExecutionAgentRuntime(agent_name=agent_name, source=source)
+                runtime = ExecutionAgentRuntime(agent_name=agent_name, source=source,
+                                                send_authorisation=send_authorisation)
                 result = await asyncio.wait_for(
                     runtime.execute(instructions),
                     timeout=self.timeout_seconds,

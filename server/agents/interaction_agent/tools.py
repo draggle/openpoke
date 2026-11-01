@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from ...logging_config import logger
 from ...services.conversation import get_conversation_log
+from ...services.send_gate import authorise_send
 from ...services.execution import (
     get_agent_memory,
     get_agent_registry,
@@ -147,6 +148,7 @@ _TURN = 0
 
 
 _TURN_MESSAGE = ""
+_LAST_REPLY_WAS_DRAFT = False  # the assistant's last reply to the user was a draft to approve
 
 
 def begin_turn(user_message: str = "") -> int:
@@ -212,10 +214,12 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
 
     action = "Created" if is_new else "Reused"
     logger.info(f"{action} agent: {agent_name}")
+    # Outbound email is allowed in this run only if the user asked for it this turn.
+    authorisation = authorise_send(current_turn_message(), last_reply_was_draft=_LAST_REPLY_WAS_DRAFT)
 
     async def _execute_async() -> None:
         try:
-            result = await _EXECUTION_BATCH_MANAGER.execute_agent(agent_name, instructions)
+            result = await _EXECUTION_BATCH_MANAGER.execute_agent(agent_name, instructions, send_authorisation=authorisation)
             status = "SUCCESS" if result.success else "FAILED"
             logger.info(f"Agent '{agent_name}' completed: {status}")
         except Exception as exc:  # pragma: no cover - defensive
@@ -238,6 +242,8 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
 # Send immediate message to user and record in conversation history
 def send_message_to_user(message: str) -> ToolResult:
     """Record a user-visible reply in the conversation log."""
+    global _LAST_REPLY_WAS_DRAFT
+    _LAST_REPLY_WAS_DRAFT = False
     log = get_conversation_log()
     log.record_reply(message)
 
@@ -256,6 +262,8 @@ def send_draft(
     body: str,
 ) -> ToolResult:
     """Record a draft update in the conversation log for the interaction agent."""
+    global _LAST_REPLY_WAS_DRAFT
+    _LAST_REPLY_WAS_DRAFT = True
     log = get_conversation_log()
 
     message = f"To: {to}\nSubject: {subject}\n\n{body}"

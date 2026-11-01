@@ -143,6 +143,7 @@ if [ "${ONLY_JEV:-0}" != "1" ]; then
   run python -m evals.recall_eval --live --rounds 40
   run python -m evals.session_probe --live
   run python -m evals.trigger_probe --live
+  run python -m evals.injection_eval --live
 fi
 
 echo

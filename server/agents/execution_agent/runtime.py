@@ -11,6 +11,7 @@ from ...config import get_settings
 from ...services.execution import get_agent_memory
 from ...services.llm import ROLE_EXECUTION, ROLE_EXECUTION_TRIGGER, complete as llm_complete, get_model_router
 from ...logging_config import logger
+from ...services.send_gate import OUTBOUND_TOOLS, SendAuthorisation, gate_enabled, refusal
 
 
 @dataclass
@@ -29,8 +30,10 @@ class ExecutionAgentRuntime:
     MAX_TOOL_ITERATIONS = 8
 
     # Initialize execution agent runtime with settings, tools, and agent instance
-    def __init__(self, agent_name: str, *, source: str = "user"):
+    def __init__(self, agent_name: str, *, source: str = "user",
+                 send_authorisation: Optional[SendAuthorisation] = None):
         settings = get_settings()
+        self.send_authorisation = send_authorisation
         self.agent = ExecutionAgent(agent_name)
         self.api_key = settings.openrouter_api_key
         self.role = ROLE_EXECUTION_TRIGGER if source == "trigger" else ROLE_EXECUTION
@@ -238,6 +241,11 @@ class ExecutionAgentRuntime:
         tool_func = self.tool_registry.get(tool_name)
         if not tool_func:
             return False, {"error": f"Unknown tool: {tool_name}"}
+        if tool_name in OUTBOUND_TOOLS and gate_enabled() and not (
+            self.send_authorisation and self.send_authorisation.allowed
+        ):
+            logger.warning(f"[{self.agent.name}] send gate refused {tool_name}")
+            return False, {"error": refusal(tool_name, self.send_authorisation)}
 
         try:
             result = tool_func(**arguments)

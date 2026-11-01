@@ -42,7 +42,7 @@ class FakeManager:
     calls: List[tuple] = []
     succeed = True
 
-    async def execute_agent(self, agent_name, instructions, *, source="user"):
+    async def execute_agent(self, agent_name, instructions, *, source="user", send_authorisation=None):
         FakeManager.calls.append((agent_name, instructions, source))
         return ts.ExecutionResult(agent_name=agent_name, success=FakeManager.succeed,
                                   response="ok" if FakeManager.succeed else "boom", error=None if FakeManager.succeed else "boom")

@@ -79,7 +79,7 @@ async def test_bounded_roster_search_fallback_and_delegation(monkeypatch, regist
 
     dispatched = {}
 
-    async def fake_execute_agent(agent_name, instructions):
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
         dispatched["agent"] = agent_name
         from server.agents.execution_agent.runtime import ExecutionResult
         return ExecutionResult(agent_name=agent_name, success=True, response="ok")
@@ -202,7 +202,7 @@ def test_send_message_guard_fires_once(monkeypatch, tmp_path):
     monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
     dispatched = []
 
-    async def fake_execute_agent(agent_name, instructions):
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
         dispatched.append(agent_name)
         from server.agents.execution_agent.runtime import ExecutionResult
         return ExecutionResult(agent_name=agent_name, success=True, response="ok")
@@ -233,7 +233,7 @@ def test_send_message_guard_flag_off(monkeypatch, tmp_path):
     monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
     monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
 
-    async def fake_execute_agent(agent_name, instructions):
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
         from server.agents.execution_agent.runtime import ExecutionResult
         return ExecutionResult(agent_name=agent_name, success=True, response="ok")
 
@@ -266,7 +266,7 @@ def _loop_fixture(monkeypatch, tmp_path, script, extra_agents=()):
     conversation = StubConversationLog()
     monkeypatch.setattr(tools_module, "get_conversation_log", lambda: conversation)
 
-    async def fake_execute_agent(agent_name, instructions):
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
         from server.agents.execution_agent.runtime import ExecutionResult
         return ExecutionResult(agent_name=agent_name, success=True, response="ok")
 
@@ -328,7 +328,7 @@ def test_send_message_guard_fires_once_per_turn_even_when_rephrased(monkeypatch,
     monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
     monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
 
-    async def fake_execute_agent(agent_name, instructions):
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
         from server.agents.execution_agent.runtime import ExecutionResult
         return ExecutionResult(agent_name=agent_name, success=True, response="ok")
 

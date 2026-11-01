@@ -11,7 +11,7 @@ from server.agents.execution_agent.runtime import ExecutionResult
 
 def _manager_with_fake_runtime(monkeypatch, events):
     class FakeRuntime:
-        def __init__(self, agent_name, source="user"):
+        def __init__(self, agent_name, source="user", send_authorisation=None):
             self.agent_name = agent_name
 
         async def execute(self, instructions):

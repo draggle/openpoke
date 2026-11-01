@@ -38,7 +38,7 @@ class _Log:
 
 def _manager(monkeypatch, response, success=True):
     class FakeRuntime:
-        def __init__(self, agent_name, source="user"): self.agent_name = agent_name
+        def __init__(self, agent_name, source="user", send_authorisation=None): self.agent_name = agent_name
         async def execute(self, instructions):
             return ExecutionResult(agent_name=self.agent_name, success=success, response=response)
 
