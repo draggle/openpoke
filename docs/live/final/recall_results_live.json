@@ -1,7 +1,7 @@
 {
   "rounds": 40,
   "entries": 136,
-  "history_chars": 7334,
+  "history_chars": 7489,
   "scores": {
     "buried": {
       "n": 4,
@@ -24,7 +24,7 @@
       "called_search": true,
       "text": "REF-80639",
       "queries": [
-        "refund $182 reference number Hannah"
+        "Hannah refund $182 reference number"
       ],
       "correct": true,
       "in_prompt": false,
@@ -50,7 +50,7 @@
       "called_search": true,
       "text": "REF-29252",
       "queries": [
-        "deposit $2532 reference number Hannah"
+        "deposit $2532 reference number"
       ],
       "correct": true,
       "in_prompt": false,
@@ -63,7 +63,7 @@
       "called_search": true,
       "text": "REF-93866",
       "queries": [
-        "refund $3401 reference number"
+        "$3401 refund Hannah reference number"
       ],
       "correct": true,
       "in_prompt": false,

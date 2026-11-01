@@ -1,0 +1,12 @@
+{
+  "budgeted": {
+    "n": 32,
+    "recall_shown": 0.90625,
+    "recall_with_search": 1.0
+  },
+  "budgeted+fuzzy": {
+    "n": 32,
+    "recall_shown": 0.90625,
+    "recall_with_search": 1.0
+  }
+}

@@ -10,52 +10,51 @@
     "early_exit": true,
     "turns": 4,
     "direct_relay": false,
-    "calls_per_turn": 4.5,
-    "cached_share": 0.67,
+    "calls_per_turn": 4.75,
+    "cached_share": 0.68,
     "total": {
-      "calls": 18,
-      "prompt_tokens": 84539,
-      "completion_tokens": 2320,
-      "cached_tokens": 56729,
+      "calls": 19,
+      "prompt_tokens": 89645,
+      "completion_tokens": 2330,
+      "cached_tokens": 61174,
       "cache_write_tokens": 11141,
-      "cost_usd": 0.1436
+      "cost_usd": 0.1471
     },
     "by_role": {
       "execution": {
         "calls": 10,
         "calls_per_turn": 2.5,
-        "prompt_tokens": 46172,
-        "completion_tokens": 1509,
+        "prompt_tokens": 46040,
+        "completion_tokens": 1494,
         "cached_tokens": 25993,
         "cached_share": 0.56,
-        "cost_usd": 0.0993
+        "cost_usd": 0.0987
       },
       "interaction": {
-        "calls": 8,
-        "calls_per_turn": 2.0,
-        "prompt_tokens": 38367,
-        "completion_tokens": 811,
-        "cached_tokens": 30736,
-        "cached_share": 0.8,
-        "cost_usd": 0.0443
+        "calls": 9,
+        "calls_per_turn": 2.25,
+        "prompt_tokens": 43605,
+        "completion_tokens": 836,
+        "cached_tokens": 35181,
+        "cached_share": 0.81,
+        "cost_usd": 0.0484
       }
     },
     "replies": [
-      "got it, setting that up for you",
-      "all set\u2014you'll get a reminder tomorrow at 9am. and noted, no cc'ing her manager on anything related to this.",
+      "got it, setting that reminder for tomorrow at 9am. noted about not cc'ing her manager.",
+      "all set \u2713",
       "changing it to 10am",
-      "done\u2014moved to 10am tomorrow",
       "checking your reminders",
-      "you have one reminder set for tomorrow at 10am\u2014send alice the lunch invoice. and i've got the note about not cc'ing her manager on anything related to this.",
+      "you've got one reminder set for tomorrow at 10am to send alice the lunch invoice",
       "setting those up for you",
-      "done\u2014you'll get reminded friday at 8am to call the dentist, and monday at noon to renew car insurance"
+      "both set \u2013 friday at 8am for the dentist call and monday at noon for car insurance renewal"
     ],
     "checks": {
       "moved_to_10am_confirmed": true,
       "reminder_list_names_the_invoice": true,
       "dentist_and_insurance_confirmed": true,
       "no_internal_ids_shown": true,
-      "replies": 8
+      "replies": 7
     },
     "agents_after": [
       "Car insurance renewal reminder",
@@ -73,54 +72,56 @@
     "turns": 4,
     "direct_relay": false,
     "calls_per_turn": 6.0,
-    "cached_share": 0.8,
+    "cached_share": 0.7,
     "total": {
       "calls": 24,
-      "prompt_tokens": 114305,
-      "completion_tokens": 2243,
-      "cached_tokens": 90922,
-      "cache_write_tokens": 0,
-      "cost_usd": 0.1311
+      "prompt_tokens": 115885,
+      "completion_tokens": 2394,
+      "cached_tokens": 80745,
+      "cache_write_tokens": 11151,
+      "cost_usd": 0.1739
     },
     "by_role": {
       "execution": {
         "calls": 10,
         "calls_per_turn": 2.5,
-        "prompt_tokens": 46111,
-        "completion_tokens": 1357,
-        "cached_tokens": 37134,
-        "cached_share": 0.81,
-        "cost_usd": 0.0584
+        "prompt_tokens": 46243,
+        "completion_tokens": 1507,
+        "cached_tokens": 26019,
+        "cached_share": 0.56,
+        "cost_usd": 0.0994
       },
       "interaction": {
         "calls": 14,
         "calls_per_turn": 3.5,
-        "prompt_tokens": 68194,
-        "completion_tokens": 886,
-        "cached_tokens": 53788,
+        "prompt_tokens": 69642,
+        "completion_tokens": 887,
+        "cached_tokens": 54726,
         "cached_share": 0.79,
-        "cost_usd": 0.0726
+        "cost_usd": 0.0745
       }
     },
     "replies": [
-      "Got it, setting that reminder for tomorrow at 9am. I'll make sure to keep this just between you and Alice\u2014no cc to her manager.",
-      "shifting it to 10am tomorrow",
+      "Got it, setting a reminder for tomorrow at 9am. I'll make sure to never cc Alice's manager on anything lunch invoice related.",
+      "all set \ud83d\udc4d",
+      "on it, moving it to 10am",
+      "done, it's now set for 10am tomorrow",
       "checking your reminders",
-      "You've got one reminder set for tomorrow at 10am\u2014send Alice the lunch invoice (and I won't cc her manager).",
-      "setting those up for you",
-      "All set\u2014Friday at 8am you'll get the dentist reminder, and Monday at noon for the car insurance."
+      "you've got one reminder set for tomorrow at 10am to send alice the lunch invoice (and i'll remember not to cc her manager)",
+      "setting those up now",
+      "done, you've got both reminders set\u2014friday at 8am for the dentist and monday at noon for car insurance"
     ],
     "checks": {
       "moved_to_10am_confirmed": true,
       "reminder_list_names_the_invoice": true,
       "dentist_and_insurance_confirmed": true,
       "no_internal_ids_shown": true,
-      "replies": 6
+      "replies": 8
     },
     "agents_after": [
-      "Car insurance renewal reminder",
-      "Dentist call reminder",
-      "Alice lunch invoice reminder"
+      "Car Insurance Renewal Reminder",
+      "Dentist Call Reminder",
+      "Alice Lunch Invoice Reminder"
     ],
     "agent_checks": {
       "dentist_has_own_agent": true,
@@ -132,45 +133,45 @@
     "early_exit": true,
     "turns": 4,
     "direct_relay": true,
-    "calls_per_turn": 4.0,
-    "cached_share": 0.65,
+    "calls_per_turn": 3.5,
+    "cached_share": 0.81,
     "total": {
-      "calls": 16,
-      "prompt_tokens": 75814,
-      "completion_tokens": 2089,
-      "cached_tokens": 49071,
-      "cache_write_tokens": 11151,
-      "cost_usd": 0.1346
+      "calls": 14,
+      "prompt_tokens": 65184,
+      "completion_tokens": 2091,
+      "cached_tokens": 52806,
+      "cache_write_tokens": 0,
+      "cost_usd": 0.0843
     },
     "by_role": {
       "execution": {
         "calls": 10,
         "calls_per_turn": 2.5,
-        "prompt_tokens": 46326,
-        "completion_tokens": 1440,
-        "cached_tokens": 26019,
-        "cached_share": 0.56,
-        "cost_usd": 0.0987
+        "prompt_tokens": 46193,
+        "completion_tokens": 1434,
+        "cached_tokens": 37170,
+        "cached_share": 0.8,
+        "cost_usd": 0.0597
       },
       "interaction": {
-        "calls": 6,
-        "calls_per_turn": 1.5,
-        "prompt_tokens": 29488,
-        "completion_tokens": 649,
-        "cached_tokens": 23052,
-        "cached_share": 0.78,
-        "cost_usd": 0.036
+        "calls": 4,
+        "calls_per_turn": 1.0,
+        "prompt_tokens": 18991,
+        "completion_tokens": 657,
+        "cached_tokens": 15636,
+        "cached_share": 0.82,
+        "cost_usd": 0.0246
       }
     },
     "replies": [
-      "Got it. Setting a reminder for tomorrow at 9am about the lunch invoice for Alice\u2014and I'll make sure her manager never gets cc'd on anything related to this.",
-      "reminder set for tomorrow at 9am to send alice the lunch invoice (won't cc her manager)",
-      "moving it to 10am",
+      "setting that up for you",
+      "reminder set for tomorrow at 9am to send alice the lunch invoice (her manager will never be cc'd)",
+      "changing it to 10am",
       "reminder moved to 10am tomorrow",
-      "I'll check what reminders you have set.",
-      "you have one reminder set for tomorrow at 10am to send alice the lunch invoice (won't cc her manager)",
-      "I'll set up both of those reminders for you.",
-      "reminder set for monday at noon to renew the car insurance\nreminder set for friday at 8am to call the dentist"
+      "checking your reminders",
+      "you have one reminder set for tomorrow at 10am to send alice the lunch invoice (with strict instruction to never cc her manager)",
+      "setting those up",
+      "reminder set for friday at 8am to call the dentist\nreminder set for monday at noon to renew car insurance"
     ],
     "checks": {
       "moved_to_10am_confirmed": true,
@@ -191,9 +192,9 @@
     }
   },
   "saving": {
-    "calls": 6,
-    "cost_share": -0.095,
-    "relay_calls_vs_early_exit": 2,
-    "relay_cost_share_vs_early_exit": 0.063
+    "calls": 5,
+    "cost_share": 0.154,
+    "relay_calls_vs_early_exit": 5,
+    "relay_cost_share_vs_early_exit": 0.427
   }
 }

@@ -26,8 +26,8 @@ Five numbers, each with the file it comes from, then the five things the numbers
 
 | What | Upstream | This fork | Source |
 |---|---|---|---|
-| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 72.5% (CI 64–80) | **94.2% (CI 88–97)**; 82.5% at 500 agents where upstream is at 54% | [`docs/live/final/scale/live_routing_150_agents_after_fixes.json`](docs/live/final/scale/live_routing_150_agents_after_fixes.json) |
-| Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,548 tokens (41%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
+| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 67.5% (CI 59–75) | **92.5% (CI 86–96)**, paired +25 points (+17, +34); 83% at 500 agents where upstream is at 58% | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
+| Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,664 tokens (43%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
 | Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
 | LLM calls for a four-turn reminder session through the real app | 24 | **14** (and the user told the right things, 4 of 4 checks) | [`docs/live/final/session_probe.json`](docs/live/final/session_probe.json) |
 | Modelled cost per day, 200 agents, 40 turns, long histories | $5.72 | **$3.10 (−46%)** | [`docs/live/final/cost_results.json`](docs/live/final/cost_results.json) |
@@ -105,7 +105,7 @@ seeds and same 120 queries per size, at three roster sizes
 |---|---|---|---|---|---|---|
 | 50 | 85.0% (78–90) | **90.0%** (83–94) | +5.8 points (−1.7, +14.2) | 0.21 | 5.8k → 5.5k | $0.98 → $0.90 |
 | 150 | 65.0% (56–73) | **90.0%** (83–94) | +22.5 (+14.2, +31.7) | 7 × 10⁻⁶ | 7.7k → 5.8k | $1.62 → $0.99 |
-| 150, after the held-out fixes | 72.5% (64–80) | **94.2%** (88–97) | +21.7 (+14.2, +30.0) | 2 × 10⁻⁷ | 7.9k → 5.6k | $1.66 → $0.94 |
+| 150, after the held-out fixes (two runs) | 72.5% (64–80); 67.5% (59–75) | **94.2%** (88–97); **92.5%** (86–96) | +21.7 (+14.2, +30.0); +25.0 (+16.7, +34.2) | 2 × 10⁻⁷; 2 × 10⁻⁷ | 7.9k → 5.6k | $1.66 → $0.94 |
 | 500 | 54.2% (45–63) | **82.5%** (75–88) | +28.3 (+18.3, +38.3) | 6 × 10⁻⁷ | 16.4k → 5.5k | $4.46 → $0.95 |
 | 500, after the held-out fixes | 58.3% (49–67) | **83.3%** (76–89) | +25.0 (+15.0, +35.0) | 5 × 10⁻⁶ | 16.4k → 5.5k | $4.44 → $0.95 |
 
@@ -679,15 +679,20 @@ moved to 10am tomorrow"; the content is the same, the wit is not. Three runs: th
 interaction-call count is the same every time (one per user turn) and its cost sits within two
 cents across runs, while the other arms move by up to 25% with the model's agent-naming choices.
 
-The full live suite was run twice on this branch with the same models, seeds and workload:
-once before the reminder-rule change ([`docs/live/relay/`](docs/live/relay/)) and once on the
-branch tip ([`docs/live/final/`](docs/live/final/)). Branch tip: routing **90.0%** on the
-budgeted roster (CI 83–94; upstream arm 65.0%; 11 `search_agents` calls for 7 needed, the new
-rule makes the model search before it creates), memory **2,548 tokens** at 136 entries (41% of
-upstream; every retention row 100%, stale 0%; the live extractor's fact count moves this cell
-between 37% and 43% across runs), `search_history` **8 of 8**, email **1.00 / 1.00** on the dev
-set and **1.00 / 1.00** held-out, Jev as router 42.5% vs LLM 87.5% (still off), the reminder
-probe **5 of 5** in 20 s, and the session probe's agent checks 3 of 3 arms. Across the six
+The full live suite was run three times on this branch with the same models, seeds and
+workload: before the reminder-rule change ([`docs/live/relay/`](docs/live/relay/)), after it,
+and finally on the code as it ships, after the held-out set's fixes
+([`docs/live/final/`](docs/live/final/), the run every cell in "Fifteen minutes" cites).
+Final run: routing **92.5%** on the budgeted roster (CI 86–96; upstream arm 67.5%; paired
++25.0 points, interval +16.7 to +34.2; 7 `search_agents` calls for 7 needed, 6 found; the
+model answered from a card once against upstream's six), memory **2,664 tokens** at 136
+entries (43% of upstream; every retention row 100%, stale 0%; the live extractor's fact count
+moves this cell between 37% and 43% across runs), `search_history` **8 of 8**, email
+**1.00 / 1.00** on the dev set and **1.00 / 1.00** held-out with the sweep naming (0.08, 0.5),
+Jev as router 42.5% vs LLM 90% (still off), the reminder probe **5 of 5** in 25 s, the session
+probe's content and agent checks passing in all three arms, and the relay arm at 4 interaction
+calls for 14 total (−43% cost against early exit on this run). Offline results are identical to
+the hardening archive. Across the six
 probe runs on this branch the relay arm's interaction calls were 4 / 4 / 4 / 5 / 6 / 6 against
 8–11 for early exit, and its cost saving against early exit was 46 / 32 / 42 / 48 / 11 / 6%:
 the call count is the signal, the cost spread is the execution agents' cache share (56–81%

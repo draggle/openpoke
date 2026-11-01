@@ -1,0 +1,66 @@
+[
+  {
+    "execution_runs_per_user_turn": 0.5,
+    "history_entries": 0,
+    "upstream_usd_per_day": 2.27,
+    "both_usd_per_day": 1.73,
+    "saving_pct": 23.6,
+    "execution_share_after": 21.7
+  },
+  {
+    "execution_runs_per_user_turn": 0.5,
+    "history_entries": 40,
+    "upstream_usd_per_day": 2.5,
+    "both_usd_per_day": 1.97,
+    "saving_pct": 21.1,
+    "execution_share_after": 31.2
+  },
+  {
+    "execution_runs_per_user_turn": 0.5,
+    "history_entries": 80,
+    "upstream_usd_per_day": 2.72,
+    "both_usd_per_day": 2.2,
+    "saving_pct": 19.2,
+    "execution_share_after": 38.3
+  },
+  {
+    "execution_runs_per_user_turn": 0.5,
+    "history_entries": 160,
+    "upstream_usd_per_day": 3.2,
+    "both_usd_per_day": 2.08,
+    "saving_pct": 34.9,
+    "execution_share_after": 34.9
+  },
+  {
+    "execution_runs_per_user_turn": 1.2,
+    "history_entries": 0,
+    "upstream_usd_per_day": 2.79,
+    "both_usd_per_day": 2.26,
+    "saving_pct": 19.2,
+    "execution_share_after": 39.9
+  },
+  {
+    "execution_runs_per_user_turn": 1.2,
+    "history_entries": 40,
+    "upstream_usd_per_day": 3.35,
+    "both_usd_per_day": 2.84,
+    "saving_pct": 15.3,
+    "execution_share_after": 52.2
+  },
+  {
+    "execution_runs_per_user_turn": 1.2,
+    "history_entries": 80,
+    "upstream_usd_per_day": 3.88,
+    "both_usd_per_day": 3.38,
+    "saving_pct": 12.9,
+    "execution_share_after": 59.8
+  },
+  {
+    "execution_runs_per_user_turn": 1.2,
+    "history_entries": 160,
+    "upstream_usd_per_day": 5.03,
+    "both_usd_per_day": 3.1,
+    "saving_pct": 38.4,
+    "execution_share_after": 56.2
+  }
+]
