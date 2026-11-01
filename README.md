@@ -26,7 +26,7 @@ Five numbers, each with the file it comes from, then the five things the numbers
 
 | What | Upstream | This fork | Source |
 |---|---|---|---|
-| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 67.5% (CI 59–75) | **92.5% (CI 86–96)**, paired +25 points (+17, +34); 83% at 500 agents where upstream is at 58% | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
+| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 67.5% (CI 59–75) | **92.5% (CI 86–96)**, paired +25 points (+17, +34); 83% at 500 and 74% at 1,000 agents, where upstream is at 58% and 39% | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
 | Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,664 tokens (43%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
 | Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
 | LLM calls for a four-turn reminder session through the real app | 24 | **14** (and the user told the right things, 4 of 4 checks) | [`docs/live/final/session_probe.json`](docs/live/final/session_probe.json) |
@@ -109,8 +109,18 @@ seeds and same 120 queries per size, at three roster sizes
 | 150, after the held-out fixes (two runs) | 72.5% (64–80); 67.5% (59–75) | **94.2%** (88–97); **92.5%** (86–96) | +21.7 (+14.2, +30.0); +25.0 (+16.7, +34.2) | 2 × 10⁻⁷; 2 × 10⁻⁷ | 7.9k → 5.6k | $1.66 → $0.94 |
 | 500 | 54.2% (45–63) | **82.5%** (75–88) | +28.3 (+18.3, +38.3) | 6 × 10⁻⁷ | 16.4k → 5.5k | $4.46 → $0.95 |
 | 500, after the held-out fixes | 58.3% (49–67) | **83.3%** (76–89) | +25.0 (+15.0, +35.0) | 5 × 10⁻⁶ | 16.4k → 5.5k | $4.44 → $0.95 |
+| 1,000, after the held-out fixes | 39.2% (31–48) | **74.2%** (66–81) | +35.8 (+24.2, +46.7) | 2 × 10⁻⁸ | 28.0k → 5.4k | $8.54 → $0.96 |
 
-The "after" rows were run once each on the code as it ships; the 500-agent run survived ten
+At 1,000 agents upstream's roster is 28k tokens a query and the model picks right 39% of the
+time; the fork's prompt is the same 5.4k it was at 50 and it picks right 74%. The fork's own
+losses at 1,000 are topic-only follow-ups (47%): "where are we on the invoice" with a dozen
+invoice threads for a dozen people, and the model searched once in 120 queries when nine
+needed it. One ablation was run to see whether the budget itself was the limit: 16 shown
+instead of 12 at 500 agents scored 79.2% (71–86) against 83.3% with 12, at 4% more prompt
+tokens ([`ablation_500_agents_16_slots.json`](docs/live/final/scale/ablation_500_agents_16_slots.json)).
+Showing more did not help, so 12 stays; the misses at scale are the model choosing among
+lookalike threads, not the target being absent. The "after" rows were run once each on the
+code as it ships; the 500-agent run survived ten
 transient TLS failures because the evaluator now retries a dropped connection (two earlier
 attempts had died on the first one). Read it as a curve, not three wins. At 50 agents upstream is not overloaded: 85% from a list
 of 50 bare names, and the fork's five-point edge is inside the noise. The problem the
