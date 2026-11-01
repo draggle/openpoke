@@ -117,6 +117,56 @@ among the twelve shown (it searched 3 times in 120 queries at 500 and needed to 
 by-kind rows are in the files: at 500 the fork loses on person-only and topic-only follow-ups
 (70% each), the two kinds where several threads share the word the user gave.
 
+### A held-out routing set, written by hand before it was run
+
+Every routing number above comes from queries my own generator drew, from the same lists the
+roster selection was tuned against. `evals/heldout_routing.json` is the check on that: 50
+agents and 72 follow-ups written by hand in one sitting, with the failure modes a real roster
+has and the generator does not draw on purpose (two agents for the same person told apart by
+one word, nicknames, misspelt names, paraphrases with none of the agent's words, and entities
+that live only in an agent's instructions), and the pass bar written into the file *before*
+the first run and pinned by a test. Both arms, same model and history as above
+([`docs/live/final/heldout/`](docs/live/final/heldout/)).
+
+**The first run failed the bar, and that is the most useful result in this README.** Fork
+56.9%, upstream 79.2%, paired difference −22 points (p = 0.003), 5 of 10 bars met. The misses
+had three causes, none of them the roster's retrieval (offline, the target was in the 12-slot
+roster for 50 of 72 queries and in `search_agents`' top five for 64 of 72):
+
+- **15 of 31: the model answered from the card instead of delegating.** The roster shows each
+  agent's last result; asked "what did Priya say about the invoice?", the model read the card
+  and replied "accounts will release it by Friday". Right content, wrong policy: the card may
+  be stale, and upstream's bare names never tempt it. Fix: the prompt says descriptions are for
+  choosing, not answering, and the evaluator now reports *answered from card* as its own row.
+- **8: the did-you-mean guard was silent.** A broad "Inbox check" agent absorbed "anything
+  from Bob?", and four follow-ups about Ironwood, Fibrelink, Dr. Alvarez and Petal & Stem got
+  brand-new agents although an agent's instructions already named each. The person guard had
+  fired once in 120 live queries because it anchored on the model's *instructions*, which
+  always echo the chosen agent's name ("check the inbox for anything from Bob"). Fix: the turn
+  keeps the user's message and the guard anchors on that; a second guard refuses, once, a new
+  agent for a follow-up about an entity an existing agent owns. Offline precision is
+  unchanged: 0 false fires on 120 correct picks, 60 of 60 wrong-person picks caught.
+- **3: misspelt names.** Lexical matching cannot see "Sharanjit" or "Katherin". Fix: a query
+  token no agent contains is matched by edit distance against the *people* the agents name
+  (never against ordinary words: an earlier trigram version pulled "remind" into "reminder" and
+  cost seven points of synthetic recall before it was caught), on by default.
+
+**Second run, same set, after those fixes:** fork **83.3%** (CI 73–90), upstream 81.9%,
+paired difference +1.4 (−9.7, +12.5), the guard fired 5 times and was right 5 times, 7 of 10
+bars met. By kind, before → after: keyword 60 → 100, typo 50 → 100, name-opaque 38 → 88,
+nickname 83 → 100, recency 88 → 100, lookalike 40 → 60, paraphrase 50 → 62, person-only
+25 → 62, topic-only 88 → 88. The three bars still missed, and why: *upstream at most 75%*
+(it scored 82%: at 50 agents upstream is simply not overloaded, which is what the curve says,
+so the bar was wrong, not the code); *paired interval excludes zero* (same reason: at this
+size the two arms are tied); *lookalike at least 80%* (60%: of the four misses, three were
+the model answering from the card despite the rule, and one a search the model did not
+recognise as a hit). The twelve remaining misses are listed in the log; four are still
+answers from the card, which the prompt reduced from fifteen but did not remove.
+
+What this set does and does not say: the fork went from losing by 22 points to a tie at 50
+agents on queries it was never tuned on, and the fixes it forced carry over to every roster
+size. It is 72 queries by one author, run twice; it is not a real inbox.
+
 ### Live memory: what survives compaction (LLM extractor, Claude Haiku 4.5)
 
 Source: [`docs/live/round3/memory_results_live.json`](docs/live/round3/memory_results_live.json)
@@ -470,7 +520,9 @@ that restores the round-two behaviour.
   ([`guard_check.json`](docs/live/round3/guard_check.json), `python -m evals.guard_check`): 0 false
   fires on 120 correct picks, 60 of 60 wrong-person picks caught. The prompt also says to search
   before picking another person's agent. `OPENPOKE_ROUTING_GUARD=0` turns it off; the upstream
-  arm of the eval never has it.
+  arm of the eval never has it. The held-out set later showed the guard anchoring on the
+  model's instructions rather than the user's words, which silenced it; see the held-out
+  section for the fix and the second guard that came with it.
 - **One LLM call fewer per turn.** The interaction loop used to make a follow-up call after the
   model had already told the user and dispatched the agent; that call produces nothing the user
   sees (the reply is always the last `send_message_to_user`). The loop now ends once the user
