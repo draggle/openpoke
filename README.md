@@ -107,8 +107,11 @@ seeds and same 120 queries per size, at three roster sizes
 | 150 | 65.0% (56–73) | **90.0%** (83–94) | +22.5 (+14.2, +31.7) | 7 × 10⁻⁶ | 7.7k → 5.8k | $1.62 → $0.99 |
 | 150, after the held-out fixes | 72.5% (64–80) | **94.2%** (88–97) | +21.7 (+14.2, +30.0) | 2 × 10⁻⁷ | 7.9k → 5.6k | $1.66 → $0.94 |
 | 500 | 54.2% (45–63) | **82.5%** (75–88) | +28.3 (+18.3, +38.3) | 6 × 10⁻⁷ | 16.4k → 5.5k | $4.46 → $0.95 |
+| 500, after the held-out fixes | 58.3% (49–67) | **83.3%** (76–89) | +25.0 (+15.0, +35.0) | 5 × 10⁻⁶ | 16.4k → 5.5k | $4.44 → $0.95 |
 
-Read it as a curve, not three wins. At 50 agents upstream is not overloaded: 85% from a list
+The "after" rows were run once each on the code as it ships; the 500-agent run survived ten
+transient TLS failures because the evaluator now retries a dropped connection (two earlier
+attempts had died on the first one). Read it as a curve, not three wins. At 50 agents upstream is not overloaded: 85% from a list
 of 50 bare names, and the fork's five-point edge is inside the noise. The problem the
 take-home names appears between 50 and 150, and by 500 upstream is at 54% and costs four and
 a half times as much per query. The fork's cost and prompt size are flat across the curve

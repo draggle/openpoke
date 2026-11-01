@@ -1,0 +1,262 @@
+[all s7] OK  keyword    what did Tara say about the lunch invite?     -> 'Email to Tara about lunch' (want 'Email to Tara about lunch') [search x1]
+[all s7] OK  name_only  anything from Elena?                          -> 'Email to Elena about job offer' (want 'Email to Elena about job offer') [search x1]
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s7] OK  topic_only any update on the payroll?                    -> 'Email to Bob about payroll' (want 'Email to Bob about payroll')
+[all s7] OK  recency    go ahead                                      -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[all s7] MISS keyword    cancel the gym thing with mateo               -> 'Email to Mateo about gym' (want 'Reminder: gym (Mateo)')
+[all s7] MISS name_only  anything from Marcus?                         -> 'Marcus Dinner Plans' (want 'Email to Marcus about car service')
+[all s7] MISS topic_only any update on the visa?                       -> 'Visa Paperwork with Tomasz' (want 'Carlos Visa Paperwork') [search x1]
+[all s7] MISS recency    ok send it                                    -> 'Tomasz Reference Letter Request' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    any update on the dinner with rosa            -> 'Dinner Plans with Rosa' (want 'Dinner Plans with Rosa')
+[all s7] OK  name_only  did bob reply?                                -> 'Email to Bob about payroll' (want 'Email to Bob about payroll') [search x1]
+[all s7] OK  topic_only where are we on the apartment viewing         -> 'Bob Apartment Viewing' (want 'Bob Apartment Viewing') [search x1]
+[all s7] MISS recency    go ahead                                      -> 'Tomasz Reference Letter Request' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    cancel the vet thing with keith               -> 'Email to Keith about vet' (want 'Email to Keith about vet')
+[all s7] MISS name_only  nudge tara again                              -> 'Tara Conference Talk Proposal' (want 'Email to Tara about gym')
+[all s7] OK  topic_only any update on the wedding?                    -> 'Wedding Rsvp with Alice' (want 'Wedding Rsvp with Alice')
+[all s7] OK  recency    any news?                                     -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    any update on the tax documents with Omar     -> 'Omar Tax Documents' (want 'Omar Tax Documents')
+[all s7] OK  name_only  did felix reply?                              -> 'Insurance Claim with Felix' (want 'Insurance Claim with Felix') [search x1]
+[all s7] MISS topic_only is the apartment sorted yet                   -> 'Apartment Viewing with Hugo' (want 'Bob Apartment Viewing')
+[all s7] OK  recency    what did they say                             -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    remind me what we told dmitri about the birth -> 'Dmitri Birthday Gift Ideas' (want 'Dmitri Birthday Gift Ideas')
+[all s7] OK  name_only  did Diego reply?                              -> 'Diego Gym Membership' (want 'Diego Gym Membership') [search x1]
+[all s7] OK  topic_only is the car service sorted yet                 -> 'Follow up with Sharanjeet - car service' (want 'Follow up with Sharanjeet - car service') [search x1]
+[all s7] MISS recency    go ahead                                      -> 'Tomasz Reference Letter Request' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    remind me what we told Sven about the confere -> 'Conference Talk Proposal with Sven' (want 'Conference Talk Proposal with Sven')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s7] MISS name_only  anything from Sofia?                          -> 'Sofia Tax Documents' (want 'Sofia Lunch Invite')
+[all s7] MISS topic_only is the flight sorted yet                      -> 'Flight Confirmation with Priya' (want 'Follow up with Aisha - flight')
+[all s7] MISS recency    did he reply?                                 -> 'Tomasz Reference Letter Request' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    remind me what we told Greta about the tax do -> 'Follow up with Greta - tax documents' (want 'Follow up with Greta - tax documents')
+[all s7] OK  name_only  what's the latest with Tomasz                 -> 'Tomasz Reference Letter Request' (want 'Tomasz Reference Letter Request')
+[all s7] MISS topic_only is the tax documents sorted yet               -> None (want 'Reminder: tax documents (Bob)') [search x1]
+[all s7] OK  recency    any news?                                     -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[all s7] OK  keyword    cancel the flight thing with Aisha            -> 'Follow up with Aisha - flight' (want 'Follow up with Aisha - flight')
+[all s7] OK  name_only  anything from nia?                            -> 'Reminder: lunch (Nia)' (want 'Reminder: lunch (Nia)') [search x1]
+[all s7] OK  topic_only any update on the warranty?                   -> 'Laptop Warranty with Tomasz' (want 'Laptop Warranty with Tomasz') [search x1]
+[all s7] MISS recency    go ahead                                      -> 'Tomasz Reference Letter Request' (want 'Follow up with Rafael - insurance')
+[all s7] MISS keyword    remind me what we told Keith about the lunch  -> 'Keith Lunch Invite' (want 'Email to Keith about lunch')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s7] MISS name_only  nudge hannah again                            -> None (want 'Hannah Job Offer Details') [search x1]
+[all s7] MISS topic_only where are we on the hotel reservation         -> None (want 'Email to Liam about hotel') [search x1]
+[all s7] MISS recency    yes do that                                   -> None (want 'Follow up with Rafael - insurance')
+[all s8] OK  keyword    remind me what we told Noor about the hotel   -> 'Noor Hotel Reservation' (want 'Noor Hotel Reservation')
+[all s8] OK  name_only  what's the latest with carlos                 -> 'October Invoice with Carlos' (want 'October Invoice with Carlos') [search x1]
+[all s8] OK  topic_only any update on the apartment?                  -> 'Apartment Viewing with Jonah' (want 'Apartment Viewing with Jonah')
+[all s8] OK  recency    any news?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s8] MISS keyword    did sharanjeet get back to me about the dinne -> 'Follow up with Sharanjeet - dinner' (want 'Reminder: dinner (Sharanjeet)')
+[all s8] OK  name_only  what's the latest with Diego                  -> 'Email to Diego about hotel' (want 'Email to Diego about hotel') [search x1]
+[all s8] MISS topic_only where are we on the reference letter request  -> None (want 'Email to Sharanjeet about reference letter') [search x1]
+[all s8] MISS recency    what did they say                             -> None (want 'Follow up with Rosa - flight')
+[all s8] OK  keyword    what did keith say about the rent payment?    -> 'Reminder: rent (Keith)' (want 'Reminder: rent (Keith)') [search x1]
+[all s8] OK  name_only  did noor reply?                               -> 'Flight Confirmation with Noor' (want 'Flight Confirmation with Noor') [search x1]
+[all s8] MISS topic_only is the conference talk sorted yet             -> 'Conference Talk Proposal with Dmitri' (want 'Reminder: conference talk (Alice)')
+[all s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s8] OK  keyword    cancel the dentist thing with Rosa            -> 'Dentist Appointment with Rosa' (want 'Dentist Appointment with Rosa')
+[all s8] MISS name_only  did Keith reply?                              -> 'Keith Flight Confirmation' (want 'Follow up with Keith - contract')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[retry 2/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[retry 3/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s8] MISS topic_only is the job offer sorted yet                   -> None (want 'Email to Marcus about job offer') [search x1]
+[all s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s8] OK  keyword    cancel the payroll thing with Marcus          -> 'Email to Marcus about payroll' (want 'Email to Marcus about payroll')
+[all s8] OK  name_only  did felix reply?                              -> 'Email to Felix about rent' (want 'Email to Felix about rent') [search x1]
+[all s8] MISS topic_only any update on the lunch?                      -> 'Email to Elena about lunch' (want 'Lunch Invite with Tomasz')
+[all s8] OK  recency    any news?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight') [search x1]
+[all s8] OK  keyword    remind me what we told bob about the birthday -> 'Bob Birthday Gift Ideas' (want 'Bob Birthday Gift Ideas')
+[all s8] MISS name_only  anything from nia?                            -> 'Nia Reference Letter Request' (want 'Reminder: car service (Nia)')
+[all s8] MISS topic_only is the birthday gift sorted yet               -> 'Birthday Gift Ideas with Tara' (want 'Birthday Gift Ideas with Hannah')
+[all s8] OK  recency    and then?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s8] OK  keyword    what did Diego say about the book club pick?  -> 'Reminder: book club (Diego)' (want 'Reminder: book club (Diego)') [search x1]
+[all s8] OK  name_only  did Ingrid reply?                             -> 'Ingrid Wedding Rsvp' (want 'Ingrid Wedding Rsvp')
+[all s8] OK  topic_only any update on the book club?                  -> 'Aisha Book Club Pick' (want 'Aisha Book Club Pick') [search x1]
+[all s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s8] OK  keyword    cancel the tuition thing with rosa            -> 'Reminder: tuition (Rosa)' (want 'Reminder: tuition (Rosa)')
+[all s8] OK  name_only  anything from Luca?                           -> 'Luca Flight Confirmation' (want 'Luca Flight Confirmation') [search x1]
+[all s8] MISS topic_only is the dinner sorted yet                      -> 'Email to Liam about dinner' (want 'Reminder: dinner (Marcus)')
+[all s8] OK  recency    any news?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s8] OK  keyword    remind me what we told Diego about the contra -> 'Follow up with Diego - contract' (want 'Follow up with Diego - contract')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s8] OK  name_only  what's the latest with liam                   -> 'Lunch Invite with Liam' (want 'Lunch Invite with Liam') [search x1]
+[all s8] MISS topic_only is the job offer sorted yet                   -> None (want 'Email to Marcus about job offer') [search x1]
+[all s8] OK  recency    and then?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s8] OK  keyword    remind me what we told fatima about the confe -> 'Fatima Conference Talk Proposal' (want 'Fatima Conference Talk Proposal')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s8] MISS name_only  nudge Ravi again                              -> 'Email to Ravi about invoice' (want 'Email to Ravi about flight') [search x1]
+[all s8] OK  topic_only any update on the hotel?                      -> 'Email to Diego about hotel' (want 'Email to Diego about hotel')
+[all s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[all s9] OK  keyword    remind me what we told bob about the dinner   -> 'Bob Dinner Plans' (want 'Bob Dinner Plans')
+[all s9] MISS name_only  anything from Hugo?                           -> 'Hugo Conference Talk Proposal' (want 'Book Club Pick with Hugo')
+[retry 1/3] SSLError: [SSL: SSLV3_ALERT_BAD_RECORD_MAC] sslv3 alert bad record mac (_ssl.c:2710)
+[all s9] MISS topic_only where are we on the birthday gift ideas       -> 'Birthday Gift Ideas with Aisha' (want 'Luca Birthday Gift Ideas')
+[all s9] OK  recency    any news?                                     -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[all s9] MISS keyword    did ivy get back to me about the visa paperwo -> 'Visa Paperwork with Ivy' (want 'Email to Ivy about visa')
+[all s9] MISS name_only  nudge yuki again                              -> 'Follow up with Yuki - conference talk' (want 'Follow up with Yuki - book club') [search x1]
+[all s9] MISS topic_only where are we on the insurance claim           -> None (want 'Email to Yuki about insurance') [search x1]
+[all s9] OK  recency    what did they say                             -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[all s9] OK  keyword    any update on the invoice with sofia          -> 'Follow up with Sofia - invoice' (want 'Follow up with Sofia - invoice')
+[all s9] OK  name_only  nudge priya again                             -> 'Email to Priya about dinner' (want 'Email to Priya about dinner') [search x1]
+[all s9] OK  topic_only where are we on the job offer details         -> 'Alice Job Offer Details' (want 'Alice Job Offer Details')
+[all s9] OK  recency    did she reply?                                -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[all s9] OK  keyword    did bob get back to me about the rent payment -> 'Bob Rent Payment' (want 'Bob Rent Payment')
+[all s9] OK  name_only  nudge Mateo again                             -> 'Email to Mateo about lunch' (want 'Email to Mateo about lunch') [search x1]
+[all s9] MISS topic_only where are we on the insurance claim           -> None (want 'Email to Yuki about insurance') [search x1]
+[all s9] MISS recency    go ahead                                      -> None (want 'Elena Lunch Invite')
+[all s9] MISS keyword    any update on the lunch with mei              -> 'Lunch Invite with Mei' (want 'Reminder: lunch (Mei)')
+[all s9] OK  name_only  anything from luca?                           -> 'Luca Birthday Gift Ideas' (want 'Luca Birthday Gift Ideas') [search x1]
+[all s9] OK  topic_only where are we on the birthday gift ideas       -> 'Luca Birthday Gift Ideas' (want 'Luca Birthday Gift Ideas') [search x1]
+[all s9] MISS recency    yes do that                                   -> None (want 'Elena Lunch Invite')
+[all s9] MISS keyword    cancel the warranty thing with leila          -> 'Follow up with Leila - warranty' (want 'Leila Laptop Warranty')
+[all s9] MISS name_only  did omar reply?                               -> 'Follow up with Omar - dinner' (want 'Email to Omar about apartment')
+[all s9] MISS topic_only any update on the vet?                        -> 'Email to Alice about vet' (want 'Email to Bob about vet')
+[all s9] OK  recency    did she reply?                                -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[all s9] OK  keyword    cancel the book club thing with sharanjeet    -> 'Email to Sharanjeet about book club' (want 'Email to Sharanjeet about book club')
+[all s9] OK  name_only  what's the latest with keith                  -> 'Follow up with Keith - flight' (want 'Follow up with Keith - flight') [search x1]
+[all s9] MISS topic_only where are we on the tax documents             -> 'Follow up with Sven - tax documents' (want 'Reminder: tax documents (Bob)') [search x1]
+[all s9] MISS recency    did he reply?                                 -> None (want 'Elena Lunch Invite')
+[all s9] MISS keyword    cancel the dinner thing with omar             -> 'Omar Dinner Plans' (want 'Email to Omar about dinner')
+[all s9] OK  name_only  anything from Priya?                          -> 'Email to Priya about dinner' (want 'Email to Priya about dinner') [search x1]
+[all s9] MISS topic_only is the gym sorted yet                         -> 'Gym Membership with Alice' (want 'Email to Diego about gym')
+[all s9] OK  recency    ok send it                                    -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[all s9] OK  keyword    what did Mei say about the book club pick?    -> 'Follow up with Mei - book club' (want 'Follow up with Mei - book club') [search x1]
+[all s9] MISS name_only  nudge rosa again                              -> 'Follow up with Rosa - conference talk' (want 'October Invoice with Rosa') [search x1]
+[all s9] MISS topic_only is the warranty sorted yet                    -> 'Email to Marcus about warranty' (want 'Laptop Warranty with Priya')
+[all s9] OK  recency    ok send it                                    -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[all s9] MISS keyword    any update on the vet with noor               -> 'Follow up with Noor - vet' (want 'Email to Noor about vet')
+[all s9] MISS name_only  did Carlos reply?                             -> None (want 'Email to Carlos about invoice') [search x1]
+[all s9] MISS topic_only is the insurance sorted yet                   -> 'Insurance Claim with Greta' (want 'Email to Yuki about insurance')
+[all s9] OK  recency    go ahead                                      -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s7] OK  keyword    what did Tara say about the lunch invite?     -> 'Email to Tara about lunch' (want 'Email to Tara about lunch')
+[budgeted s7] OK  name_only  anything from Elena?                          -> 'Email to Elena about job offer' (want 'Email to Elena about job offer')
+[budgeted s7] OK  topic_only any update on the payroll?                    -> 'Email to Bob about payroll' (want 'Email to Bob about payroll')
+[budgeted s7] OK  recency    go ahead                                      -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    cancel the gym thing with mateo               -> 'Reminder: gym (Mateo)' (want 'Reminder: gym (Mateo)')
+[budgeted s7] OK  name_only  anything from Marcus?                         -> 'Email to Marcus about car service' (want 'Email to Marcus about car service')
+[budgeted s7] OK  topic_only any update on the visa?                       -> 'Carlos Visa Paperwork' (want 'Carlos Visa Paperwork')
+[budgeted s7] OK  recency    ok send it                                    -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    any update on the dinner with rosa            -> 'Dinner Plans with Rosa' (want 'Dinner Plans with Rosa')
+[budgeted s7] OK  name_only  did bob reply?                                -> 'Email to Bob about payroll' (want 'Email to Bob about payroll')
+[budgeted s7] OK  topic_only where are we on the apartment viewing         -> 'Bob Apartment Viewing' (want 'Bob Apartment Viewing')
+[budgeted s7] OK  recency    go ahead                                      -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    cancel the vet thing with keith               -> 'Email to Keith about vet' (want 'Email to Keith about vet')
+[budgeted s7] MISS name_only  nudge tara again                              -> 'Tara Conference Talk Proposal' (want 'Email to Tara about gym')
+[budgeted s7] OK  topic_only any update on the wedding?                    -> 'Wedding Rsvp with Alice' (want 'Wedding Rsvp with Alice')
+[budgeted s7] OK  recency    any news?                                     -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    any update on the tax documents with Omar     -> 'Omar Tax Documents' (want 'Omar Tax Documents')
+[budgeted s7] MISS name_only  did felix reply?                              -> 'Follow up with Felix - invoice' (want 'Insurance Claim with Felix')
+[budgeted s7] MISS topic_only is the apartment sorted yet                   -> 'Follow up with Bob - apartment' (want 'Bob Apartment Viewing')
+[budgeted s7] OK  recency    what did they say                             -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    remind me what we told dmitri about the birth -> 'Dmitri Birthday Gift Ideas' (want 'Dmitri Birthday Gift Ideas')
+[budgeted s7] OK  name_only  did Diego reply?                              -> 'Diego Gym Membership' (want 'Diego Gym Membership') [search x1]
+[budgeted s7] OK  topic_only is the car service sorted yet                 -> 'Follow up with Sharanjeet - car service' (want 'Follow up with Sharanjeet - car service')
+[budgeted s7] OK  recency    go ahead                                      -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    remind me what we told Sven about the confere -> 'Conference Talk Proposal with Sven' (want 'Conference Talk Proposal with Sven')
+[budgeted s7] OK  name_only  anything from Sofia?                          -> 'Sofia Lunch Invite' (want 'Sofia Lunch Invite')
+[budgeted s7] OK  topic_only is the flight sorted yet                      -> 'Follow up with Aisha - flight' (want 'Follow up with Aisha - flight')
+[budgeted s7] OK  recency    did he reply?                                 -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    remind me what we told Greta about the tax do -> 'Follow up with Greta - tax documents' (want 'Follow up with Greta - tax documents')
+[budgeted s7] OK  name_only  what's the latest with Tomasz                 -> 'Tomasz Reference Letter Request' (want 'Tomasz Reference Letter Request')
+[budgeted s7] OK  topic_only is the tax documents sorted yet               -> 'Reminder: tax documents (Bob)' (want 'Reminder: tax documents (Bob)')
+[budgeted s7] OK  recency    any news?                                     -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    cancel the flight thing with Aisha            -> 'Follow up with Aisha - flight' (want 'Follow up with Aisha - flight')
+[budgeted s7] OK  name_only  anything from nia?                            -> 'Reminder: lunch (Nia)' (want 'Reminder: lunch (Nia)')
+[budgeted s7] MISS topic_only any update on the warranty?                   -> 'Follow up with Bob - warranty' (want 'Laptop Warranty with Tomasz')
+[budgeted s7] OK  recency    go ahead                                      -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s7] OK  keyword    remind me what we told Keith about the lunch  -> 'Email to Keith about lunch' (want 'Email to Keith about lunch')
+[budgeted s7] MISS name_only  nudge hannah again                            -> None (want 'Hannah Job Offer Details')
+[budgeted s7] MISS topic_only where are we on the hotel reservation         -> 'Follow up with Priya - hotel' (want 'Email to Liam about hotel')
+[budgeted s7] OK  recency    yes do that                                   -> 'Follow up with Rafael - insurance' (want 'Follow up with Rafael - insurance')
+[budgeted s8] OK  keyword    remind me what we told Noor about the hotel   -> 'Noor Hotel Reservation' (want 'Noor Hotel Reservation')
+[budgeted s8] MISS name_only  what's the latest with carlos                 -> 'Follow up with Carlos - visa' (want 'October Invoice with Carlos')
+[budgeted s8] OK  topic_only any update on the apartment?                  -> 'Apartment Viewing with Jonah' (want 'Apartment Viewing with Jonah')
+[budgeted s8] OK  recency    any news?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    did sharanjeet get back to me about the dinne -> 'Reminder: dinner (Sharanjeet)' (want 'Reminder: dinner (Sharanjeet)')
+[budgeted s8] OK  name_only  what's the latest with Diego                  -> 'Email to Diego about hotel' (want 'Email to Diego about hotel')
+[budgeted s8] OK  topic_only where are we on the reference letter request  -> 'Email to Sharanjeet about reference letter' (want 'Email to Sharanjeet about reference letter')
+[budgeted s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    what did keith say about the rent payment?    -> 'Reminder: rent (Keith)' (want 'Reminder: rent (Keith)')
+[budgeted s8] OK  name_only  did noor reply?                               -> 'Flight Confirmation with Noor' (want 'Flight Confirmation with Noor')
+[budgeted s8] OK  topic_only is the conference talk sorted yet             -> 'Reminder: conference talk (Alice)' (want 'Reminder: conference talk (Alice)')
+[budgeted s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    cancel the dentist thing with Rosa            -> 'Dentist Appointment with Rosa' (want 'Dentist Appointment with Rosa')
+[budgeted s8] OK  name_only  did Keith reply?                              -> 'Follow up with Keith - contract' (want 'Follow up with Keith - contract')
+[budgeted s8] OK  topic_only is the job offer sorted yet                   -> 'Email to Marcus about job offer' (want 'Email to Marcus about job offer')
+[budgeted s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    cancel the payroll thing with Marcus          -> 'Email to Marcus about payroll' (want 'Email to Marcus about payroll') [search x1]
+[budgeted s8] OK  name_only  did felix reply?                              -> 'Email to Felix about rent' (want 'Email to Felix about rent') [search x1]
+[budgeted s8] MISS topic_only any update on the lunch?                      -> 'Follow up with Rosa - flight' (want 'Lunch Invite with Tomasz')
+[budgeted s8] OK  recency    any news?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    remind me what we told bob about the birthday -> 'Bob Birthday Gift Ideas' (want 'Bob Birthday Gift Ideas')
+[budgeted s8] OK  name_only  anything from nia?                            -> 'Reminder: car service (Nia)' (want 'Reminder: car service (Nia)')
+[budgeted s8] OK  topic_only is the birthday gift sorted yet               -> 'Birthday Gift Ideas with Hannah' (want 'Birthday Gift Ideas with Hannah')
+[budgeted s8] OK  recency    and then?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    what did Diego say about the book club pick?  -> 'Reminder: book club (Diego)' (want 'Reminder: book club (Diego)')
+[budgeted s8] OK  name_only  did Ingrid reply?                             -> 'Ingrid Wedding Rsvp' (want 'Ingrid Wedding Rsvp')
+[budgeted s8] OK  topic_only any update on the book club?                  -> 'Aisha Book Club Pick' (want 'Aisha Book Club Pick')
+[budgeted s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    cancel the tuition thing with rosa            -> 'Reminder: tuition (Rosa)' (want 'Reminder: tuition (Rosa)')
+[budgeted s8] OK  name_only  anything from Luca?                           -> 'Luca Flight Confirmation' (want 'Luca Flight Confirmation')
+[budgeted s8] MISS topic_only is the dinner sorted yet                      -> None (want 'Reminder: dinner (Marcus)')
+[budgeted s8] OK  recency    any news?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    remind me what we told Diego about the contra -> 'Follow up with Diego - contract' (want 'Follow up with Diego - contract')
+[budgeted s8] MISS name_only  what's the latest with liam                   -> 'Follow up with Liam - contract' (want 'Lunch Invite with Liam')
+[budgeted s8] OK  topic_only is the job offer sorted yet                   -> 'Email to Marcus about job offer' (want 'Email to Marcus about job offer')
+[budgeted s8] OK  recency    and then?                                     -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s8] OK  keyword    remind me what we told fatima about the confe -> 'Fatima Conference Talk Proposal' (want 'Fatima Conference Talk Proposal')
+[budgeted s8] MISS name_only  nudge Ravi again                              -> None (want 'Email to Ravi about flight')
+[budgeted s8] OK  topic_only any update on the hotel?                      -> 'Email to Diego about hotel' (want 'Email to Diego about hotel')
+[budgeted s8] OK  recency    what did they say                             -> 'Follow up with Rosa - flight' (want 'Follow up with Rosa - flight')
+[budgeted s9] OK  keyword    remind me what we told bob about the dinner   -> 'Bob Dinner Plans' (want 'Bob Dinner Plans')
+[budgeted s9] OK  name_only  anything from Hugo?                           -> 'Book Club Pick with Hugo' (want 'Book Club Pick with Hugo')
+[budgeted s9] OK  topic_only where are we on the birthday gift ideas       -> 'Luca Birthday Gift Ideas' (want 'Luca Birthday Gift Ideas')
+[budgeted s9] OK  recency    any news?                                     -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    did ivy get back to me about the visa paperwo -> 'Email to Ivy about visa' (want 'Email to Ivy about visa')
+[budgeted s9] MISS name_only  nudge yuki again                              -> None (want 'Follow up with Yuki - book club')
+[budgeted s9] MISS topic_only where are we on the insurance claim           -> 'Email to Tomasz about insurance' (want 'Email to Yuki about insurance')
+[budgeted s9] OK  recency    what did they say                             -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    any update on the invoice with sofia          -> 'Follow up with Sofia - invoice' (want 'Follow up with Sofia - invoice')
+[budgeted s9] MISS name_only  nudge priya again                             -> None (want 'Email to Priya about dinner')
+[budgeted s9] OK  topic_only where are we on the job offer details         -> 'Alice Job Offer Details' (want 'Alice Job Offer Details')
+[budgeted s9] OK  recency    did she reply?                                -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] MISS keyword    did bob get back to me about the rent payment -> 'Reminder: tax documents (Bob)' (want 'Bob Rent Payment')
+[budgeted s9] OK  name_only  nudge Mateo again                             -> 'Email to Mateo about lunch' (want 'Email to Mateo about lunch')
+[budgeted s9] MISS topic_only where are we on the insurance claim           -> 'Email to Tomasz about insurance' (want 'Email to Yuki about insurance')
+[budgeted s9] OK  recency    go ahead                                      -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    any update on the lunch with mei              -> 'Reminder: lunch (Mei)' (want 'Reminder: lunch (Mei)')
+[budgeted s9] OK  name_only  anything from luca?                           -> 'Luca Birthday Gift Ideas' (want 'Luca Birthday Gift Ideas')
+[budgeted s9] OK  topic_only where are we on the birthday gift ideas       -> 'Luca Birthday Gift Ideas' (want 'Luca Birthday Gift Ideas')
+[budgeted s9] OK  recency    yes do that                                   -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    cancel the warranty thing with leila          -> 'Leila Laptop Warranty' (want 'Leila Laptop Warranty')
+[budgeted s9] OK  name_only  did omar reply?                               -> 'Email to Omar about apartment' (want 'Email to Omar about apartment')
+[budgeted s9] OK  topic_only any update on the vet?                        -> 'Email to Bob about vet' (want 'Email to Bob about vet')
+[budgeted s9] OK  recency    did she reply?                                -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    cancel the book club thing with sharanjeet    -> 'Email to Sharanjeet about book club' (want 'Email to Sharanjeet about book club')
+[budgeted s9] MISS name_only  what's the latest with keith                  -> 'Keith Tuition Refund' (want 'Follow up with Keith - flight')
+[budgeted s9] OK  topic_only where are we on the tax documents             -> 'Reminder: tax documents (Bob)' (want 'Reminder: tax documents (Bob)')
+[budgeted s9] OK  recency    did he reply?                                 -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] MISS keyword    cancel the dinner thing with omar             -> 'Omar Dinner Plans' (want 'Email to Omar about dinner') [guard: first 'Email to Diego about dinner']
+[budgeted s9] OK  name_only  anything from Priya?                          -> 'Email to Priya about dinner' (want 'Email to Priya about dinner')
+[budgeted s9] OK  topic_only is the gym sorted yet                         -> 'Email to Diego about gym' (want 'Email to Diego about gym')
+[budgeted s9] OK  recency    ok send it                                    -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    what did Mei say about the book club pick?    -> 'Follow up with Mei - book club' (want 'Follow up with Mei - book club')
+[budgeted s9] OK  name_only  nudge rosa again                              -> 'October Invoice with Rosa' (want 'October Invoice with Rosa')
+[budgeted s9] OK  topic_only is the warranty sorted yet                    -> 'Laptop Warranty with Priya' (want 'Laptop Warranty with Priya')
+[budgeted s9] OK  recency    ok send it                                    -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+[budgeted s9] OK  keyword    any update on the vet with noor               -> 'Email to Noor about vet' (want 'Email to Noor about vet')
+[budgeted s9] MISS name_only  did Carlos reply?                             -> 'Carlos Lunch Invite' (want 'Email to Carlos about invoice')
+[budgeted s9] MISS topic_only is the insurance sorted yet                   -> 'Email to Tomasz about insurance' (want 'Email to Yuki about insurance')
+[budgeted s9] OK  recency    go ahead                                      -> 'Elena Lunch Invite' (want 'Elena Lunch Invite')
+all: 58.3% (n=120, 95% CI 49%-67%); no delegation 14, new agents 1, search calls 40 (needed 0, hit 0); wrong agent 36, answered from card 5, guard fired 0 (helped 0, hurt 0); 16402.8 prompt tok/query, 5440.0 cached; $4.4417
+  keyword    73%  n=30  CI 56%-86%
+  name_only  60%  n=30  CI 42%-75%
+  recency    67%  n=30  CI 49%-81%
+  topic_only 33%  n=30  CI 19%-51%
+budgeted: 83.3% (n=120, 95% CI 76%-89%); no delegation 5, new agents 0, search calls 3 (needed 5, hit 1); wrong agent 15, answered from card 0, guard fired 1 (helped 0, hurt 0); 5487.0 prompt tok/query, 4039.3 cached; $0.9549
+  keyword    93%  n=30  CI 79%-98%
+  name_only  67%  n=30  CI 49%-81%
+  recency    100%  n=30  CI 89%-100%
+  topic_only 73%  n=30  CI 56%-86%
+paired (120 queries through both arms): budgeted right / upstream wrong 37, the reverse 7, exact McNemar p = 5.3e-06; difference +25.0%, paired bootstrap 95% CI [+15.0%, +35.0%]
+attempt 1 exit=0
