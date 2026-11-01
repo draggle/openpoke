@@ -389,3 +389,11 @@ async def test_guard_failed_dispatch_keeps_the_loop_going(monkeypatch, tmp_path)
     result = await runtime.execute("what did bob say about the flight?")
     assert result.success and result.execution_agents_used == 1
     assert calls["n"] == 2  # guard refused the first pick; the corrected pick ended the turn
+
+
+def test_system_prompt_says_new_unrelated_reminders_get_their_own_agent():
+    """A message like "also remind me Friday to call the dentist" must not be filed under the
+    invoice agent just because that agent owns a reminder and sits at the top of the roster."""
+    prompt = agent_module.build_system_prompt()
+    paragraph = next(p for p in prompt.split("\n") if "has_reminders" in p)
+    assert "own agent" in paragraph and "different matter" in paragraph

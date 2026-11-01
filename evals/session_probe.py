@@ -125,6 +125,7 @@ async def _run_session(early_exit: bool, relay: bool = False) -> Dict[str, Any]:
     out["replies"] = replies
     out["checks"] = _checks(replies)
     out["agents_after"] = _agent_names(agents)
+    out["agent_checks"] = _agent_checks(out["agents_after"])
     return out
 
 
@@ -137,6 +138,17 @@ def _checks(replies: List[str]) -> Dict[str, bool]:
         "dentist_and_insurance_confirmed": "dentist" in text and "insurance" in text,
         "no_internal_ids_shown": "trigger" not in text and "rrule" not in text,
         "replies": len(replies),
+    }
+
+
+def _agent_checks(agents: List[str]) -> Dict[str, bool]:
+    """The two unrelated reminders of the fourth turn should each get their own agent, and
+    neither should be filed under the invoice agent."""
+    names = [a.lower() for a in agents]
+    return {
+        "dentist_has_own_agent": any("dentist" in n and "insurance" not in n for n in names),
+        "insurance_has_own_agent": any("insurance" in n and "dentist" not in n for n in names),
+        "three_agents": len(agents) >= 3,
     }
 
 
@@ -187,6 +199,7 @@ def main() -> None:
             print(f"  {role:<12} calls {row['calls']:<3} cached {row['cached_share']:.0%}  ${row['cost_usd']}")
         print(f"  agents after: {r.get('agents_after')}")
         print(f"  checks: {r.get('checks')}")
+        print(f"  agent checks: {r.get('agent_checks')}")
         for reply in r.get("replies", []):
             print(f"    > {reply[:160]!r}")
     print(f"\nsaving: {results['saving']}")

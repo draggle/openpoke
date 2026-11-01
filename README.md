@@ -528,6 +528,24 @@ fourth turn reused the invoice agent for the two new reminders (8 execution call
 the interaction model's choice on an "also remind me" message, nothing the relay touches, and
 the user was still told both were set.
 
+That reuse had a cause in the prompt, and it is fixed. The registry's consolidation rule was
+checked offline against those names and returns nothing; what pulled the model was the upstream
+rule to prefer an existing agent "even if its name is unrelated" plus the round-two line
+"agents marked `has_reminders` own scheduled reminders; route reminder changes to them", read
+against an invoice agent sitting at the top of the roster with both marks. The line now says
+that changes to *those* reminders go to their owner, that a new reminder about a different
+matter gets its own agent even when the message says "also", and that two unrelated reminders
+in one message are two agents dispatched in parallel (`tests/test_interaction_e2e.py` pins the
+wording). The probe now also checks the agents: dentist and insurance each with their own
+agent, three agents after the session. Before the change, 7 of 9 probe arms passed that check
+(one combined agent, one filed under the invoice agent); after it, 6 of 6
+([`session_probe_rule_run1.json`](docs/live/relay/session_probe_rule_run1.json),
+[`run2`](docs/live/relay/session_probe_rule_run2.json)). The relay arm spent one or two more
+interaction calls per session under the new wording (5 and 6, against 4 before), most likely a
+`search_agents` iteration before creating the new agents, which the probe does not record; the
+relay's cost saving against early exit was 48% and 11% on those two runs, the second run's
+early-exit arm having been unusually cheap (80% cache share against the usual 56–68%).
+
 The path the relay must *not* take is measured too. `evals/trigger_probe.py` creates a
 reminder through the real app, moves its next fire to now, runs the real scheduler and watches
 the conversation ([`docs/live/relay/trigger_probe.json`](docs/live/relay/trigger_probe.json)):

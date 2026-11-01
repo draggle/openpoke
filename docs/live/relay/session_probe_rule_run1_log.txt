@@ -1,0 +1,47 @@
+2026-10-31 23:54:03 - openpoke.server - WARNING - Interaction loop exited without assistant content
+2026-10-31 23:54:16 - openpoke.server - WARNING - Interaction loop exited without assistant content
+
+with_early_exit: 21 calls (5.25/turn), 99958 prompt tok, 64% cached, $0.1722
+  execution    calls 10  cached 56%  $0.0993
+  interaction  calls 11  cached 72%  $0.073
+  agents after: ['Car Insurance Renewal Reminder', 'Dentist Call Reminder', 'Alice Lunch Invoice Reminder']
+  checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'replies': 6}
+  agent checks: {'dentist_has_own_agent': True, 'insurance_has_own_agent': True, 'three_agents': True}
+    > "Got it, setting a reminder for tomorrow at 9am about the lunch invoice for Alice. I'll make sure to never cc her manager on anything related to this."
+    > 'moving it to 10am'
+    > 'checking your reminders'
+    > "You've got one reminder set for tomorrow at 10am to send Alice the lunch invoice. And I've noted not to cc her manager on anything related to this."
+    > "I'll set those two reminders for you."
+    > 'Both reminders are set—Friday at 8am to call the dentist, and Monday at noon to renew the car insurance.'
+
+without_early_exit: 25 calls (6.25/turn), 119530 prompt tok, 70% cached, $0.1765
+  execution    calls 10  cached 57%  $0.0978
+  interaction  calls 15  cached 78%  $0.0787
+  agents after: ['Car insurance renewal reminder', 'Dentist call reminder', 'Alice lunch invoice reminder']
+  checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'replies': 8}
+  agent checks: {'dentist_has_own_agent': True, 'insurance_has_own_agent': True, 'three_agents': True}
+    > 'on it—setting a reminder for tomorrow at 9am about the lunch invoice for Alice. noted on keeping her manager out of the loop.'
+    > "all set—you'll get a reminder tomorrow at 9am"
+    > 'switching it to 10am'
+    > 'done—moved to 10am tomorrow'
+    > 'checking your reminders'
+    > "you've got one reminder set for tomorrow at 10am—to send Alice the lunch invoice (and I've noted not to cc her manager)"
+    > 'on it—setting both reminders'
+    > 'done—friday at 8am for the dentist call and monday at noon for car insurance'
+
+with_relay: 15 calls (3.75/turn), 70431 prompt tok, 80% cached, $0.0903
+  execution    calls 10  cached 81%  $0.0593
+  interaction  calls 5   cached 79%  $0.0309
+  agents after: ['Car Insurance Renewal Reminder', 'Dentist Call Reminder', 'Alice Lunch Invoice Reminder']
+  checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'replies': 8}
+  agent checks: {'dentist_has_own_agent': True, 'insurance_has_own_agent': True, 'three_agents': True}
+    > "Got it, setting a reminder for tomorrow at 9am about the lunch invoice for Alice. I've noted not to cc her manager on anything related to this."
+    > "reminder set for tomorrow at 9am to send alice the lunch invoice (won't cc her manager)"
+    > 'changing it to 10am'
+    > 'reminder moved to 10am tomorrow'
+    > 'checking your reminders'
+    > "you have one reminder: send alice the lunch invoice tomorrow at 10am (won't cc her manager)"
+    > "I'll set both of those reminders for you."
+    > 'reminder set for friday at 8am to call the dentist\nreminder set for monday at noon to renew car insurance'
+
+saving: {'calls': 4, 'cost_share': 0.024, 'relay_calls_vs_early_exit': 6, 'relay_cost_share_vs_early_exit': 0.476}
