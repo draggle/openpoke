@@ -97,7 +97,10 @@ async def decide(registry: AgentRegistry, workload: Workload, text: str, *, hist
                     decision.first_pick = chosen
                 mismatch = None
                 if guarded and not decision.guard_fired and isinstance(chosen, str):
-                    mismatch = registry.routing_mismatch(chosen, args.get("instructions") or text)
+                    instructions = args.get("instructions") or text
+                    mismatch = (registry.new_agent_mismatch(chosen, instructions, anchor_text=text)
+                                if registry.get(chosen) is None
+                                else registry.routing_mismatch(chosen, instructions, anchor_text=text))
                 if mismatch is None:
                     decision.agent = chosen
                     return decision
@@ -126,6 +129,18 @@ async def decide(registry: AgentRegistry, workload: Workload, text: str, *, hist
     return decision
 
 
+def _answered_from_card(none_text: str, target) -> bool:
+    """The model told the user something instead of delegating, and what it said shares at
+    least two content words with the target agent's summary: it answered from the card."""
+    if not none_text or target is None or none_text.rstrip().endswith("?"):
+        return False
+    from server.services.execution.registry import tokenize
+
+    said = set(tokenize(none_text))
+    card = set(tokenize(f"{target.summary} {target.description}"))
+    return len(said & card) >= 2
+
+
 def _summary(rows: List[Dict], ledger_totals: Dict, n_queries: int) -> Dict:
     ok = sum(r["ok"] for r in rows)
     n = len(rows)
@@ -148,6 +163,9 @@ def _summary(rows: List[Dict], ledger_totals: Dict, n_queries: int) -> Dict:
         "search_needed": len(needed),
         "search_hits": sum(r["ok"] for r in needed),
         "wrong_agent": sum(1 for r in rows if r["chosen"] is not None and not r["ok"]),
+        # Did not delegate but answered the question from the roster card (or a search hit): the
+        # content may be right, the policy is wrong (the card may be stale), so it is its own row.
+        "answered_from_card": sum(1 for r in rows if r.get("answered_from_card")),
         "guard_fired": sum(1 for r in rows if r.get("guard_fired")),
         "guard_helped": sum(1 for r in rows if r.get("guard_fired") and r["ok"] and r.get("first_pick") != r["target"]),
         "guard_hurt": sum(1 for r in rows if r.get("guard_fired") and not r["ok"] and r.get("first_pick") == r["target"]),
@@ -178,10 +196,12 @@ async def run(n_agents: int, n_queries: int, out_dir: Path, strategies=("all", "
             for q in workload.queries:
                 d = await decide(registry, workload, q.text, history=history, target=q.target)
                 ok = d.agent == q.target
+                answered = d.agent is None and _answered_from_card(d.none_text, registry.get(q.target))
                 rows.append({"seed": seed, "kind": q.kind, "text": q.text, "target": q.target, "chosen": d.agent,
                              "ok": ok, "known": d.agent in registry if d.agent else False,
                              "search_calls": d.search_calls, "target_shown": d.target_shown, "none_text": d.none_text,
-                             "state": q.state, "first_pick": d.first_pick, "guard_fired": d.guard_fired})
+                             "state": q.state, "first_pick": d.first_pick, "guard_fired": d.guard_fired,
+                             "answered_from_card": answered})
                 flag = "OK " if ok else "MISS"
                 extra = f" [search x{d.search_calls}]" if d.search_calls else ""
                 if d.guard_fired:
@@ -216,7 +236,7 @@ def print_table(results: Dict[str, Dict]) -> None:
         print(f"\n{strategy}: {r['accuracy']:.1%} (n={r['n']}, 95% CI {lo:.0%}-{hi:.0%}); "
               f"no delegation {r['no_delegation']}, new agents {r['spawned_new_agent']}, "
               f"search calls {r['search_calls']} (needed {r['search_needed']}, hit {r['search_hits']}); "
-              f"wrong agent {r['wrong_agent']}, guard fired {r['guard_fired']} (helped {r['guard_helped']}, hurt {r['guard_hurt']}); "
+              f"wrong agent {r['wrong_agent']}, answered from card {r['answered_from_card']}, guard fired {r['guard_fired']} (helped {r['guard_helped']}, hurt {r['guard_hurt']}); "
               f"{r['prompt_tokens_per_query']} prompt tok/query, {r['cached_tokens_per_query']} cached; ${r['usd_total']}")
         for kind, k in r["by_kind"].items():
             print(f"  {kind:<10} {k['acc']:.0%}  n={k['n']:<3} CI {k['ci95'][0]:.0%}-{k['ci95'][1]:.0%}")

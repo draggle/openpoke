@@ -68,7 +68,7 @@ class InteractionAgentRuntime:
         """Handle a user-authored message."""
 
         try:
-            begin_turn()
+            begin_turn(user_message)
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_user_message(user_message)
 

@@ -54,3 +54,45 @@ def load_fixture(path: Path = FIXTURE) -> Workload:
 
 
 __all__ = ["FIXTURE", "NOW", "load_fixture"]
+
+
+def grade(results: Dict, expectations: Dict = None) -> List[Dict]:
+    """Score a live run of the fixture against the bars written before it ran."""
+    exp = expectations if expectations is not None else json.loads(FIXTURE.read_text())["expectations"]
+    rows: List[Dict] = []
+    budgeted, upstream = results.get("budgeted", {}), results.get("all", {})
+    if "budgeted_accuracy_at_least" in exp:
+        v = budgeted.get("accuracy", 0.0)
+        rows.append({"bar": "budgeted_accuracy_at_least", "value": v, "bar_value": exp["budgeted_accuracy_at_least"],
+                     "passed": v >= exp["budgeted_accuracy_at_least"]})
+    if "upstream_accuracy_at_most" in exp:
+        v = upstream.get("accuracy", 1.0)
+        rows.append({"bar": "upstream_accuracy_at_most", "value": v, "bar_value": exp["upstream_accuracy_at_most"],
+                     "passed": v <= exp["upstream_accuracy_at_most"]})
+    if exp.get("paired_bootstrap_ci_excludes_zero"):
+        lo, hi = results.get("paired", {}).get("bootstrap", {}).get("ci95", (0.0, 0.0))
+        rows.append({"bar": "paired_bootstrap_ci_excludes_zero", "value": [lo, hi], "bar_value": "0 outside",
+                     "passed": lo > 0.0 or hi < 0.0})
+    for kind, bar in exp.get("budgeted_by_kind_at_least", {}).items():
+        v = budgeted.get("by_kind", {}).get(kind, {}).get("acc", 0.0)
+        rows.append({"bar": f"kind:{kind}", "value": v, "bar_value": bar, "passed": v >= bar})
+    return rows
+
+
+def main() -> None:
+    import sys
+
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return
+    results = json.loads(Path(sys.argv[1]).read_text())
+    report = grade(results)
+    for r in report:
+        mark = "PASS" if r["passed"] else "MISS"
+        value = r["value"] if not isinstance(r["value"], float) else f"{r['value']:.2f}"
+        print(f"{mark}  {r['bar']:<36} {value}  (bar {r['bar_value']})")
+    print(f"{sum(r['passed'] for r in report)} of {len(report)} bars met")
+
+
+if __name__ == "__main__":
+    main()

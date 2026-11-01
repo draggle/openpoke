@@ -146,16 +146,25 @@ _GUARD_SEEN: set = set()
 _TURN = 0
 
 
-def begin_turn() -> int:
+_TURN_MESSAGE = ""
+
+
+def begin_turn(user_message: str = "") -> int:
     """Called by the runtime at the start of each user or agent turn."""
-    global _TURN
+    global _TURN, _TURN_MESSAGE
     _TURN += 1
+    _TURN_MESSAGE = user_message or ""
     _GUARD_SEEN.clear()
     return _TURN
 
 
 def current_turn() -> int:
     return _TURN
+
+
+def current_turn_message() -> str:
+    """What the user said this turn ("" on agent-result turns)."""
+    return _TURN_MESSAGE
 
 
 def _guard_enabled() -> bool:
@@ -174,7 +183,10 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     if _guard_enabled() and agent_name in registry:
         key = (agent_name, _TURN)
         if key not in _GUARD_SEEN:
-            mismatch = registry.routing_mismatch(agent_name, instructions)
+            anchor = current_turn_message() or None
+            mismatch = (registry.new_agent_mismatch(agent_name, instructions, anchor_text=anchor)
+                        if registry.get(agent_name) is None
+                        else registry.routing_mismatch(agent_name, instructions, anchor_text=anchor))
             if mismatch is not None:
                 _GUARD_SEEN.add(key)
                 logger.info(f"Routing guard: '{agent_name}' is not about {mismatch.tokens}; "

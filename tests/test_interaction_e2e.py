@@ -397,3 +397,9 @@ def test_system_prompt_says_new_unrelated_reminders_get_their_own_agent():
     prompt = agent_module.build_system_prompt()
     paragraph = next(p for p in prompt.split("\n") if "has_reminders" in p)
     assert "own agent" in paragraph and "different matter" in paragraph
+
+
+def test_system_prompt_says_cards_are_for_choosing_not_answering():
+    prompt = agent_module.build_system_prompt()
+    paragraph = next(p for p in prompt.split("\n") if "may be stale" in p)
+    assert "delegate" in paragraph.lower() and "replied" in paragraph

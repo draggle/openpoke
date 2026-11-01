@@ -498,3 +498,66 @@ def test_last_touched_falls_back_to_first_entry_when_every_use_was_a_trigger(tmp
     reg.touch("Tara October Invoice", reason="trigger")
     rendered = reg.render(reg.select("ok send it"))
     assert rendered.count('last_touched="true"') == 1
+
+
+# ---- held-out findings: the guard anchors on the user's words, and covers new agents -------
+
+
+def _heldout_registry(tmp_path, clock):
+    reg = make_registry(tmp_path, clock, max_roster=12)
+    reg.register("Gym membership freeze", "Email Ironwood Fitness to freeze my membership for June and July")
+    clock.advance(HOUR)
+    reg.register("Bob flight confirmation", "Find the latest email from Bob about the flight confirmation")
+    clock.advance(HOUR)
+    reg.register("Grandma's birthday flowers", "Order flowers from Petal & Stem for Grandma's birthday on the 9th")
+    clock.advance(HOUR)
+    reg.register("Inbox check", "Check my inbox for anything urgent from the last 24 hours")
+    return reg
+
+
+def test_guard_anchors_on_the_users_message_not_the_instructions(tmp_path, clock):
+    """The model's instructions always echo the chosen agent's name ("check the inbox for ...
+    from Bob"), which used to count as an anchor and silence the guard. The anchor must come
+    from what the user said."""
+    reg = _heldout_registry(tmp_path, clock)
+    instructions = "Check my inbox for any recent email from Bob and summarise it"
+    assert reg.routing_mismatch("Inbox check", instructions) is None  # instructions alone: anchored, as before
+    mismatch = reg.routing_mismatch("Inbox check", instructions, anchor_text="anything from Bob?")
+    assert mismatch is not None and mismatch.candidates[0] == "Bob flight confirmation"
+
+
+def test_guard_still_respects_an_anchor_in_the_users_message(tmp_path, clock):
+    reg = _heldout_registry(tmp_path, clock)
+    reg.register("Acme recruiter", "Reply to the recruiter at Acme about the senior role")
+    assert reg.routing_mismatch("Acme recruiter", "Draft a reply to the recruiter and cc Bob",
+                                anchor_text="reply to the recruiter and cc Bob") is None
+
+
+@pytest.mark.parametrize("message, new_name, expect", [
+    ("did Ironwood get back to me?", "Ironwood email check", "Gym membership freeze"),
+    ("has Petal & Stem shipped?", "Petal & Stem shipment check", "Grandma's birthday flowers"),
+    ("any word from Bob?", "Bob follow-up", "Bob flight confirmation"),
+    ("email Priya about the gym schedule", "Priya gym schedule", None),  # new task, nobody has it
+    ("book a table at Osteria Nova for Friday", "Osteria Nova booking", None),
+    ("email Ironwood Fitness to cancel my membership outright", "Ironwood cancellation", None),  # new task, not a follow-up
+])
+def test_new_agent_guard_catches_follow_ups_about_an_entity_someone_already_owns(tmp_path, clock, message, new_name, expect):
+    reg = _heldout_registry(tmp_path, clock)
+    mismatch = reg.new_agent_mismatch(new_name, message, anchor_text=message)
+    if expect is None:
+        assert mismatch is None
+    else:
+        assert mismatch is not None and mismatch.candidates[0] == expect
+
+
+def test_fuzzy_matches_a_misspelt_name_even_when_other_words_match(tmp_path, clock):
+    """"anything from Sharanjit?" has an exact token ("anything") somewhere in the index, so the
+    old all-or-nothing fallback never ran; the misspelt name must be matched on its own."""
+    reg = make_registry(tmp_path, clock, max_roster=12, fuzzy=True)
+    reg.register("Sharanjeet book club", "Email Sharanjeet about moving book club to Thursdays")
+    clock.advance(HOUR)
+    reg.register("Inbox check", "Check my inbox for anything urgent from the last 24 hours")
+    hits = [r.name for r, _ in reg.search("anything from Sharanjit?", limit=3)]
+    assert hits and hits[0] == "Sharanjeet book club"
+    hits = [r.name for r, _ in reg.search("what did Katherin say?", limit=3)]
+    assert "Sharanjeet book club" not in hits[:1]

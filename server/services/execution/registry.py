@@ -73,7 +73,7 @@ class RegistryConfig:
     transcript_slots: int = 4  # at most this many transcript-named agents are force-included
     retrieval_reserve: int = 3  # top retrieval hits guaranteed a slot ahead of the hot cache
     pinned_slots: int = 3  # roster slots reserved for the most recent agents that own reminders
-    fuzzy: bool = False  # trigram fallback when no token matches (misspelt names); off by default
+    fuzzy: bool = True  # trigram match for query tokens no agent contains (misspelt names)
     fuzzy_min_similarity: float = 0.4
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
@@ -92,7 +92,7 @@ class RegistryConfig:
             recency_weight=_env_float("OPENPOKE_ROSTER_RECENCY_WEIGHT", 0.6),
             transcript_boost=_env_float("OPENPOKE_ROSTER_TRANSCRIPT_BOOST", 1.0),
             pinned_slots=_env_int("OPENPOKE_ROSTER_PINNED_SLOTS", 3),
-            fuzzy=os.getenv("OPENPOKE_ROSTER_FUZZY", "0") == "1",
+            fuzzy=os.getenv("OPENPOKE_ROSTER_FUZZY", "1") != "0",
             consolidate=os.getenv("OPENPOKE_AGENT_CONSOLIDATE", "1") != "0",
             active_ttl_s=_env_float("OPENPOKE_AGENT_ACTIVE_TTL_S", 48 * 3600),
             archive_ttl_s=_env_float("OPENPOKE_AGENT_ARCHIVE_TTL_S", 14 * 24 * 3600),
@@ -172,10 +172,17 @@ class RoutingMismatch:
 
     tokens: List[str]  # person tokens in the message that the chosen agent lacks
     candidates: List[str]  # live agents about those people, best first
+    new_agent: bool = False  # the pick was a *new* agent for a follow-up someone already owns
 
     def render(self) -> str:
         people = ", ".join(self.tokens)
         options = "; ".join(self.candidates)
+        if self.new_agent:
+            return (
+                f"This looks like a follow-up about {people}, and an agent already exists for that: "
+                f"{options}. Send the follow-up to that agent (its history has the thread) instead "
+                f"of creating a new one, or call search_agents. Repeat this exact call to override."
+            )
         return (
             f"The message mentions {people}, but this agent is not about {people}. "
             f"Did you mean: {options}? Call send_message_to_agent with one of those names, or "
@@ -255,6 +262,11 @@ _PERSON_AFTER = frozenset(
     "says said replied replies confirmed asked asks wants has had is was will can could sent".split()
 )
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\u2019-]*")
+# A message that reads as a follow-up on existing work rather than a new task.
+_FOLLOW_UP_RE = re.compile(
+    r"\b(repl(?:y|ied|ies)|get back|got back|word from|anything from|news|update|latest|status|"
+    r"confirm(?:ed)?|shipped|offer(?:ed)?|sorted|where are we|did .{0,40}\bsay|heard|chase|nudge)\b"
+)
 
 
 def _people_in(description: str) -> set:
@@ -571,13 +583,28 @@ class AgentRegistry:
                 score += self.config.transcript_boost
             if score > self.config.min_score:
                 scored.append((record, score))
-        if not scored and self.config.fuzzy:
-            scored = self._fuzzy_search(candidates, query_tokens, now)
+        if self.config.fuzzy:
+            # Tokens no document contains are probably misspelt names ("Sharanjit"): match them
+            # by trigram on their own and merge, rather than only when nothing matched at all.
+            vocabulary = {t for doc in corpus for t in doc}
+            unmatched = [t for t in query_tokens if t not in vocabulary and len(t) >= 4]
+            if unmatched:
+                seen = {r.name for r, _ in scored}
+                for record, score in self._fuzzy_search(candidates, unmatched, now):
+                    if record.name in recent:
+                        score += self.config.transcript_boost
+                    if record.name not in seen:
+                        scored.append((record, score + 1.0))  # a name match outranks incidental word overlap
         scored.sort(key=lambda pair: (-pair[1], -pair[0].last_used_at))
         return scored[:limit]
 
-    def routing_mismatch(self, agent_name: str, message: str) -> Optional[RoutingMismatch]:
+    def routing_mismatch(self, agent_name: str, message: str, *, anchor_text: Optional[str] = None) -> Optional[RoutingMismatch]:
         """Did the Interaction Agent pick an agent about a different person than the message?
+
+        ``message`` is what the agent would be told (the model's instructions); ``anchor_text``
+        is what the *user* said, when known. The anchor rule below reads the user's words: the
+        model's instructions always echo the chosen agent's name ("check the inbox for anything
+        from Bob"), which would anchor every pick and silence the guard.
 
         People are learned from the agents' own first instructions (capitalised runs that do
         not start a sentence: "Find the latest email from Bob ..."), so no name list is needed.
@@ -628,9 +655,42 @@ class AgentRegistry:
             record = self.get(name)
             if record is not None:
                 candidate_tokens |= set(tokenize(f"{record.name} {record.description}"))
-        if (query_tokens & set(tokenize(chosen.name))) - candidate_tokens:
+        anchor_tokens = set(tokenize(anchor_text)) if anchor_text is not None else query_tokens
+        if (anchor_tokens & set(tokenize(chosen.name))) - candidate_tokens:
             return None
         return RoutingMismatch(tokens=mentioned, candidates=ranked[:3])
+
+    def new_agent_mismatch(self, agent_name: str, message: str, *, anchor_text: Optional[str] = None) -> Optional[RoutingMismatch]:
+        """The Interaction Agent is about to *create* an agent for what reads as a follow-up
+        ("did Ironwood get back to me?") about an entity some existing agent's instructions
+        already name. Creating a new one would orphan the thread; suggest the owner instead.
+        Fires only for follow-up phrasing; a new task that names a known entity ("email Ironwood
+        to cancel outright") is new work and passes."""
+        if self.get(agent_name) is not None:
+            return None
+        text = anchor_text if anchor_text is not None else message
+        if not text.strip() or not _FOLLOW_UP_RE.search(text.lower()):
+            return None
+        entity_tokens = {t for e in _entities(text) for t in tokenize(e) if t not in _PERIOD_TOKENS}
+        if not entity_tokens:
+            return None
+        statuses = {r.name: self.status_of(r) for r in self._records.values()}
+
+        def about(record: AgentRecord) -> bool:
+            return entity_tokens <= set(tokenize(f"{record.name} {record.description} {' '.join(record.recent_requests)}"))
+
+        ranked: List[str] = []
+        for record, _score in self.search(text, limit=12, include_archived=True, statuses=statuses):
+            if about(record) and record.name not in ranked:
+                ranked.append(record.name)
+        for record in sorted(self._records.values(), key=lambda r: -r.last_used_at):
+            if len(ranked) >= 3:
+                break
+            if about(record) and record.name not in ranked:
+                ranked.append(record.name)
+        if not ranked:
+            return None
+        return RoutingMismatch(tokens=sorted(entity_tokens), candidates=ranked[:3], new_agent=True)
 
     def _fuzzy_search(
         self, candidates: List[AgentRecord], query_tokens: List[str], now: float
