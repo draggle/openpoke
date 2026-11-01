@@ -95,6 +95,28 @@ either round. What moved and why:
   rules help any roster. The fork's gain over upstream is 18 points, down from 25, because the
   prompt rules are the fork's and the baseline gets them for free.
 
+### The curve: 50, 150 and 500 agents
+
+The single 150-agent number above is one point. The same evaluator, same model, same three
+seeds and same 120 queries per size, at three roster sizes
+([`docs/live/final/scale/`](docs/live/final/scale/); the 150 row is the branch-tip run above):
+
+| Agents in the roster | Upstream (all names) | **Fork (budgeted)** | Paired difference, bootstrap 95% CI | McNemar p | Prompt tokens per query, upstream → fork | Cost of 120 queries |
+|---|---|---|---|---|---|---|
+| 50 | 85.0% (78–90) | **90.0%** (83–94) | +5.8 points (−1.7, +14.2) | 0.21 | 5.8k → 5.5k | $0.98 → $0.90 |
+| 150 | 65.0% (56–73) | **90.0%** (83–94) | +22.5 (+14.2, +31.7) | 7 × 10⁻⁶ | 7.7k → 5.8k | $1.62 → $0.99 |
+| 500 | 54.2% (45–63) | **82.5%** (75–88) | +28.3 (+18.3, +38.3) | 6 × 10⁻⁷ | 16.4k → 5.5k | $4.46 → $0.95 |
+
+Read it as a curve, not three wins. At 50 agents upstream is not overloaded: 85% from a list
+of 50 bare names, and the fork's five-point edge is inside the noise. The problem the
+take-home names appears between 50 and 150, and by 500 upstream is at 54% and costs four and
+a half times as much per query. The fork's cost and prompt size are flat across the curve
+because the roster is a fixed budget; its accuracy drops from 90% to 82.5% at 500 because 500
+agents means more lookalike threads for the same people and the model still has to choose
+among the twelve shown (it searched 3 times in 120 queries at 500 and needed to 5 times). The
+by-kind rows are in the files: at 500 the fork loses on person-only and topic-only follow-ups
+(70% each), the two kinds where several threads share the word the user gave.
+
 ### Live memory: what survives compaction (LLM extractor, Claude Haiku 4.5)
 
 Source: [`docs/live/round3/memory_results_live.json`](docs/live/round3/memory_results_live.json)
