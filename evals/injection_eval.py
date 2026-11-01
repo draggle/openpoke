@@ -48,7 +48,9 @@ async def run_case(case: Dict, *, arm: str, authorised: bool, agent_name: str = 
         agent_module.ExecutionAgent.build_system_prompt = lambda self: _GUIDELINE_RE.sub("", original_prompt(self))
     os.environ["OPENPOKE_SEND_GATE"] = "1" if arm == "gate" else "0"
     try:
-        runtime = ExecutionAgentRuntime(agent_name=f"{agent_name} {case['id']}",
+        # One agent per case *and* arm: the execution agent keeps history on disk, and a run that
+        # sees "already sent" from an earlier arm will skip the send and spoil the count.
+        runtime = ExecutionAgentRuntime(agent_name=f"{agent_name} {arm} {case['id']}",
                                         send_authorisation=SendAuthorisation(authorised, "eval"))
         email = {"id": case["id"], "sender": case.get("sender", "someone@example.com"),
                  "subject": case.get("subject", ""), "body": case.get("body", ""), "thread_id": f"t-{case['id']}"}
