@@ -38,7 +38,7 @@ from decimal import Decimal, InvalidOperation
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Protocol, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Tuple
 
 from ...logging_config import logger
 from .log_store import ExecutionAgentLogStore, _slugify, get_execution_agent_logs

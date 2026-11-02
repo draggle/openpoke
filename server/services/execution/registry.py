@@ -29,7 +29,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from html import escape
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from rank_bm25 import BM25Okapi
 

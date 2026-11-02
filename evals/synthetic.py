@@ -18,8 +18,8 @@ Everything is seeded, so runs are reproducible.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
 
 HOUR = 3600.0
 DAY = 24 * HOUR

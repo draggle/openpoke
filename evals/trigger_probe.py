@@ -66,7 +66,7 @@ async def _run() -> Dict[str, Any]:
         scheduler._poll_interval = 3.0
         await scheduler.start()
         fired_at = time.monotonic()
-        count_after = await _settle(client, count, timeout_s=180.0, quiet_s=10.0)
+        await _settle(client, count, timeout_s=180.0, quiet_s=10.0)
         await scheduler.stop()
         out["seconds_to_notify"] = round(time.monotonic() - fired_at, 1)
 

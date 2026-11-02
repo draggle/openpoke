@@ -39,7 +39,6 @@ import asyncio
 import json
 import random
 import re
-import statistics
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple

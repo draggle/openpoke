@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Iterable
 
 from .processing import ProcessedEmail
 

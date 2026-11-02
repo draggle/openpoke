@@ -24,7 +24,7 @@ import json
 import random
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Sequence
 
 from server.agents.execution_agent.agent import SYSTEM_PROMPT_TEMPLATE
 from server.agents.execution_agent.tools import history as history_tool

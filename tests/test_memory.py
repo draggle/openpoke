@@ -28,7 +28,7 @@ def store(tmp_path: Path) -> ExecutionAgentLogStore:
 def fill_log(store: ExecutionAgentLogStore, agent: str, rounds: int, payload_chars: int = 300, start: int = 0) -> None:
     for i in range(start, start + rounds):
         store.record_request(agent, f"Round {i}: ask Alice (alice@example.com) about item {i}")
-        store.record_action(agent, f"Calling gmail_create_draft with: {{'to': 'alice@example.com'}}")
+        store.record_action(agent, "Calling gmail_create_draft with: {'to': 'alice@example.com'}")
         store.record_tool_response(agent, "gmail_create_draft", "x" * payload_chars)
         store.record_agent_response(agent, f"Draft {i} created for Alice; awaiting her reply")
 

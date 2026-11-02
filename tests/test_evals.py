@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from pathlib import Path
 
-import pytest
 
 from evals.synthetic import generate
 
@@ -254,7 +252,7 @@ def test_recall_eval_scoring():
 
 
 def test_learned_selector_features_and_fit(tmp_path):
-    from evals.learned_selector import evaluate, features, fit
+    from evals.learned_selector import evaluate, fit
 
     import numpy as np
     X = np.array([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]])
