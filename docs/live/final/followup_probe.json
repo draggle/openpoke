@@ -1,0 +1,85 @@
+{
+  "early_exit": true,
+  "turns": [
+    "Remind me tomorrow at 9am to call the dentist.",
+    "cancel it",
+    "Remind me Friday at 8am to renew the car insurance.",
+    "Set a reminder for Monday at noon to send Alice the invoice.",
+    "move it to 1pm",
+    "what reminders do I have?",
+    "cancel the insurance one"
+  ],
+  "direct_relay": true,
+  "calls_per_turn": 3.86,
+  "cached_share": 0.76,
+  "total": {
+    "calls": 27,
+    "prompt_tokens": 133525,
+    "completion_tokens": 2956,
+    "cached_tokens": 101139,
+    "cache_write_tokens": 3800,
+    "cost_usd": 0.1747
+  },
+  "by_role": {
+    "execution": {
+      "calls": 16,
+      "calls_per_turn": 2.29,
+      "prompt_tokens": 75718,
+      "completion_tokens": 1923,
+      "cached_tokens": 57040,
+      "cached_share": 0.75,
+      "cost_usd": 0.1048
+    },
+    "interaction": {
+      "calls": 11,
+      "calls_per_turn": 1.57,
+      "prompt_tokens": 57807,
+      "completion_tokens": 1033,
+      "cached_tokens": 44099,
+      "cached_share": 0.76,
+      "cost_usd": 0.0698
+    }
+  },
+  "replies_by_turn": [
+    [
+      "Got it, I'll remind you tomorrow at 9am to call the dentist.",
+      "reminder set for tomorrow at 9am to call the dentist"
+    ],
+    [
+      "I'll cancel that reminder for you.",
+      "dentist reminder cancelled"
+    ],
+    [
+      "I'll set that reminder for Friday at 8am to renew the car insurance.",
+      "reminder set for friday at 8am to renew the car insurance"
+    ],
+    [
+      "I'll set that reminder for Monday at noon to send Alice the invoice.",
+      "reminder set for monday at noon to send alice the invoice"
+    ],
+    [
+      "I'll move that to 1pm.",
+      "reminder moved to monday at 1pm"
+    ],
+    [
+      "I'll check what reminders you have set up.",
+      "You have two reminders:\n\n1. Send Alice the invoice - Monday at 1pm\n2. Renew the car insurance - Friday, November 7 at 8am"
+    ],
+    [
+      "I'll cancel the car insurance reminder for you.",
+      "reminder cancelled for renewing car insurance on friday at 8am"
+    ]
+  ],
+  "checks": {
+    "bare_cancel_after_one_reminder_acts": true,
+    "move_it_goes_to_last_touched_no_question": true,
+    "list_shows_only_live_reminders": true,
+    "named_cancel_after_list_acts": true,
+    "no_internal_ids_shown": true
+  },
+  "agents_after": [
+    "Car Insurance Renewal Reminder",
+    "Alice Invoice Reminder",
+    "Dentist Call Reminder"
+  ]
+}

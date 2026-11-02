@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 from collections import Counter
 
 
@@ -294,12 +296,16 @@ def test_data_dir_override_isolates_server_state(monkeypatch, tmp_path):
     from server.services.execution import log_store, memory, registry, roster
     from server.services.llm import usage
 
+    # conftest set OPENPOKE_DATA_DIR to a temporary directory before any server import, so every
+    # store resolved there, not under server/data: the suite never writes into an installation.
+    suite_dir = Path(os.environ["OPENPOKE_DATA_DIR"]).resolve()
+    assert suite_dir.name.startswith("openpoke-tests-")
     monkeypatch.setenv("OPENPOKE_DATA_DIR", str(tmp_path / "probe-data"))
     assert paths.data_dir() == (tmp_path / "probe-data").resolve()
     monkeypatch.delenv("OPENPOKE_DATA_DIR")
     assert paths.data_dir().name == "data"
     for module in (log_store, memory, registry, roster, usage, triggers, timezone_store, conversation_log):
-        assert module._DATA_DIR == paths.data_dir(), module.__name__
+        assert module._DATA_DIR == suite_dir, module.__name__
         assert "data_dir()" in inspect.getsource(module), module.__name__
 
 
@@ -324,3 +330,36 @@ async def test_live_routing_eval_retries_a_transient_transport_error(monkeypatch
 
 async def _no_sleep(_s):
     return None
+
+
+def test_followup_probe_checks_reward_acting_and_punish_asking():
+    from evals.followup_probe import checks
+
+    good = [["setting that up", "reminder set for 9am tomorrow"], ["reminder cancelled"], ["set"], ["set"],
+            ["moved to 1pm monday"], ["two reminders: insurance friday 8am, alice invoice monday 1pm"],
+            ["insurance reminder cancelled"]]
+    assert all(checks(good).values()), checks(good)
+    asks = [g[:] for g in good]
+    asks[1] = ["which one do you mean?"]
+    asks[4] = ["which reminder, the insurance or the invoice?"]
+    c = checks(asks)
+    assert not c["bare_cancel_after_one_reminder_acts"] and not c["move_it_goes_to_last_touched_no_question"]
+    wrong = [g[:] for g in good]
+    wrong[5] = ["three reminders: dentist, insurance, invoice"]
+    assert not checks(wrong)["list_shows_only_live_reminders"]
+
+
+def test_session_probe_counts_the_user_turn_as_work_in_flight():
+    """The probe must not read the history while the interaction agent is still answering the
+    user's message: that task is named so _work_in_flight sees it, like result deliveries."""
+    import asyncio
+    from evals.session_probe import _work_in_flight
+
+    async def scenario():
+        assert not _work_in_flight()
+        task = asyncio.get_running_loop().create_task(asyncio.sleep(0.05), name="interaction-user-message")
+        assert _work_in_flight()
+        await task
+        assert not _work_in_flight()
+
+    asyncio.run(scenario())

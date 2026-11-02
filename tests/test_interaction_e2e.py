@@ -441,10 +441,149 @@ def test_second_dispatch_in_a_turn_marks_the_turn_a_fan_out(monkeypatch, tmp_pat
 
     asyncio.run(run())
 
+def test_draft_flag_lets_a_yes_send_and_a_plain_reply_clears_it(monkeypatch, tmp_path):
+    """The gate's "affirmative after a draft" path, through the tools that set and clear the
+    flag: send_draft arms it, send_message_to_user disarms it."""
+    reg = _guard_registry(tmp_path)
+    conversation = StubConversationLog()
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+    monkeypatch.setattr(tools_module, "get_conversation_log", lambda: conversation)
+    monkeypatch.setenv("OPENPOKE_ROUTING_GUARD", "0")
+    seen = []
 
-def test_system_prompt_asks_when_the_last_reply_listed_several():
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
+        seen.append(send_authorisation.allowed)
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+
+    async def run():
+        tools_module.begin_turn("draft a reply to Bob about the flight")
+        tools_module.send_draft("bob@example.com", "Flight", "Thanks Bob")
+        tools_module.begin_turn("yes")
+        tools_module.send_message_to_agent("Flight Confirmation with Bob", "send the draft")
+        tools_module.begin_turn("what else is pending?")
+        tools_module.send_message_to_user("nothing else pending")
+        tools_module.begin_turn("yes")
+        tools_module.send_message_to_agent("Flight Confirmation with Bob", "send the draft")
+        await asyncio.sleep(0)
+
+    asyncio.run(run())
+    assert seen == [True, False]
+    assert conversation.entries[0][0] == "reply" and "Thanks Bob" in conversation.entries[0][1]
+
+
+def _fanout_fixture(monkeypatch, tmp_path):
+    reg = _guard_registry(tmp_path)
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+    monkeypatch.delenv("OPENPOKE_ROUTING_GUARD", raising=False)
+    dispatched = []
+
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
+        dispatched.append(agent_name)
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+    return reg, dispatched
+
+
+def test_bare_follow_up_after_a_fan_out_is_refused_once_with_the_choices(monkeypatch, tmp_path):
+    """"What reminders do I have?" asked three agents; "cancel it" names none of them. The tool
+    refuses the first dispatch and lists the agents the user must choose between."""
+    reg, dispatched = _fanout_fixture(monkeypatch, tmp_path)
+
+    async def run():
+        tools_module.begin_turn("what reminders do I have?")
+        tools_module.send_message_to_agent("Mom reminder", "list your reminders")
+        tools_module.send_message_to_agent("Dentist reminder", "list your reminders")
+        await asyncio.sleep(0)  # the fan-out's dispatches run
+        tools_module.begin_turn("")  # the agents' results come back
+        tools_module.begin_turn("cancel it")
+        before = len(dispatched)
+        first = tools_module.send_message_to_agent("Dentist reminder", "cancel the reminder")
+        assert not first.success, first.payload
+        assert first.payload["ambiguous_after_fan_out"] == ["Mom reminder", "Dentist reminder"]
+        assert "ask" in first.payload["error"].lower()
+        await asyncio.sleep(0)
+        assert len(dispatched) == before
+        # The model's second call in the same turn is honoured, as with the routing guard.
+        second = tools_module.send_message_to_agent("Dentist reminder", "cancel the reminder")
+        assert second.success
+        await asyncio.sleep(0)
+        assert dispatched[-1] == "Dentist reminder"
+
+    asyncio.run(run())
+
+
+def test_named_follow_up_after_a_fan_out_goes_through(monkeypatch, tmp_path):
+    reg, dispatched = _fanout_fixture(monkeypatch, tmp_path)
+
+    async def run():
+        tools_module.begin_turn("what reminders do I have?")
+        tools_module.send_message_to_agent("Mom reminder", "list your reminders")
+        tools_module.send_message_to_agent("Dentist reminder", "list your reminders")
+        tools_module.begin_turn("")
+        tools_module.begin_turn("cancel the dentist one")
+        assert tools_module.send_message_to_agent("Dentist reminder", "cancel the reminder").success
+        await asyncio.sleep(0)
+        assert dispatched[-1] == "Dentist reminder" and len(dispatched) == 3
+
+    asyncio.run(run())
+
+
+def test_bare_follow_up_after_a_single_agent_turn_goes_through(monkeypatch, tmp_path):
+    reg, dispatched = _fanout_fixture(monkeypatch, tmp_path)
+
+    async def run():
+        tools_module.begin_turn("remind me to call the dentist tomorrow at 9")
+        tools_module.send_message_to_agent("Dentist reminder", "create the reminder")
+        tools_module.begin_turn("")
+        tools_module.begin_turn("cancel it")
+        assert tools_module.send_message_to_agent("Dentist reminder", "cancel the reminder").success
+        await asyncio.sleep(0)
+        assert dispatched == ["Dentist reminder", "Dentist reminder"]
+
+    asyncio.run(run())
+
+
+def test_fan_out_guard_only_fires_on_a_pronoun_follow_up_that_names_nothing(monkeypatch, tmp_path):
+    """After "what reminders do I have?" asked two agents: a roster-wide question, a follow-up that
+    names a thread, and a bare question are all dispatched; only "cancel it"-style messages with a
+    dangling pronoun and no thread word are refused."""
+    reg, dispatched = _fanout_fixture(monkeypatch, tmp_path)
+
+    def after_fan_out(message, agent="Dentist reminder"):
+        tools_module.begin_turn("what reminders do I have?")
+        tools_module.send_message_to_agent("Mom reminder", "list your reminders")
+        tools_module.send_message_to_agent("Dentist reminder", "list your reminders")
+        tools_module.begin_turn("")
+        tools_module.begin_turn(message)
+        return tools_module.send_message_to_agent(agent, "do it").success
+
+    async def run():
+        assert after_fan_out("what reminders do I have now?")  # roster-wide question, not a follow-up
+        assert after_fan_out("cancel the dentist reminder")  # names the thread
+        assert after_fan_out("cancel the insurance one", "Car insurance reminder")  # names it by topic
+        assert after_fan_out("and then?")  # bare but harmless: the marker rule applies
+        assert not after_fan_out("cancel it")
+        assert not after_fan_out("move it to 10am")
+        assert not after_fan_out("delete that one")
+        await asyncio.sleep(0)
+
+    asyncio.run(run())
+
+
+def test_system_prompt_tells_the_model_to_ask_when_the_tool_refuses_an_ambiguous_follow_up():
     from server.agents.interaction_agent.agent import build_system_prompt
 
     prompt = build_system_prompt()
-    paragraph = next(p for p in prompt.split("\n") if "listed several items" in p)
-    assert "ask which one" in paragraph and "do not pick the last one listed" in paragraph
+    paragraph = next(p for p in prompt.split("\n") if 'last_touched="true"' in p and "bare follow-up" in p)
+    assert "refuses" in paragraph and "ask the user which" in paragraph and "do not repeat" in paragraph

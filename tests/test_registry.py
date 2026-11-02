@@ -597,3 +597,22 @@ def test_fan_out_does_not_move_last_touched(tmp_path, clock):
     rendered = reg.render(reg.select("cancel it"))
     touched = [line for line in rendered.splitlines() if 'last_touched="true"' in line]
     assert 'name="Alice Invoice Reminder"' in touched[0]
+
+
+def test_touch_by_the_user_moves_last_touched(tmp_path, clock):
+    """The evals replay a workload with register() then touch(reason="user") at each agent's
+    real last-use time; the marker must follow the touch, not the registration order."""
+    reg = make_registry(tmp_path, clock, max_roster=5)
+    reg.register("Tara October Invoice", "chase Tara's invoice")
+    clock.advance(HOUR)
+    reg.register("Bob Flight", "find Bob's flight")
+    clock.advance(HOUR)
+    reg.touch("Tara October Invoice", reason="user")
+    rendered = reg.render(reg.select("any news?"))
+    touched = [line for line in rendered.splitlines() if 'last_touched="true"' in line]
+    assert len(touched) == 1 and 'name="Tara October Invoice"' in touched[0], rendered
+    clock.advance(HOUR)
+    reg.touch("Bob Flight", reason="trigger")  # a reminder firing does not move it
+    rendered = reg.render(reg.select("any news?"))
+    touched = [line for line in rendered.splitlines() if 'last_touched="true"' in line]
+    assert 'name="Tara October Invoice"' in touched[0], rendered

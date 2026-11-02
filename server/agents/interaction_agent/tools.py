@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -149,16 +150,20 @@ _TURN = 0
 
 _TURN_MESSAGE = ""
 _TURN_DISPATCHED: list = []  # agents dispatched this turn; two or more make it a fan-out
+_PREVIOUS_USER_FAN_OUT: list = []  # agents the previous *user* turn fanned out to, else empty
 _LAST_REPLY_WAS_DRAFT = False  # the assistant's last reply to the user was a draft to approve
 
 
 def begin_turn(user_message: str = "") -> int:
     """Called by the runtime at the start of each user or agent turn."""
-    global _TURN, _TURN_MESSAGE
+    global _TURN, _TURN_MESSAGE, _PREVIOUS_USER_FAN_OUT
     _TURN += 1
+    if user_message:
+        # Agent-result turns sit between two user turns; only a user turn closes the window.
+        _PREVIOUS_USER_FAN_OUT = list(_TURN_DISPATCHED) if len(_TURN_DISPATCHED) > 1 else []
+        _TURN_DISPATCHED.clear()
     _TURN_MESSAGE = user_message or ""
     _GUARD_SEEN.clear()
-    _TURN_DISPATCHED.clear()
     return _TURN
 
 
@@ -175,6 +180,36 @@ def _guard_enabled() -> bool:
     return os.getenv("OPENPOKE_ROUTING_GUARD", "1") != "0"
 
 
+_DANGLING_PRONOUN_RE = re.compile(r"\b(it|that|this|those|them)\b", re.I)
+
+
+def _stem(token: str) -> str:
+    return token[:-1] if len(token) > 3 and token.endswith("s") else token
+
+
+def _ambiguous_after_fan_out(agent_name: str, message: str) -> Optional[list]:
+    """The previous user turn asked several agents (a roster-wide question such as "what
+    reminders do I have?"). If this message acts on "it" / "that" and names no thread by a
+    word from any of those agents' names or descriptions, the referent is the user's choice,
+    not the model's, and the marker for the thread touched last does not cover it. Returns the
+    agents the user must choose between, or None. A follow-up without a dangling pronoun ("and
+    then?", "what reminders do I have now?") is left to the ordinary rules."""
+    if len(_PREVIOUS_USER_FAN_OUT) < 2 or not message or not _DANGLING_PRONOUN_RE.search(message):
+        return None
+    from ...services.execution.registry import tokenize
+
+    words = {_stem(t) for t in tokenize(message)}
+    registry = get_agent_registry()
+    for name in set(_PREVIOUS_USER_FAN_OUT) | {agent_name}:
+        record = registry.get(name)
+        about = {_stem(t) for t in tokenize(name)}
+        if record is not None:
+            about |= {_stem(t) for t in tokenize(record.description)}
+        if words & about:
+            return None  # the message points at a thread by name or topic
+    return _PREVIOUS_USER_FAN_OUT
+
+
 # Create or reuse execution agent and dispatch instructions asynchronously
 def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     """Send instructions to an execution agent."""
@@ -184,6 +219,24 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     if duplicate is not None:
         logger.info(f"Consolidated new agent '{agent_name}' into existing '{duplicate.name}'")
         agent_name = duplicate.name
+    if _guard_enabled() and ("fan_out", _TURN) not in _GUARD_SEEN:
+        choices = _ambiguous_after_fan_out(agent_name, current_turn_message())
+        if choices:
+            _GUARD_SEEN.add(("fan_out", _TURN))
+            logger.info(f"Fan-out guard: bare follow-up after asking {choices}; asking the user which")
+            return ToolResult(
+                success=False,
+                payload={
+                    "error": (
+                        "The previous message was answered by several agents ("
+                        + "; ".join(choices)
+                        + ") and this follow-up names none of them, so it is ambiguous. Ask the "
+                        "user which one they mean, in a few words, instead of guessing. Repeat "
+                        "this exact call to override."
+                    ),
+                    "ambiguous_after_fan_out": list(choices),
+                },
+            )
     if _guard_enabled() and agent_name in registry:
         key = (agent_name, _TURN)
         if key not in _GUARD_SEEN:

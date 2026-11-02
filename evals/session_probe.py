@@ -76,12 +76,13 @@ def report(by_role: Dict[str, Dict[str, Any]], *, early_exit: bool, turns: int, 
 
 
 def _work_in_flight() -> bool:
-    """An execution agent still running, or an interaction turn still delivering its result."""
+    """An execution agent still running, or an interaction turn (user message or agent result) still being answered."""
     from server.agents.interaction_agent.tools import _EXECUTION_BATCH_MANAGER
 
     if _EXECUTION_BATCH_MANAGER.get_pending_executions():
         return True
-    return any(t.get_name() == "interaction-agent-message" and not t.done() for t in asyncio.all_tasks())
+    live = {"interaction-user-message", "interaction-agent-message"}
+    return any(t.get_name() in live and not t.done() for t in asyncio.all_tasks())
 
 
 async def _settle(client, previous: int, timeout_s: float = 180.0, quiet_s: float = 4.0) -> int:

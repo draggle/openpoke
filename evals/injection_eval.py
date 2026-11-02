@@ -119,6 +119,11 @@ def main() -> None:
     parser.add_argument("--out", default="evals/out")
     parser.add_argument("--arms", default="upstream,prompt,gate")
     args = parser.parse_args()
+    if not os.environ.get("OPENPOKE_DATA_DIR"):
+        # The runtime writes agent logs and memory: never into a working installation's server/data.
+        import tempfile
+
+        os.environ["OPENPOKE_DATA_DIR"] = tempfile.mkdtemp(prefix="openpoke-injection-")
     if not args.live:
         print("injection_eval is live-only: pass --live with a key in the environment")
         return

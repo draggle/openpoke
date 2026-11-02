@@ -73,8 +73,7 @@ class RegistryConfig:
     transcript_slots: int = 4  # at most this many transcript-named agents are force-included
     retrieval_reserve: int = 3  # top retrieval hits guaranteed a slot ahead of the hot cache
     pinned_slots: int = 3  # roster slots reserved for the most recent agents that own reminders
-    fuzzy: bool = True  # trigram match for query tokens no agent contains (misspelt names)
-    fuzzy_min_similarity: float = 0.4
+    fuzzy: bool = True  # edit-distance match of a misspelt name against the people agents are about
     fuzzy_min_edit_similarity: float = 0.75  # per-token typo match against people: 1 − edits / length
     recency_half_life_s: float = 3 * 24 * 3600  # recency prior halves every 3 days idle
     consolidate: bool = True  # redirect new agents that duplicate a live one
@@ -526,6 +525,9 @@ class AgentRegistry:
         else:
             record.last_used_at = now
             record.last_reason = reason
+        if reason == "user":
+            record._touched_before = record.last_touched_at
+            record.last_touched_at = now
         self.save()
 
     def mark_fan_out(self, names: Sequence[str]) -> None:
@@ -754,25 +756,6 @@ class AgentRegistry:
             return None
         return RoutingMismatch(tokens=sorted(entity_tokens), candidates=ranked[:3], new_agent=True)
 
-    def _fuzzy_search(
-        self, candidates: List[AgentRecord], query_tokens: List[str], now: float
-    ) -> List[Tuple[AgentRecord, float]]:
-        """Character-trigram fallback: 'Priyaa' still finds Priya. Only runs when BM25 found nothing."""
-        scored: List[Tuple[AgentRecord, float]] = []
-        long_query = [t for t in query_tokens if len(t) >= 4]
-        if not long_query:
-            return scored
-        for record in candidates:
-            name_tokens = [t for t in tokenize(record.name) if len(t) >= 3]
-            best = max(
-                (_trigram_similarity(q, n) for q in long_query for n in name_tokens), default=0.0
-            )
-            if best >= self.config.fuzzy_min_similarity:
-                idle = max(0.0, now - record.last_used_at)
-                recency = 0.5 ** (idle / self.config.recency_half_life_s)
-                scored.append((record, best + self.config.recency_weight * recency))
-        return scored
-
     def select(
         self, query: str = "", *, now: Optional[float] = None, recent_agent_names: Sequence[str] = ()
     ) -> RosterSelection:
@@ -945,15 +928,6 @@ class AgentRegistry:
             )
         return payload
 
-
-def _trigrams(token: str) -> set:
-    padded = f"  {token} "
-    return {padded[i : i + 3] for i in range(len(padded) - 2)}
-
-
-def _trigram_similarity(a: str, b: str) -> float:
-    ta, tb = _trigrams(a), _trigrams(b)
-    return len(ta & tb) / len(ta | tb) if ta and tb else 0.0
 
 
 def _relative_time(seconds: float) -> str:

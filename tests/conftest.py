@@ -14,6 +14,12 @@ os.environ.setdefault("OPENROUTER_API_KEY", "test-key-not-used")
 for _key in [k for k in os.environ if k.startswith("OPENPOKE_")]:
     os.environ.pop(_key)  # tests assume defaults regardless of the developer's .env
 
+# Every store resolves its directory when its module is imported, so the override must be in
+# place before any test imports the server: the suite never writes under server/data.
+import tempfile
+
+os.environ["OPENPOKE_DATA_DIR"] = tempfile.mkdtemp(prefix="openpoke-tests-")
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
