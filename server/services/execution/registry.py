@@ -120,10 +120,16 @@ class AgentRecord:
     description: str = ""  # first instruction, truncated
     summary: str = ""  # one-line rolling summary (maintained by AgentMemory)
     recent_requests: List[str] = field(default_factory=list)
-    last_reason: str = "created"  # "user" | "trigger" | "created" | "migrated"
+    last_reason: str = "created"  # "user" | "trigger" | "fan_out" | "created" | "migrated"
+    # When the user last addressed this thread on its own (a single-agent dispatch). A reminder
+    # firing or a several-agent fan-out moves last_used_at but not this.
+    last_touched_at: float = 0.0
+    _touched_before: float = 0.0  # value to restore if the dispatch turns out to be a fan-out
 
     def to_json(self) -> Dict:
-        return asdict(self)
+        data = asdict(self)
+        data.pop("_touched_before", None)
+        return data
 
     @classmethod
     def from_json(cls, data: Dict) -> "AgentRecord":
@@ -136,6 +142,7 @@ class AgentRecord:
             summary=str(data.get("summary", "")),
             recent_requests=[str(x) for x in data.get("recent_requests", [])][-5:],
             last_reason=str(data.get("last_reason", "created")),
+            last_touched_at=float(data.get("last_touched_at", 0.0)),
         )
 
     def retrieval_text(self) -> str:
@@ -428,6 +435,9 @@ class AgentRegistry:
         record.last_used_at = now
         record.use_count += 1
         record.last_reason = reason
+        if reason == "user":
+            record._touched_before = record.last_touched_at
+            record.last_touched_at = now
         snippet = " ".join(instructions.split())[: self.config.description_chars]
         if snippet:
             if not record.description:
@@ -517,6 +527,19 @@ class AgentRegistry:
             record.last_used_at = now
             record.last_reason = reason
         self.save()
+
+    def mark_fan_out(self, names: Sequence[str]) -> None:
+        """One turn dispatched several agents (a roster-wide question such as "what reminders do I
+        have?"): none of them is the thread the user touched, so none takes ``last_touched``."""
+        changed = False
+        for name in names:
+            record = self._records.get(name)
+            if record is not None and record.last_reason == "user":
+                record.last_reason = "fan_out"
+                record.last_touched_at = record._touched_before
+                changed = True
+        if changed:
+            self.save()
 
     def update_summary(self, name: str, summary: str) -> None:
         record = self._records.get(name)
@@ -869,10 +892,16 @@ class AgentRegistry:
         lines: List[str] = []
         # The list is most-recent first and the hot cache always holds the most recently used
         # live agents, so the first entry the *user* touched (not one whose last use was a
-        # reminder firing in the background) is the referent of a bare "ok send it" /
-        # "did she reply?". With no user-touched entry shown, the first entry stands.
-        touched_index = next(
-            (i for i, e in enumerate(selection.shown) if e.record.last_reason != "trigger"), 0
+        # reminder firing in the background, nor one asked as part of a several-agent fan-out)
+        # is the referent of a bare "ok send it" / "did she reply?". With no user-touched entry
+        # shown, the first entry stands.
+        touched_index = max(
+            range(len(selection.shown)),
+            key=lambda i: selection.shown[i].record.last_touched_at,
+            default=0,
+        ) if any(e.record.last_touched_at for e in selection.shown) else next(
+            # Records written before last_touched_at existed: the first entry the user used.
+            (i for i, e in enumerate(selection.shown) if e.record.last_reason not in ("trigger", "fan_out")), 0
         )
         for index, entry in enumerate(selection.shown):
             record = entry.record

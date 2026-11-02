@@ -574,3 +574,26 @@ def test_fuzzy_handles_transposed_letters_and_matches_people_only(tmp_path, cloc
     assert [r.name for r, _ in reg.search("did Ingird confirm Saturday?", limit=2)][0] == "Dinner Plans with Ingrid"
     # A misspelt ordinary word ("retianer") is not a misspelt person: the fuzzy pass ignores it.
     assert all(r.name != "Reminder: dentist (Mei)" for r, _ in reg.search("any update on the retianer", limit=3))
+
+
+def test_fan_out_does_not_move_last_touched(tmp_path, clock):
+    """"What reminders do I have?" asks three agents at once; none of them is the thread the
+    user touched. The marker stays on the last single-agent dispatch."""
+    reg = make_registry(tmp_path, clock, max_roster=5)
+    reg.register("Call Mom Reminder", "remind me to call mom")
+    clock.advance(HOUR)
+    reg.register("Dentist Reminder", "move the dentist one to 9am")
+    clock.advance(HOUR)
+    reg.register("Call Mom Reminder", "list your reminders")
+    reg.register("Dentist Reminder", "list your reminders")
+    reg.register("Alice Invoice Reminder", "list your reminders")
+    reg.mark_fan_out(["Call Mom Reminder", "Dentist Reminder", "Alice Invoice Reminder"])
+    rendered = reg.render(reg.select("cancel it"))
+    touched = [line for line in rendered.splitlines() if 'last_touched="true"' in line]
+    assert len(touched) == 1 and 'name="Dentist Reminder"' in touched[0], rendered
+    # The next single dispatch takes the marker back.
+    clock.advance(HOUR)
+    reg.register("Alice Invoice Reminder", "nudge alice")
+    rendered = reg.render(reg.select("cancel it"))
+    touched = [line for line in rendered.splitlines() if 'last_touched="true"' in line]
+    assert 'name="Alice Invoice Reminder"' in touched[0]

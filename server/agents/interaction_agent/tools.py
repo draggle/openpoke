@@ -148,6 +148,7 @@ _TURN = 0
 
 
 _TURN_MESSAGE = ""
+_TURN_DISPATCHED: list = []  # agents dispatched this turn; two or more make it a fan-out
 _LAST_REPLY_WAS_DRAFT = False  # the assistant's last reply to the user was a draft to approve
 
 
@@ -157,6 +158,7 @@ def begin_turn(user_message: str = "") -> int:
     _TURN += 1
     _TURN_MESSAGE = user_message or ""
     _GUARD_SEEN.clear()
+    _TURN_DISPATCHED.clear()
     return _TURN
 
 
@@ -198,6 +200,11 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
                     payload={"error": mismatch.render(), "did_you_mean": mismatch.candidates},
                 )
     is_new = registry.register(agent_name, instructions, reason="user")
+    if agent_name not in _TURN_DISPATCHED:
+        _TURN_DISPATCHED.append(agent_name)
+    if len(_TURN_DISPATCHED) > 1:
+        # A roster-wide question asked of several agents touches none of their threads.
+        registry.mark_fan_out(_TURN_DISPATCHED)
 
     # Keep the legacy roster.json in sync so older tooling keeps working.
     roster = get_agent_roster()

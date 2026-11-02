@@ -411,3 +411,40 @@ def test_system_prompt_fans_a_whole_reminder_question_out_to_every_owner():
     prompt = agent_module.build_system_prompt()
     paragraph = next(p for p in prompt.split("\n") if "has_reminders" in p)
     assert "every agent marked" in paragraph and "only its own" in paragraph
+
+
+def test_second_dispatch_in_a_turn_marks_the_turn_a_fan_out(monkeypatch, tmp_path):
+    reg = _guard_registry(tmp_path)
+    monkeypatch.setattr(tools_module, "get_agent_registry", lambda: reg)
+    monkeypatch.setattr(tools_module, "get_agent_roster", lambda: StubRoster())
+    monkeypatch.setattr(tools_module, "get_execution_agent_logs", lambda: StubLogs())
+    monkeypatch.setattr(tools_module, "get_agent_memory", lambda: StubMemory())
+    monkeypatch.setenv("OPENPOKE_ROUTING_GUARD", "0")
+
+    async def fake_execute_agent(agent_name, instructions, send_authorisation=None):
+        from server.agents.execution_agent.runtime import ExecutionResult
+        return ExecutionResult(agent_name=agent_name, success=True, response="ok")
+
+    monkeypatch.setattr(tools_module._EXECUTION_BATCH_MANAGER, "execute_agent", fake_execute_agent)
+
+    async def run():
+        tools_module.begin_turn("what reminders do I have?")
+        tools_module.send_message_to_agent("Mom reminder", "list your reminders")
+        assert reg.get("Mom reminder").last_reason == "user"
+        tools_module.send_message_to_agent("Dentist reminder", "list your reminders")
+        assert reg.get("Mom reminder").last_reason == "fan_out"
+        assert reg.get("Dentist reminder").last_reason == "fan_out"
+        tools_module.begin_turn("move the dentist one to 9am")
+        tools_module.send_message_to_agent("Dentist reminder", "move it to 9am")
+        assert reg.get("Dentist reminder").last_reason == "user"
+        await asyncio.sleep(0)
+
+    asyncio.run(run())
+
+
+def test_system_prompt_asks_when_the_last_reply_listed_several():
+    from server.agents.interaction_agent.agent import build_system_prompt
+
+    prompt = build_system_prompt()
+    paragraph = next(p for p in prompt.split("\n") if "listed several items" in p)
+    assert "ask which one" in paragraph and "do not pick the last one listed" in paragraph

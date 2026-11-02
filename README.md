@@ -29,13 +29,13 @@ Five numbers, each with the file it comes from, then the five things the numbers
 | Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 72.5% (CI 64–80) | **96.7% (CI 92–99)**, paired +24 points (+17, +33); 83% at 500 and 74% at 1,000 agents, where upstream is at 58% and 39% | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
 | Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,653 tokens (43%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
 | Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
-| LLM calls for a five-turn reminder session through the real app | 33 | **24** (and the user told the right things, 6 of 6 checks, every reminder on its own agent) | [`docs/live/final/session_probe_five_turn.json`](docs/live/final/session_probe_five_turn.json) |
+| LLM calls for a six-turn reminder session through the real app | 34 | **25** (and the user told the right things, 7 of 7 checks, every reminder on its own agent) | [`docs/live/final/session_probe_six_turn.json`](docs/live/final/session_probe_six_turn.json) |
 | Modelled cost per day, 200 agents, 40 turns, long histories | $5.72 | **$3.10 (−46%)** | [`docs/live/final/cost_results.json`](docs/live/final/cost_results.json) |
 
 What they do not show: every workload is synthetic (no real inbox was replayed); the routing
 number is at one roster size live (the curve to 500 agents is below, and 400 agents offline);
 the memory and recall rows are eight questions on one agent; the email held-out set is 14
-emails; the relay applies to single-agent turns only, so its saving depends on how many turns fan out (9% on the five-turn session, 6–48% on the four-turn one).
+emails; the relay applies to single-agent turns only, so its saving depends on how many turns fan out (14% on the six-turn session, 6–48% on the four-turn one).
 How to read the rest: "Results at a glance" has every table; section 6 says what changed and
 why; section 7 is the review's findings and their fixes; "Gaps I saw beyond the brief" opens
 with the one I'd raise first, a send gate so email cannot make the agent send email; "How to read the numbers" is the
@@ -690,34 +690,54 @@ moved to 10am tomorrow"; the content is the same, the wit is not. Three runs: th
 interaction-call count is the same every time (one per user turn) and its cost sits within two
 cents across runs, while the other arms move by up to 25% with the model's agent-naming choices.
 
-**The relay is for single-agent turns, found by using the app.** Asking "what reminders do I
-have?" with two reminder agents on the roster produced two relayed lines, "you have one
-reminder: call your mom" and "you have one reminder: send alice the invoice", in one reply.
-Each execution agent lists only its own triggers, so a batch of several agents' summaries is a
-set of partial answers that needs the interaction agent, not a reply. `relay_message` now
-relays a batch only when it holds exactly one successful result with a summary
-(`tests/test_relay.py` pins it, including two agents dispatched concurrently sharing a batch).
-The probe gained a fifth turn that fans out to three reminder agents, with two checks: the
-last reply names all three reminders and never says "one reminder". The first run after the
-relay change ([`session_probe_five_turn_run1.json`](docs/live/final/session_probe_five_turn_run1.json))
-passed those checks in the old-loop and early-exit arms and failed them in the relay arm for a
-different reason: the interaction model asked one agent, and that single answer was relayed
-before the model could see it was partial, where the other arms' follow-up call let it ask the
-other two. The prompt's reminder rule now says a question about all reminders goes to every
-agent marked `has_reminders` in one parallel dispatch, since each knows only its own
-(`tests/test_interaction_e2e.py`). Second run, all three arms 6 of 6 content checks and 3 of 3
-agent checks ([`session_probe_five_turn.json`](docs/live/final/session_probe_five_turn.json)):
+**Two routing faults found by using the app, each now a probe turn.** Running the app by hand
+after the live suite was green turned up two faults the four-turn probe could not see.
 
-| 5 turns, two of them fan out | Old loop | Early exit | **Early exit + relay** |
+*One.* Asking "what reminders do I have?" with two reminder agents on the roster produced two
+relayed lines, "you have one reminder: call your mom" and "you have one reminder: send alice
+the invoice", in one reply. Each execution agent lists only its own triggers, so a batch of
+several agents' summaries is a set of partial answers that needs the interaction agent, not a
+reply. `relay_message` now relays a batch only when it holds exactly one successful result with
+a summary (`tests/test_relay.py`, including two agents dispatched concurrently sharing a batch).
+The probe gained a fifth turn that fans out to three reminder agents, with checks that the reply
+names all three and never says "one reminder". The first run after that change
+([`session_probe_five_turn_run1.json`](docs/live/final/session_probe_five_turn_run1.json))
+passed in the old-loop and early-exit arms and failed in the relay arm for a different reason:
+the interaction model asked one agent, and that lone answer was relayed before the model could
+see it was partial, where the other arms' follow-up call let it ask the other two. The prompt's
+reminder rule now says a question about all reminders goes to every agent marked
+`has_reminders` in one parallel dispatch, since each knows only its own
+(`tests/test_interaction_e2e.py`); the next run passed in all three arms
+([`session_probe_five_turn.json`](docs/live/final/session_probe_five_turn.json)).
+
+*Two.* After that list, a bare "cancel it" cancelled the car-insurance reminder, which was not
+on the list and had been cancelled earlier in the session. Two causes. The fan-out had touched
+all three listed agents in the same second, so `last_touched` was a three-way tie and no longer
+pointed at the dentist thread the user had addressed just before; and a bare "cancel it" after
+a list of three is ambiguous whatever the marker says. The registry now keeps `last_touched_at`
+separately from `last_used_at`: a single-agent dispatch sets it, a turn that dispatches several
+agents restores it (`mark_fan_out`, called by the tool on the second dispatch of a turn), and a
+reminder firing never sets it, so the marker is the thread the user last addressed on its own
+(`tests/test_registry.py`, `tests/test_interaction_e2e.py`). The prompt gained a rule of its own:
+after a reply that listed several items, a bare "cancel it" / "move it" / "send it" is
+ambiguous, do not pick the last one listed, ask which. The probe's sixth turn is that "cancel
+it", checked for a question and no cancellation. With the rule as one sentence inside the
+existing bullet, 1 of 3 arms asked and the other two cancelled the last item listed
+([`session_probe_six_turn_run1.json`](docs/live/final/session_probe_six_turn_run1.json)); as
+its own bullet with the "do not pick the last one listed" wording, 3 of 3 asked
+([`session_probe_six_turn.json`](docs/live/final/session_probe_six_turn.json)):
+
+| 6 turns, two of them fan out, one ambiguous | Old loop | Early exit | **Early exit + relay** |
 |---|---|---|---|
-| Interaction calls | 17 | 10 | **8** |
+| Interaction calls | 18 | 12 | **9** |
 | Execution calls | 16 | 16 | 16 |
-| Total calls | 33 | 26 | **24** |
-| Cost | $0.196 | $0.176 | **$0.160** |
-| User told the right things (6 checks) | 6 / 6 | 6 / 6 | **6 / 6** |
+| Total calls | 34 | 28 | **25** |
+| Cost | $0.207 | $0.188 | **$0.161** |
+| User told the right things (7 checks) | 7 / 7 | 7 / 7 | **7 / 7** |
+| Every reminder on its own agent (3 checks) | 3 / 3 | 3 / 3 | **3 / 3** |
 
-The relay's saving is smaller here than in the four-turn table above (two calls and 9% against
-early exit, not six and 45%) because the two fan-out turns now take the full path by design.
+The relay's saving is smaller here than in the four-turn table above (three calls and 14%
+against early exit, not six and 45%) because the fan-out turns take the full path by design.
 The four-turn session is the fork's best case for the relay; this one is the honest one.
 
 The full live suite was run three times on this branch with the same models, seeds and
@@ -733,7 +753,7 @@ moves this cell between 37% and 43% across runs), `search_history` **8 of 8**, e
 **1.00 / 1.00** on the dev set and **1.00 / 1.00** held-out with the sweep naming (0.08, 0.5),
 Jev as router 42.5% vs LLM 90% (still off), the reminder probe **5 of 5** in 21 s, the session
 probe's content and agent checks passing in all three arms, the relay arm at 4 interaction
-calls for 14 total (−45% cost against early exit on this run; the single-agent rule adopted afterwards, above, makes the five-turn session the current number), and the injection set at 0 of
+calls for 14 total (−45% cost against early exit on this run; the single-agent rule adopted afterwards, above, makes the six-turn session the current number), and the injection set at 0 of
 12 sends in every arm on this run (the invoice-footer forward that went out under upstream in
 the first run did not recur; one of two runs, which is the point of the gate). Offline results are identical to
 the hardening archive. Across the six
@@ -780,7 +800,7 @@ bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 | `evals.jev_bench` | email gating and routing hint, offline (oracle) or live; live records per-email probabilities and sweeps the two-sided gate | no / yes + TypeSafe |
 | `evals.live_routing_eval` | the real Interaction model choosing an agent: `--history` for both arms, `--stratified` kinds, `--seeds`, Wilson CIs, `search_agents` call/need/hit counts, the model's words on every non-delegation, did-you-mean guard fired/helped/hurt | yes |
 | `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
-| `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real five-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told, including one synthesised answer from three agents | yes |
+| `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real six-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told, including one synthesised answer from three agents and one ambiguous "cancel it" that must be asked about | yes |
 | `evals.trigger_probe` | a reminder created through the app is forced to fire under the real scheduler; checks the user is notified by the interaction agent, the run is billed to the trigger role, nothing internal leaks | yes |
 | `evals.live_routing_eval --fixture evals/heldout_routing.json` | the hand-written held-out routing set through both arms; `python -m evals.heldout_routing <results.json>` grades it against the bars written before the first run | yes |
 | `evals.stats` | exact McNemar and paired bootstrap on the queries both arms answered; `python -m evals.stats <results.json>` | no |
