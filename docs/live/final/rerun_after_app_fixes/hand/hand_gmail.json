@@ -1,0 +1,140 @@
+{
+  "name": "gmail",
+  "turns": [
+    {
+      "say": "find the latest email from Alice and draft a reply saying thanks, I'll pay by Friday",
+      "replies": [
+        "Looking for Alice's latest email and drafting a reply.",
+        "draft ready to alice@example.com: \"thanks, I'll pay by Friday\""
+      ],
+      "seconds": 18.1
+    },
+    {
+      "say": "send it",
+      "replies": [
+        "sending it now",
+        "sent to alice \u2013 \"thanks, I'll pay by Friday\""
+      ],
+      "seconds": 11.1
+    },
+    {
+      "say": "what did Bob say about the flight?",
+      "replies": [
+        "I'll look that up for you.",
+        "bob confirmed your flight to krakow: LO 282, friday 7am"
+      ],
+      "seconds": 12.1
+    },
+    {
+      "say": "forward that to me@example.com",
+      "replies": [
+        "I'll forward Bob's flight info to me@example.com.",
+        "forwarded bob's flight email to me@example.com"
+      ],
+      "seconds": 11.1
+    },
+    {
+      "say": "did Priya reply?",
+      "replies": [
+        "I'll check if Priya has replied.",
+        "priya emailed yesterday (nov 1) asking for a reference letter for the northwind role by the 10th. no reply sent yet."
+      ],
+      "seconds": 17.1
+    },
+    {
+      "say": "draft a reply to Priya saying yes, I'll have it by the 8th",
+      "replies": [
+        "I'll draft that reply for you.",
+        "draft ready: replying to priya that you'll have the reference letter by the 8th"
+      ],
+      "seconds": 15.1
+    },
+    {
+      "say": "actually change the 8th to the 9th",
+      "replies": [
+        "updating that to the 9th",
+        "draft updated: now says you'll have the reference letter by the 9th"
+      ],
+      "seconds": 13.1
+    },
+    {
+      "say": "ok go ahead",
+      "replies": [
+        "I'll send the reply to Priya now.",
+        "reply sent to priya confirming you'll have the reference letter by the 9th"
+      ],
+      "seconds": 11.1
+    },
+    {
+      "say": "remind me in 1 minute to forward Bob's flight email to me@example.com",
+      "replies": [
+        "I'll set that reminder for you in 1 minute.",
+        "reminder set for 1 minute from now to forward bob's flight email to me@example.com",
+        "heads up \u2013 bob's flight email was already forwarded to me@example.com earlier (at 7:51am)"
+      ],
+      "seconds": 107.1
+    },
+    {
+      "say": "what reminders do I have?",
+      "replies": [
+        "I'll check your reminders.",
+        "you have one reminder that already completed at 7:53am today (it was about forwarding bob's flight email). no active reminders pending."
+      ],
+      "seconds": 14.1
+    }
+  ],
+  "agents_after": [
+    "Bob Flight Question",
+    "Priya Email Check",
+    "Alice Email Reply"
+  ],
+  "outbound_calls": [
+    {
+      "tool": "gmail_execute_draft",
+      "args": {
+        "draft_id": "d-1"
+      },
+      "at": "02:50:54"
+    },
+    {
+      "tool": "gmail_forward_email",
+      "args": {
+        "message_id": "m-102",
+        "recipient_email": "me@example.com"
+      },
+      "at": "02:51:17"
+    },
+    {
+      "tool": "gmail_execute_draft",
+      "args": {
+        "draft_id": "d-3"
+      },
+      "at": "02:52:13"
+    }
+  ],
+  "drafts": {
+    "d-1": {
+      "recipient_email": "alice@example.com",
+      "subject": "Re: Lunch invoice",
+      "body": "thanks, I'll pay by Friday",
+      "is_html": false,
+      "thread_id": "t-alice"
+    },
+    "d-2": {
+      "recipient_email": "priya@example.com",
+      "subject": "Re: Reference letter",
+      "body": "Yes, I'll have it by the 8th.",
+      "is_html": false,
+      "thread_id": "t-priya"
+    },
+    "d-3": {
+      "recipient_email": "priya@example.com",
+      "subject": "Re: Reference letter",
+      "body": "Yes, I'll have it by the 9th.",
+      "is_html": false,
+      "thread_id": "t-priya"
+    }
+  },
+  "calls": 44,
+  "cost_usd": 0.3676
+}

@@ -26,10 +26,10 @@ Five numbers, each with the file it comes from, then the five things the numbers
 
 | What | Upstream | This fork | Source |
 |---|---|---|---|
-| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 72.5% (CI 64–80) | **96.7% (CI 92–99)**, paired +24 points (+17, +33); 83% at 500 and 74% at 1,000 agents, where upstream is at 58% and 39%; re-run on the code as it ships after the app-found fixes in section 8: 94.2% (CI 88–97) against 61.7%, paired +32.5 (+24, +42) | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
-| Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,653 tokens (43%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
-| Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
-| LLM calls for a six-turn reminder session through the real app | 34 | **25** (and the user told the right things, 7 of 7 checks, every reminder on its own agent) | [`docs/live/final/session_probe_six_turn.json`](docs/live/final/session_probe_six_turn.json) |
+| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 61.7% (CI 53–70) | **92.5% (CI 86–96)**, paired +30.8 points (+22.5, +39.2), 38 queries won and 1 lost; 83% at 500 and 74% at 1,000 agents on the earlier code, where upstream is at 58% and 39% | [`docs/live/final/rerun_after_app_fixes/live_routing_results_history.json`](docs/live/final/rerun_after_app_fixes/live_routing_results_history.json) |
+| Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,541 tokens (41%); 0 of 7 stale** | [`docs/live/final/rerun_after_app_fixes/memory_results_live.json`](docs/live/final/rerun_after_app_fixes/memory_results_live.json) |
+| Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/rerun_after_app_fixes/email_results.json`](docs/live/final/rerun_after_app_fixes/email_results.json) |
+| LLM calls for a six-turn reminder session through the real app | 37 | **26** (and the user told the right things, 7 of 7 checks, every reminder on its own agent) | [`docs/live/final/rerun_after_app_fixes/session_probe.json`](docs/live/final/rerun_after_app_fixes/session_probe.json) |
 | Modelled cost per day, 200 agents, 40 turns, long histories | $5.72 | **$3.10 (−46%)** | [`docs/live/final/cost_results.json`](docs/live/final/cost_results.json) |
 
 What they do not show: every workload is synthetic (no real inbox was replayed); the routing
@@ -823,6 +823,20 @@ forward stopped at a draft and asked, two outbound calls in the whole session, b
 ([`hand_gmail.json`](docs/live/final/hand/hand_gmail.json)); the injection set unchanged, 0 of 12
 under the gate with 6 of 6 legitimate sends
 ([`injection_results_after_gate_fix.json`](docs/live/final/injection_results_after_gate_fix.json)).
+
+**The whole live suite, rerun once more on the code as it ships, after every fix above**
+([`docs/live/final/rerun_after_app_fixes/`](docs/live/final/rerun_after_app_fixes/), one evaluator at a time, every store isolated; this is the run the
+"Fifteen minutes" table now cites). Routing at 150 agents **92.5%** (CI 86–96) against 61.7%,
+paired +30.8 points (interval +22.5 to +39.2), 38 won and 1 lost, bare follow-ups 30 of 30;
+the held-out set **86.1%** against 83.3%, 8 of 10 bars, paired +2.8 (interval −6.9 to +12.5,
+the tie at 50 agents the curve predicts); memory **2,541 tokens** at 136 entries (41%), every
+retention row 1.00, nothing stale; email 1.00 / 1.00 on the dev set and 1.00 / 1.00 held-out;
+`search_history` 8 of 8; the six-turn probe 7 of 7 in all three arms, 37 calls old loop, 32
+early exit, **26** with the relay; the follow-up probe 6 of 6 with every trigger on the named
+weekday; the three hand scripts right on all 36 turns with three outbound calls, each one the
+user had just asked for; the reminder probe 5 of 5 in 18 s; the injection set 0 of 12 in every
+arm with 6 of 6 legitimate sends. The 500- and 1,000-agent points were not rerun (they are
+the earlier code's numbers above). Total API spend for the rerun, about $6.
 
 Last, the unit suite itself was writing agent logs under `server/data` because tests set the
 data-directory override after the stores had resolved their paths at import; `tests/conftest.py`

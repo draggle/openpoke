@@ -1,0 +1,168 @@
+[all s0] OK  recency    ok send it                                    -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] OK  recency    send it                                       -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] OK  recency    go ahead                                      -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] OK  recency    looks good, send                              -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] MISS recency    hold off on that for now                      -> None (want 'Alice lunch invoice')
+[all s0] OK  recency    add a line thanking her first                 -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] OK  recency    actually make the deadline next Monday instea -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] OK  recency    what did the draft say again?                 -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[all s0] OK  keyword    what did Priya say about the October invoice? -> 'Priya Nair - October invoice' (want 'Priya Nair - October invoice')
+[all s0] OK  keyword    did Marco find the Lisbon flight?             -> 'Marco Lisbon flight' (want 'Marco Lisbon flight')
+[all s0] OK  keyword    any update on Katherine's lease renewal?      -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[all s0] OK  keyword    where are we on the Delta refund?             -> 'Flight refund - Delta' (want 'Flight refund - Delta')
+[all s0] OK  keyword    did Carlos send the remittance for the Octobe -> 'Carlos October invoice follow-up' (want 'Carlos October invoice follow-up')
+[all s0] OK  keyword    what did Greta say about the equity?          -> 'Email to Greta about job offer' (want 'Email to Greta about job offer')
+[all s0] OK  keyword    remind me what Hannah agreed on the $182      -> 'Hannah refund $182' (want 'Hannah refund $182')
+[all s0] OK  keyword    is the hotel in Porto confirmed with Elena?   -> 'Hotel Reservation with Elena' (want 'Hotel Reservation with Elena')
+[all s0] OK  keyword    did Aisha sort the payroll thing?             -> 'Aisha payroll discrepancy' (want 'Aisha payroll discrepancy')
+[all s0] OK  keyword    what time is Kenji's viewing?                 -> 'Kenji apartment viewing' (want 'Kenji apartment viewing')
+[all s0] OK  name_only  anything from Priya?                          -> 'Priya Nair birthday dinner' (want 'Priya Nair birthday dinner')
+[all s0] OK  name_only  did Tomasz get back to me?                    -> 'Tomasz Lunch Invite' (want 'Tomasz Lunch Invite')
+[all s0] OK  name_only  nudge Ravi again                              -> 'Ravi - squash court' (want 'Ravi - squash court')
+[all s0] OK  name_only  what's the latest with Elena                  -> 'Hotel Reservation with Elena' (want 'Hotel Reservation with Elena')
+[all s0] MISS name_only  did Marco reply?                              -> 'Marco expense reimbursement' (want 'Marco Lisbon flight')
+[all s0] OK  name_only  anything from Bob?                            -> 'Bob flight confirmation' (want 'Bob flight confirmation') [search x1]
+[all s0] OK  name_only  chase Sven                                    -> 'Conference talk proposal - Sven' (want 'Conference talk proposal - Sven')
+[all s0] OK  name_only  did Liam come back to me?                     -> 'Liam warranty claim' (want 'Liam warranty claim')
+[all s0] OK  topic_only is the lease sorted?                          -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[all s0] OK  topic_only any update on the passport?                   -> 'Passport renewal' (want 'Passport renewal')
+[all s0] OK  topic_only where are we on the podcast thing             -> 'Samantha Okafor podcast invite' (want 'Samantha Okafor podcast invite')
+[all s0] OK  topic_only is the car service booked?                    -> 'Car service booking' (want 'Car service booking')
+[all s0] OK  topic_only did the warranty claim go through?            -> 'Liam warranty claim' (want 'Liam warranty claim')
+[all s0] OK  topic_only what's happening with the conference talk     -> 'Conference talk proposal - Sven' (want 'Conference talk proposal - Sven')
+[all s0] OK  topic_only any news on the wedding photos?               -> 'Wedding photographer' (want 'Wedding photographer')
+[all s0] OK  topic_only did the internet credit come through?         -> 'Internet outage - Fibrelink' (want 'Internet outage - Fibrelink')
+[all s0] OK  lookalike  did Priya send her dates for the reference le -> 'Priya reference letter' (want 'Priya reference letter')
+[all s0] OK  lookalike  has Priya's invoice been approved yet?        -> 'Priya Nair - October invoice' (want 'Priya Nair - October invoice')
+[all s0] OK  lookalike  which flight is Tomasz on?                    -> 'Tomasz - flight to Krakow' (want 'Tomasz - flight to Krakow')
+[all s0] MISS lookalike  what does Elena's sister want?                -> None (want 'Elena - birthday gift ideas')
+[all s0] OK  lookalike  when is Bob's visa appointment?               -> 'Reminder: visa (Bob)' (want 'Reminder: visa (Bob)')
+[all s0] OK  lookalike  did Marco say when expenses get paid?         -> 'Marco expense reimbursement' (want 'Marco expense reimbursement')
+[all s0] OK  lookalike  what did Ravi say he still needs for the taxe -> 'Tax documents - Ravi' (want 'Tax documents - Ravi')
+[all s0] MISS lookalike  is Alice free for lunch Tuesday?              -> None (want 'Lunch with Alice')
+[all s0] OK  lookalike  cancel the dentist reminder for Mei           -> 'Reminder: dentist (Mei)' (want 'Reminder: dentist (Mei)')
+[all s0] MISS lookalike  move my cleaning appointment again            -> None (want 'Dentist appointment reschedule')
+[all s0] OK  nickname   did Alex send the redlines?                   -> 'Alexander Chen contract review' (want 'Alexander Chen contract review') [search x1]
+[all s0] OK  nickname   what did Kate say about the rent increase?    -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal') [search x1]
+[all s0] OK  nickname   any reply from Sam about the podcast dates?   -> 'Samantha Okafor podcast invite' (want 'Samantha Okafor podcast invite')
+[all s0] OK  nickname   ping Alex about the contract                  -> 'Alexander Chen contract review' (want 'Alexander Chen contract review')
+[all s0] MISS nickname   is Kate's landlord ok with 3%?                -> None (want 'Katherine Ross - lease renewal')
+[all s0] MISS nickname   tell Sam March 11 works                       -> 'Sam - March 11' (want 'Samantha Okafor podcast invite') [search x1]
+[all s0] OK  typo       anything from Sharanjit?                      -> 'Sharanjeet book club' (want 'Sharanjeet book club')
+[all s0] OK  typo       did Pryia reply about dinner?                 -> 'Priya Nair birthday dinner' (want 'Priya Nair birthday dinner')
+[all s0] OK  typo       nudge Tomas about lunch                       -> 'Tomasz Lunch Invite' (want 'Tomasz Lunch Invite')
+[all s0] OK  typo       what did Katherin say?                        -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[all s0] OK  typo       move Fatimah's invoice reminder to 11         -> 'Fatima invoice reminder' (want 'Fatima invoice reminder')
+[all s0] OK  typo       did Ingird confirm Saturday?                  -> 'Dinner Plans with Ingrid' (want 'Dinner Plans with Ingrid')
+[all s0] OK  paraphrase the place I'm renting, did they budge on the  -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal') [search x1]
+[all s0] OK  paraphrase the airline still owes me for Denver, any pro -> 'Flight refund - Delta' (want 'Flight refund - Delta')
+[all s0] MISS paraphrase that retainer call I need to make             -> None (want 'Reminder: dentist (Mei)')
+[all s0] OK  paraphrase the big day pictures, how much was the quote? -> 'Wedding photographer' (want 'Wedding photographer')
+[all s0] OK  paraphrase the two-bed on Elm, when are we seeing it?    -> 'Kenji apartment viewing' (want 'Kenji apartment viewing')
+[all s0] OK  paraphrase the talk abstract, did the committee decide?  -> 'Conference talk proposal - Sven' (want 'Conference talk proposal - Sven')
+[all s0] OK  paraphrase my missing overtime, sorted?                  -> 'Aisha payroll discrepancy' (want 'Aisha payroll discrepancy') [search x1]
+[all s0] OK  paraphrase the boxes for the move, can I grab them?      -> 'Ben moving boxes' (want 'Ben moving boxes')
+[all s0] MISS name_opaque did Ironwood get back to me?                  -> 'Inbox check' (want 'Gym membership freeze')
+[all s0] OK  name_opaque what did Bellhaven offer?                     -> 'Car service booking' (want 'Car service booking') [search x1]
+[all s0] OK  name_opaque when's the Northgate appointment?             -> 'Passport renewal' (want 'Passport renewal') [search x1]
+[all s0] MISS name_opaque did Lena confirm the date?                    -> None (want 'Wedding photographer')
+[all s0] OK  name_opaque any word from Fibrelink?                      -> 'Internet outage - Fibrelink' (want 'Internet outage - Fibrelink')
+[all s0] OK  name_opaque did Dr. Alvarez's office reply?               -> 'Dentist appointment reschedule' (want 'Dentist appointment reschedule') [search x1]
+[all s0] MISS name_opaque what did Northwind say about equity?          -> 'Northwind equity inquiry' (want 'Email to Greta about job offer') [search x1]
+[all s0] MISS name_opaque has Petal & Stem shipped?                     -> 'Petal & Stem shipment status' (want "Grandma's birthday flowers")
+[budgeted s0] OK  recency    ok send it                                    -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] OK  recency    send it                                       -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] OK  recency    go ahead                                      -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] OK  recency    looks good, send                              -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] MISS recency    hold off on that for now                      -> None (want 'Alice lunch invoice')
+[budgeted s0] OK  recency    add a line thanking her first                 -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] OK  recency    actually make the deadline next Monday instea -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] OK  recency    what did the draft say again?                 -> 'Alice lunch invoice' (want 'Alice lunch invoice')
+[budgeted s0] OK  keyword    what did Priya say about the October invoice? -> 'Priya Nair - October invoice' (want 'Priya Nair - October invoice')
+[budgeted s0] OK  keyword    did Marco find the Lisbon flight?             -> 'Marco Lisbon flight' (want 'Marco Lisbon flight')
+[budgeted s0] OK  keyword    any update on Katherine's lease renewal?      -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[budgeted s0] OK  keyword    where are we on the Delta refund?             -> 'Flight refund - Delta' (want 'Flight refund - Delta')
+[budgeted s0] OK  keyword    did Carlos send the remittance for the Octobe -> 'Carlos October invoice follow-up' (want 'Carlos October invoice follow-up')
+[budgeted s0] OK  keyword    what did Greta say about the equity?          -> 'Email to Greta about job offer' (want 'Email to Greta about job offer') [search x1]
+[budgeted s0] OK  keyword    remind me what Hannah agreed on the $182      -> 'Hannah refund $182' (want 'Hannah refund $182')
+[budgeted s0] OK  keyword    is the hotel in Porto confirmed with Elena?   -> 'Hotel Reservation with Elena' (want 'Hotel Reservation with Elena') [search x1]
+[budgeted s0] OK  keyword    did Aisha sort the payroll thing?             -> 'Aisha payroll discrepancy' (want 'Aisha payroll discrepancy')
+[budgeted s0] OK  keyword    what time is Kenji's viewing?                 -> 'Kenji apartment viewing' (want 'Kenji apartment viewing')
+[budgeted s0] OK  name_only  anything from Priya?                          -> 'Priya Nair birthday dinner' (want 'Priya Nair birthday dinner')
+[budgeted s0] OK  name_only  did Tomasz get back to me?                    -> 'Tomasz Lunch Invite' (want 'Tomasz Lunch Invite')
+[budgeted s0] OK  name_only  nudge Ravi again                              -> 'Ravi - squash court' (want 'Ravi - squash court')
+[budgeted s0] MISS name_only  what's the latest with Elena                  -> None (want 'Hotel Reservation with Elena') [search x1]
+[budgeted s0] MISS name_only  did Marco reply?                              -> 'Marco expense reimbursement' (want 'Marco Lisbon flight') [search x1]
+[budgeted s0] OK  name_only  anything from Bob?                            -> 'Bob flight confirmation' (want 'Bob flight confirmation')
+[budgeted s0] OK  name_only  chase Sven                                    -> 'Conference talk proposal - Sven' (want 'Conference talk proposal - Sven') [search x1]
+[budgeted s0] OK  name_only  did Liam come back to me?                     -> 'Liam warranty claim' (want 'Liam warranty claim') [search x1]
+[budgeted s0] OK  topic_only is the lease sorted?                          -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[budgeted s0] OK  topic_only any update on the passport?                   -> 'Passport renewal' (want 'Passport renewal') [search x1]
+[budgeted s0] OK  topic_only where are we on the podcast thing             -> 'Samantha Okafor podcast invite' (want 'Samantha Okafor podcast invite')
+[budgeted s0] OK  topic_only is the car service booked?                    -> 'Car service booking' (want 'Car service booking') [search x1]
+[budgeted s0] OK  topic_only did the warranty claim go through?            -> 'Liam warranty claim' (want 'Liam warranty claim') [search x1]
+[budgeted s0] OK  topic_only what's happening with the conference talk     -> 'Conference talk proposal - Sven' (want 'Conference talk proposal - Sven') [search x1]
+[budgeted s0] OK  topic_only any news on the wedding photos?               -> 'Wedding photographer' (want 'Wedding photographer')
+[budgeted s0] MISS topic_only did the internet credit come through?         -> 'Inbox check' (want 'Internet outage - Fibrelink')
+[budgeted s0] OK  lookalike  did Priya send her dates for the reference le -> 'Priya reference letter' (want 'Priya reference letter')
+[budgeted s0] OK  lookalike  has Priya's invoice been approved yet?        -> 'Priya Nair - October invoice' (want 'Priya Nair - October invoice')
+[budgeted s0] OK  lookalike  which flight is Tomasz on?                    -> 'Tomasz - flight to Krakow' (want 'Tomasz - flight to Krakow')
+[budgeted s0] OK  lookalike  what does Elena's sister want?                -> 'Elena - birthday gift ideas' (want 'Elena - birthday gift ideas') [search x1]
+[budgeted s0] OK  lookalike  when is Bob's visa appointment?               -> 'Reminder: visa (Bob)' (want 'Reminder: visa (Bob)')
+[budgeted s0] OK  lookalike  did Marco say when expenses get paid?         -> 'Marco expense reimbursement' (want 'Marco expense reimbursement')
+[budgeted s0] OK  lookalike  what did Ravi say he still needs for the taxe -> 'Tax documents - Ravi' (want 'Tax documents - Ravi')
+[budgeted s0] MISS lookalike  is Alice free for lunch Tuesday?              -> None (want 'Lunch with Alice')
+[budgeted s0] OK  lookalike  cancel the dentist reminder for Mei           -> 'Reminder: dentist (Mei)' (want 'Reminder: dentist (Mei)')
+[budgeted s0] MISS lookalike  move my cleaning appointment again            -> None (want 'Dentist appointment reschedule') [search x1]
+[budgeted s0] OK  nickname   did Alex send the redlines?                   -> 'Alexander Chen contract review' (want 'Alexander Chen contract review')
+[budgeted s0] OK  nickname   what did Kate say about the rent increase?    -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[budgeted s0] OK  nickname   any reply from Sam about the podcast dates?   -> 'Samantha Okafor podcast invite' (want 'Samantha Okafor podcast invite')
+[budgeted s0] OK  nickname   ping Alex about the contract                  -> 'Alexander Chen contract review' (want 'Alexander Chen contract review')
+[budgeted s0] OK  nickname   is Kate's landlord ok with 3%?                -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[budgeted s0] OK  nickname   tell Sam March 11 works                       -> 'Samantha Okafor podcast invite' (want 'Samantha Okafor podcast invite')
+[budgeted s0] OK  typo       anything from Sharanjit?                      -> 'Sharanjeet book club' (want 'Sharanjeet book club')
+[budgeted s0] OK  typo       did Pryia reply about dinner?                 -> 'Priya Nair birthday dinner' (want 'Priya Nair birthday dinner')
+[budgeted s0] OK  typo       nudge Tomas about lunch                       -> 'Tomasz Lunch Invite' (want 'Tomasz Lunch Invite')
+[budgeted s0] OK  typo       what did Katherin say?                        -> 'Katherine Ross - lease renewal' (want 'Katherine Ross - lease renewal')
+[budgeted s0] OK  typo       move Fatimah's invoice reminder to 11         -> 'Fatima invoice reminder' (want 'Fatima invoice reminder')
+[budgeted s0] OK  typo       did Ingird confirm Saturday?                  -> 'Dinner Plans with Ingrid' (want 'Dinner Plans with Ingrid')
+[budgeted s0] MISS paraphrase the place I'm renting, did they budge on the  -> None (want 'Katherine Ross - lease renewal')
+[budgeted s0] OK  paraphrase the airline still owes me for Denver, any pro -> 'Flight refund - Delta' (want 'Flight refund - Delta')
+[budgeted s0] MISS paraphrase that retainer call I need to make             -> None (want 'Reminder: dentist (Mei)')
+[budgeted s0] MISS paraphrase the big day pictures, how much was the quote? -> None (want 'Wedding photographer') [search x1]
+[budgeted s0] OK  paraphrase the two-bed on Elm, when are we seeing it?    -> 'Kenji apartment viewing' (want 'Kenji apartment viewing') [search x1]
+[budgeted s0] OK  paraphrase the talk abstract, did the committee decide?  -> 'Conference talk proposal - Sven' (want 'Conference talk proposal - Sven') [search x1]
+[budgeted s0] OK  paraphrase my missing overtime, sorted?                  -> 'Aisha payroll discrepancy' (want 'Aisha payroll discrepancy') [search x1]
+[budgeted s0] MISS paraphrase the boxes for the move, can I grab them?      -> None (want 'Ben moving boxes')
+[budgeted s0] OK  name_opaque did Ironwood get back to me?                  -> 'Gym membership freeze' (want 'Gym membership freeze') [guard: first 'Ironwood follow-up']
+[budgeted s0] OK  name_opaque what did Bellhaven offer?                     -> 'Car service booking' (want 'Car service booking') [search x1]
+[budgeted s0] OK  name_opaque when's the Northgate appointment?             -> 'Passport renewal' (want 'Passport renewal') [search x1]
+[budgeted s0] OK  name_opaque did Lena confirm the date?                    -> 'Wedding photographer' (want 'Wedding photographer')
+[budgeted s0] OK  name_opaque any word from Fibrelink?                      -> 'Internet outage - Fibrelink' (want 'Internet outage - Fibrelink') [guard: first 'Fibrelink inquiry']
+[budgeted s0] OK  name_opaque did Dr. Alvarez's office reply?               -> 'Dentist appointment reschedule' (want 'Dentist appointment reschedule') [search x1]
+[budgeted s0] OK  name_opaque what did Northwind say about equity?          -> 'Email to Greta about job offer' (want 'Email to Greta about job offer') [search x1]
+[budgeted s0] OK  name_opaque has Petal & Stem shipped?                     -> "Grandma's birthday flowers" (want "Grandma's birthday flowers") [guard: first 'Petal & Stem shipment']
+
+all: 83.3% (n=72, 95% CI 73%-90%); no delegation 7, new agents 3, search calls 10 (needed 0, hit 0); wrong agent 5, answered from card 0, guard fired 0 (helped 0, hurt 0); 6212.8 prompt tok/query, 4510.1 cached; $0.5936
+  keyword    100%  n=10  CI 72%-100%
+  lookalike  70%  n=10  CI 40%-89%
+  name_only  88%  n=8   CI 53%-98%
+  name_opaque 50%  n=8   CI 22%-78%
+  nickname   67%  n=6   CI 30%-90%
+  paraphrase 88%  n=8   CI 53%-98%
+  recency    88%  n=8   CI 53%-98%
+  topic_only 100%  n=8   CI 68%-100%
+  typo       100%  n=6   CI 61%-100%
+
+budgeted: 86.1% (n=72, 95% CI 76%-92%); no delegation 8, new agents 0, search calls 20 (needed 22, hit 17); wrong agent 2, answered from card 4, guard fired 3 (helped 3, hurt 0); 7227.3 prompt tok/query, 5345.3 cached; $0.6718
+  keyword    100%  n=10  CI 72%-100%
+  lookalike  80%  n=10  CI 49%-94%
+  name_only  75%  n=8   CI 41%-93%
+  name_opaque 100%  n=8   CI 68%-100%
+  nickname   100%  n=6   CI 61%-100%
+  paraphrase 50%  n=8   CI 22%-78%
+  recency    88%  n=8   CI 53%-98%
+  topic_only 88%  n=8   CI 53%-98%
+  typo       100%  n=6   CI 61%-100%
+
+paired (72 queries through both arms): budgeted right / upstream wrong 7, the reverse 5, exact McNemar p = 7.7e-01; difference +2.8%, paired bootstrap 95% CI [-6.9%, +12.5%]
