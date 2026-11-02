@@ -22,7 +22,7 @@ def test_relay_message_needs_every_result_successful_with_a_summary():
     ok2 = ExecutionResult(agent_name="B", success=True, response="<user_summary>b done</user_summary>")
     bare = ExecutionResult(agent_name="C", success=True, response="did it")
     failed = ExecutionResult(agent_name="D", success=False, response="<user_summary>nope</user_summary>")
-    assert relay_message([ok, ok2]) == "a done\nb done"
+    assert relay_message([ok]) == "a done"
     assert relay_message([ok, bare]) is None
     assert relay_message([ok, failed]) is None
     assert relay_message([]) is None
@@ -40,6 +40,7 @@ def _manager(monkeypatch, response, success=True):
     class FakeRuntime:
         def __init__(self, agent_name, source="user", send_authorisation=None): self.agent_name = agent_name
         async def execute(self, instructions):
+            await asyncio.sleep(0.01)  # concurrent dispatches overlap, as the tool's create_task ones do
             return ExecutionResult(agent_name=self.agent_name, success=success, response=response)
 
     monkeypatch.setattr(bm, "ExecutionAgentRuntime", FakeRuntime)
@@ -61,6 +62,26 @@ def test_batch_with_summaries_is_relayed_without_the_interaction_agent(monkeypat
     assert dispatched == []
     assert log.replies == ["done, 10am tomorrow."]
     assert log.agent_messages == ["[SUCCESS] Alice reminder: Trigger set.\ndone, 10am tomorrow."]
+
+
+def test_two_agents_answering_one_turn_are_never_relayed():
+    """Each agent only knows its own thread: "you have one reminder" twice is not an answer to
+    "what reminders do I have?". Several results need the interaction agent to synthesise."""
+    ok = ExecutionResult(agent_name="A", success=True, response="<user_summary>you have one reminder: call mom</user_summary>")
+    ok2 = ExecutionResult(agent_name="B", success=True, response="<user_summary>you have one reminder: alice invoice</user_summary>")
+    assert relay_message([ok, ok2]) is None
+
+
+def test_two_agent_batch_goes_through_the_interaction_agent(monkeypatch):
+    monkeypatch.delenv("OPENPOKE_DIRECT_RELAY", raising=False)
+    manager, log, dispatched = _manager(monkeypatch, "Listed.\n<user_summary>you have one reminder</user_summary>")
+
+    async def both():
+        await asyncio.gather(manager.execute_agent("Call mom", "list"), manager.execute_agent("Alice invoice", "list"))
+
+    asyncio.run(both())
+    assert log.replies == []
+    assert len(dispatched) == 1 and dispatched[0].count("[SUCCESS]") == 2
 
 
 def test_batch_without_summary_goes_through_the_interaction_agent(monkeypatch):

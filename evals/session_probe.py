@@ -1,4 +1,4 @@
-"""Session probe: LLM calls, cache share and cost by role for a real three-turn chat session.
+"""Session probe: LLM calls, cache share and cost by role for a real five-turn chat session.
 
 Boots the FastAPI app in-process (no network server, no background scheduler) and drives the
 real chat endpoint through the full path: Interaction Agent -> execution agent -> result back
@@ -35,6 +35,9 @@ TURNS: List[str] = [
     # Two requests in one message: the early-exit loop must not drop the second dispatch.
     "Also remind me Friday at 8am to call the dentist, and set a separate reminder for Monday at "
     "noon to renew the car insurance.",
+    # Fans out to three agents, each of which knows one reminder: the reply must be one synthesis,
+    # not three relayed "you have one reminder" lines.
+    "What reminders do I have now?",
 ]
 
 
@@ -132,11 +135,14 @@ async def _run_session(early_exit: bool, relay: bool = False) -> Dict[str, Any]:
 def _checks(replies: List[str]) -> Dict[str, bool]:
     """Did the user get told what they needed? Cheap substring checks on the assistant replies."""
     text = "\n".join(replies).lower()
+    last = replies[-1].lower() if replies else ""
     return {
         "moved_to_10am_confirmed": "10" in text,
         "reminder_list_names_the_invoice": "invoice" in text,
         "dentist_and_insurance_confirmed": "dentist" in text and "insurance" in text,
         "no_internal_ids_shown": "trigger" not in text and "rrule" not in text,
+        "final_list_names_all_three": all(w in last for w in ("invoice", "dentist", "insurance")),
+        "final_list_is_one_synthesis": "one reminder" not in last,
         "replies": len(replies),
     }
 
@@ -166,7 +172,7 @@ async def run(out_dir: Path) -> Dict[str, Any]:
     import tempfile
 
     os.environ["OPENPOKE_DATA_DIR"] = tempfile.mkdtemp(prefix="openpoke-probe-")
-    results = {"what": "four-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
+    results = {"what": "five-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
                "turns": TURNS, "with_early_exit": await _run_session(True),
                "without_early_exit": await _run_session(False),
                "with_relay": await _run_session(True, relay=True)}

@@ -403,3 +403,11 @@ def test_system_prompt_says_cards_are_for_choosing_not_answering():
     prompt = agent_module.build_system_prompt()
     paragraph = next(p for p in prompt.split("\n") if "may be stale" in p)
     assert "delegate" in paragraph.lower() and "replied" in paragraph
+
+
+def test_system_prompt_fans_a_whole_reminder_question_out_to_every_owner():
+    """"What reminders do I have?" asked of one agent gets that agent's one reminder; the
+    answer needs every agent marked has_reminders, in one parallel dispatch."""
+    prompt = agent_module.build_system_prompt()
+    paragraph = next(p for p in prompt.split("\n") if "has_reminders" in p)
+    assert "every agent marked" in paragraph and "only its own" in paragraph
