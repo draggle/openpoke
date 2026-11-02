@@ -29,17 +29,17 @@ Five numbers, each with the file it comes from, then the five things the numbers
 | Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 72.5% (CI 64–80) | **96.7% (CI 92–99)**, paired +24 points (+17, +33); 83% at 500 and 74% at 1,000 agents, where upstream is at 58% and 39%; re-run on the code as it ships after the app-found fixes in section 8: 94.2% (CI 88–97) against 61.7%, paired +32.5 (+24, +42) | [`docs/live/final/live_routing_results_history.json`](docs/live/final/live_routing_results_history.json) |
 | Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,653 tokens (43%); 0 of 7 stale** | [`docs/live/final/memory_results_live.json`](docs/live/final/memory_results_live.json) |
 | Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/email_results.json`](docs/live/final/email_results.json) |
-| LLM calls for a six-turn reminder session through the real app | 35 | **24** (and the user told the right things, 7 of 7 checks, every reminder on its own agent) | [`docs/live/final/session_probe_six_turn.json`](docs/live/final/session_probe_six_turn.json) |
+| LLM calls for a six-turn reminder session through the real app | 34 | **25** (and the user told the right things, 7 of 7 checks, every reminder on its own agent) | [`docs/live/final/session_probe_six_turn.json`](docs/live/final/session_probe_six_turn.json) |
 | Modelled cost per day, 200 agents, 40 turns, long histories | $5.72 | **$3.10 (−46%)** | [`docs/live/final/cost_results.json`](docs/live/final/cost_results.json) |
 
 What they do not show: every workload is synthetic (no real inbox was replayed); the routing
 number is at one roster size live (the curve to 500 agents is below, and 400 agents offline);
 the memory and recall rows are eight questions on one agent; the email held-out set is 14
-emails; the relay applies to single-agent turns only, so its saving depends on how many turns fan out (41% on the six-turn session's final run, 9–14% on its earlier runs, 6–48% on the four-turn one).
+emails; the relay applies to single-agent turns only, so its saving depends on how many turns fan out (24% on the six-turn session's final run, 9–41% on its earlier runs, 6–48% on the four-turn one).
 How to read the rest: "Results at a glance" has every table; section 6 says what changed and
 why; section 7 is the review's findings and their fixes; "Gaps I saw beyond the brief" opens
 with the one I'd raise first, a send gate so email cannot make the agent send email; "How to read the numbers" is the
-caveats in full. `python -m pytest` runs 312 tests offline in about four seconds;
+caveats in full. `python -m pytest` runs 318 tests offline in about four seconds;
 `bash evals/run_live.sh` reproduces every live table for about $10.
 
 ## Results at a glance
@@ -752,24 +752,50 @@ with the guard, all three arms, 7 of 7 content checks and 3 of 3 agent checks
 
 | 6 turns, two of them fan out, one ambiguous | Old loop | Early exit | **Early exit + relay** |
 |---|---|---|---|
-| Interaction calls | 19 | 18 | **8** |
+| Interaction calls | 18 | 15 | **9** |
 | Execution calls | 16 | 16 | 16 |
-| Total calls | 35 | 34 | **24** |
-| Cost | $0.250 | $0.261 | **$0.154** |
+| Total calls | 34 | 31 | **25** |
+| Cost | $0.211 | $0.221 | **$0.167** |
 | User told the right things (7 checks) | 7 / 7 | 7 / 7 | **7 / 7** |
 | Every reminder on its own agent (3 checks) | 3 / 3 | 3 / 3 | **3 / 3** |
 
 The guard's other side is measured too, so it cannot be satisfied by always asking.
-`evals/followup_probe.py` runs a seven-turn session on the shipping configuration in which a
+`evals/followup_probe.py` runs an eight-turn session on the shipping configuration in which a
 bare "cancel it" right after one reminder must act, "move it to 1pm" after two single-agent
-turns must go to the thread touched last, "cancel the insurance one" after a list must act,
-and the list must show only live reminders: 5 of 5, the guard silent throughout
-([`followup_probe.json`](docs/live/final/followup_probe.json)). Two probe faults were found and
-fixed on the way: the probe read the history before the interaction agent had answered a user
-turn (the chat task is now named and waited on, like result deliveries), and two probes run at
-the same time in separate processes once showed each other's reminders in a listing although
-each store had resolved to its own directory; run one at a time, as `evals/run_live.sh` does,
-every listing was clean, and the cause is left open.
+turns must go to the thread touched last, "cancel the insurance one" after a list must act, the
+list must show only live reminders, and a new reminder on a topic that already has an agent
+must be created rather than moved: 6 of 6, the guard silent throughout
+([`followup_probe.json`](docs/live/final/followup_probe.json)).
+
+**Reminders landed a day off, because the execution agent was never told the date.** Hand use
+again: "Friday at 8am" was stored for Saturday the 7th, "Monday at noon" for Tuesday the 3rd.
+The execution agent converts the schedule into a timestamp itself (guideline 6) and received
+the instruction with no current date, weekday or zone anywhere in its context, so it guessed
+the arithmetic. Every instruction now opens with one dated line, "Current date and time:
+Monday 2026-11-02 01:15 EST (America/Toronto). A weekday name means the next such day from
+today; give start_time as ISO 8601 with this zone's offset" (`clock_line` in
+`server/agents/execution_agent/agent.py`), placed in the uncached message rather than the
+cacheable system block so the prompt cache still hits; the trigger tool's schema says the same.
+The follow-up probe now opens the triggers it created and checks each landed on the weekday
+the user named. Before the line, 2 of 4 were on the wrong day
+([`followup_probe_before_clock_and_isolation.json`](docs/live/final/followup_probe_before_clock_and_isolation.json));
+after it, 4 of 4, and the same run's "Remind me tomorrow at 9am to call the dentist" created a
+second trigger instead of moving the Friday one (guideline 7a, `tests/test_execution_clock.py`).
+
+**Two stores ignored the data-directory override, and that was the cross-talk.** Two probes run
+at the same time had once shown each other's reminders, and the probe's interaction agent then
+began cancelling a "call mom at 9pm" reminder that existed only in the live session on the
+same machine. The rolling conversation summary (`working_memory_log.py`) and the email
+watcher's seen-list (`importance_watcher.py`) built their paths from `__file__` instead of
+`data_dir()`, so every probe, and the unit suite, read and wrote the live installation's
+summary. Both now honour the override; the isolation test lists every store and asserts each
+resolved to the suite's temporary directory. Run with every store isolated, one evaluator at a
+time: the six-turn probe 7 of 7 in all three arms (the table above), the reminder probe 5 of 5
+in 24 s, the injection set 0 of 12 sends under the gate with 6 of 6 legitimate sends (the
+upstream arm forwarded one injected email again), `search_history` 8 of 8
+([`trigger_probe_after_app_fixes.json`](docs/live/final/trigger_probe_after_app_fixes.json),
+[`injection_results_after_app_fixes.json`](docs/live/final/injection_results_after_app_fixes.json),
+[`recall_results_after_app_fixes.json`](docs/live/final/recall_results_after_app_fixes.json)).
 
 Last, the unit suite itself was writing agent logs under `server/data` because tests set the
 data-directory override after the stores had resolved their paths at import; `tests/conftest.py`
@@ -807,7 +833,7 @@ change instead of confirming, which the upstream loop allows.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 312 tests, ~4s, no network
+python -m pytest                 # 318 tests, ~4s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 ```
@@ -837,7 +863,7 @@ bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 | `evals.live_routing_eval` | the real Interaction model choosing an agent: `--history` for both arms, `--stratified` kinds, `--seeds`, Wilson CIs, `search_agents` call/need/hit counts, the model's words on every non-delegation, did-you-mean guard fired/helped/hurt | yes |
 | `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
 | `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real six-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told, including one synthesised answer from three agents and one ambiguous "cancel it" that must be asked about | yes |
-| `evals.followup_probe` | seven-turn session on the shipping configuration: bare follow-ups that are *not* ambiguous must be acted on, not asked about (after one reminder, after two single-agent turns, named after a list); the other side of the fan-out guard | yes |
+| `evals.followup_probe` | eight-turn session on the shipping configuration: bare follow-ups that are *not* ambiguous must be acted on, not asked about; a new reminder on an existing topic is created, not moved; every trigger it created is read back and checked against the weekday the user named | yes |
 | `evals.trigger_probe` | a reminder created through the app is forced to fire under the real scheduler; checks the user is notified by the interaction agent, the run is billed to the trigger role, nothing internal leaks | yes |
 | `evals.live_routing_eval --fixture evals/heldout_routing.json` | the hand-written held-out routing set through both arms; `python -m evals.heldout_routing <results.json>` grades it against the bars written before the first run | yes |
 | `evals.stats` | exact McNemar and paired bootstrap on the queries both arms answered; `python -m evals.stats <results.json>` | no |
@@ -1003,6 +1029,6 @@ server/services/trigger_scheduler.py              touch agent on fire; coalesce 
 server/services/gmail/importance_classifier.py    category prompt, two-sided Jev gate, summary fallback
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            312 tests + 46 labelled emails + 14 held-out emails + 72 held-out routing queries + 12 injected emails
+tests/                                            318 tests + 46 labelled emails + 14 held-out emails + 72 held-out routing queries + 12 injected emails
 evals/                                            16 evaluators, synthetic workload, paraphrase set, held-out routing set, injection set, paired stats
 ```

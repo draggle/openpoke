@@ -29,7 +29,7 @@ _SCHEMAS: List[Dict[str, Any]] = [
                     },
                     "start_time": {
                         "type": "string",
-                        "description": "ISO 8601 start time for the first firing. Defaults to now if omitted.",
+                        "description": "ISO 8601 start time for the first firing, with the user's UTC offset (e.g. 2026-11-06T08:00:00-05:00), computed from the current date and weekday given at the top of the instruction. Defaults to now if omitted.",
                     },
                     "status": {
                         "type": "string",
@@ -63,7 +63,7 @@ _SCHEMAS: List[Dict[str, Any]] = [
                     },
                     "start_time": {
                         "type": "string",
-                        "description": "New ISO 8601 start time for the schedule (optional).",
+                        "description": "New ISO 8601 start time for the schedule, with the user's UTC offset, computed from the current date given at the top of the instruction (optional).",
                     },
                     "status": {
                         "type": "string",

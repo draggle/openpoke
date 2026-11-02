@@ -293,6 +293,8 @@ def test_data_dir_override_isolates_server_state(monkeypatch, tmp_path):
     from server import paths
     from server.services import timezone_store, triggers
     from server.services.conversation import log as conversation_log
+    from server.services.conversation.summarization import working_memory_log
+    from server.services.gmail import importance_watcher
     from server.services.execution import log_store, memory, registry, roster
     from server.services.llm import usage
 
@@ -304,7 +306,7 @@ def test_data_dir_override_isolates_server_state(monkeypatch, tmp_path):
     assert paths.data_dir() == (tmp_path / "probe-data").resolve()
     monkeypatch.delenv("OPENPOKE_DATA_DIR")
     assert paths.data_dir().name == "data"
-    for module in (log_store, memory, registry, roster, usage, triggers, timezone_store, conversation_log):
+    for module in (log_store, memory, registry, roster, usage, triggers, timezone_store, conversation_log, working_memory_log, importance_watcher):
         assert module._DATA_DIR == suite_dir, module.__name__
         assert "data_dir()" in inspect.getsource(module), module.__name__
 
@@ -337,7 +339,7 @@ def test_followup_probe_checks_reward_acting_and_punish_asking():
 
     good = [["setting that up", "reminder set for 9am tomorrow"], ["reminder cancelled"], ["set"], ["set"],
             ["moved to 1pm monday"], ["two reminders: insurance friday 8am, alice invoice monday 1pm"],
-            ["insurance reminder cancelled"]]
+            ["insurance reminder cancelled"], ["reminder set for wednesday at 9am to call the dentist"]]
     assert all(checks(good).values()), checks(good)
     asks = [g[:] for g in good]
     asks[1] = ["which one do you mean?"]
@@ -347,6 +349,9 @@ def test_followup_probe_checks_reward_acting_and_punish_asking():
     wrong = [g[:] for g in good]
     wrong[5] = ["three reminders: dentist, insurance, invoice"]
     assert not checks(wrong)["list_shows_only_live_reminders"]
+    moved = [g[:] for g in good]
+    moved[7] = ["dentist reminder moved to wednesday at 9am"]
+    assert not checks(moved)["new_reminder_is_created_not_moved"]
 
 
 def test_session_probe_counts_the_user_turn_as_work_in_flight():

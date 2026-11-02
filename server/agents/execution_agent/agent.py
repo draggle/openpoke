@@ -6,6 +6,7 @@ from typing import List, Optional, Dict, Any
 from ...services.execution import get_agent_memory, get_execution_agent_logs
 from ...services.execution.payloads import compact_tool_payload
 from ...logging_config import logger
+from ...utils.timezones import get_user_timezone_name, now_in_user_timezone
 
 
 # Load system prompt template from file
@@ -28,6 +29,21 @@ You have access to Gmail tools to help complete your tasks. When given instructi
 3. Provide clear status updates on your actions
 
 Be thorough, accurate, and efficient in your execution."""
+
+
+def clock_line() -> str:
+    """What day it is, for the first line of every instruction.
+
+    The agent resolves "Friday at 8am" into a timestamp itself; without this line it guessed
+    the weekday arithmetic and hand use found reminders stored a day off. The line is in the
+    (uncached) message, not the cacheable system block, so the prompt cache still hits.
+    """
+    now = now_in_user_timezone()
+    zone = get_user_timezone_name()
+    return (
+        f"Current date and time: {now:%A %Y-%m-%d %H:%M %Z} ({zone}). A weekday name means the next "
+        f"such day from today; give start_time as ISO 8601 with this zone's offset."
+    )
 
 
 class ExecutionAgent:
@@ -125,7 +141,7 @@ class ExecutionAgent:
             List of messages in OpenRouter format
         """
         return [
-            {"role": "user", "content": current_instruction}
+            {"role": "user", "content": f"{clock_line()}\n\n{current_instruction}"}
         ]
 
     # Log the agent's final response to the execution log store

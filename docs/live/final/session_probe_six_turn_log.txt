@@ -1,417 +1,418 @@
-2026-11-02 00:59:35 - openpoke.server - INFO - Cleared all execution agent logs
-2026-11-02 00:59:35 - openpoke.server - INFO - Cleared agent roster
-2026-11-02 00:59:35 - openpoke.server - INFO - chat request
-2026-11-02 00:59:35 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 00:59:38 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 00:59:38 - openpoke.server - INFO - Created agent: Alice lunch invoice reminder
-2026-11-02 00:59:38 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 00:59:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 00:59:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 00:59:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 00:59:43 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: createTrigger
-2026-11-02 00:59:43 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool createTrigger completed successfully
-2026-11-02 00:59:43 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 00:59:43 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 00:59:46 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 00:59:46 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
-2026-11-02 00:59:46 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 00:59:46 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 00:59:48 - openpoke.server - INFO - Tool 'wait' completed
-2026-11-02 00:59:49 - openpoke.server - WARNING - Interaction loop exited without assistant content
-2026-11-02 00:59:50 - openpoke.server - INFO - chat request
-2026-11-02 00:59:50 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 00:59:52 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 00:59:52 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
-2026-11-02 00:59:52 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 00:59:52 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 00:59:52 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 00:59:52 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 00:59:55 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: updateTrigger
-2026-11-02 00:59:55 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool updateTrigger completed successfully
-2026-11-02 00:59:55 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 00:59:55 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 00:59:57 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 00:59:57 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
-2026-11-02 00:59:57 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 00:59:57 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 00:59:59 - openpoke.server - INFO - Tool 'wait' completed
-2026-11-02 01:00:00 - openpoke.server - WARNING - Interaction loop exited without assistant content
-2026-11-02 01:00:00 - openpoke.server - INFO - chat request
-2026-11-02 01:00:00 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:00:03 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
-2026-11-02 01:00:03 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:03 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 01:00:03 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:03 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: listTriggers
-2026-11-02 01:00:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool listTriggers completed successfully
-2026-11-02 01:00:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 01:00:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:08 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 01:00:08 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
-2026-11-02 01:00:08 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 01:00:08 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:00:14 - openpoke.server - INFO - chat request
-2026-11-02 01:00:14 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:00:17 - openpoke.server - INFO - Created agent: Dentist call reminder
-2026-11-02 01:00:17 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:17 - openpoke.server - INFO - Created agent: Car insurance renewal reminder
-2026-11-02 01:00:17 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:17 - openpoke.server - INFO - [Dentist call reminder] Execution started
-2026-11-02 01:00:17 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:17 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:17 - openpoke.server - INFO - [Car insurance renewal reminder] Execution started
-2026-11-02 01:00:17 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:17 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:21 - openpoke.server - INFO - [Dentist call reminder] Executing tool: createTrigger
-2026-11-02 01:00:21 - openpoke.server - INFO - [Dentist call reminder] Tool createTrigger completed successfully
-2026-11-02 01:00:21 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 2)
-2026-11-02 01:00:21 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:21 - openpoke.server - INFO - [Car insurance renewal reminder] Executing tool: createTrigger
-2026-11-02 01:00:21 - openpoke.server - INFO - [Car insurance renewal reminder] Tool createTrigger completed successfully
-2026-11-02 01:00:21 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 2)
-2026-11-02 01:00:21 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:23 - openpoke.server - INFO - [Dentist call reminder] Execution finished: SUCCESS
-2026-11-02 01:00:23 - openpoke.server - INFO - Agent 'Dentist call reminder' completed: SUCCESS
-2026-11-02 01:00:23 - openpoke.server - INFO - [Car insurance renewal reminder] Execution finished: SUCCESS
-2026-11-02 01:00:23 - openpoke.server - INFO - Execution batch completed: Dentist call reminder, Car insurance renewal reminder
-2026-11-02 01:00:23 - openpoke.server - INFO - Agent 'Car insurance renewal reminder' completed: SUCCESS
-2026-11-02 01:00:24 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:00:25 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:00:30 - openpoke.server - INFO - chat request
-2026-11-02 01:00:30 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:00:33 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
-2026-11-02 01:00:33 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:33 - openpoke.server - INFO - Reused agent: Dentist call reminder
-2026-11-02 01:00:33 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:33 - openpoke.server - INFO - Reused agent: Car insurance renewal reminder
-2026-11-02 01:00:33 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:33 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 01:00:33 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:33 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:33 - openpoke.server - INFO - [Dentist call reminder] Execution started
-2026-11-02 01:00:33 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:33 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:33 - openpoke.server - INFO - [Car insurance renewal reminder] Execution started
-2026-11-02 01:00:33 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:33 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:35 - openpoke.server - INFO - [Car insurance renewal reminder] Executing tool: listTriggers
-2026-11-02 01:00:35 - openpoke.server - INFO - [Car insurance renewal reminder] Tool listTriggers completed successfully
-2026-11-02 01:00:35 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 2)
-2026-11-02 01:00:35 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: listTriggers
-2026-11-02 01:00:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool listTriggers completed successfully
-2026-11-02 01:00:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 01:00:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:35 - openpoke.server - INFO - [Dentist call reminder] Executing tool: listTriggers
-2026-11-02 01:00:35 - openpoke.server - INFO - [Dentist call reminder] Tool listTriggers completed successfully
-2026-11-02 01:00:35 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 2)
-2026-11-02 01:00:35 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:00:37 - openpoke.server - INFO - [Dentist call reminder] Execution finished: SUCCESS
-2026-11-02 01:00:37 - openpoke.server - INFO - Agent 'Dentist call reminder' completed: SUCCESS
-2026-11-02 01:00:37 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 01:00:37 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 01:00:38 - openpoke.server - INFO - [Car insurance renewal reminder] Execution finished: SUCCESS
-2026-11-02 01:00:38 - openpoke.server - INFO - Execution batch completed: Dentist call reminder, Alice lunch invoice reminder, Car insurance renewal reminder
-2026-11-02 01:00:38 - openpoke.server - INFO - Agent 'Car insurance renewal reminder' completed: SUCCESS
-2026-11-02 01:00:38 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:00:44 - openpoke.server - INFO - chat request
-2026-11-02 01:00:44 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:00:46 - openpoke.server - INFO - Fan-out guard: bare follow-up after asking ['Alice lunch invoice reminder', 'Dentist call reminder', 'Car insurance renewal reminder']; asking the user which
-2026-11-02 01:00:46 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:48 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:00:52 - openpoke.server - INFO - Cleared all execution agent logs
-2026-11-02 01:00:52 - openpoke.server - INFO - Cleared agent roster
-2026-11-02 01:00:54 - openpoke.server - INFO - Cleared all execution agent logs
-2026-11-02 01:00:54 - openpoke.server - INFO - Cleared agent roster
-2026-11-02 01:00:54 - openpoke.server - INFO - chat request
-2026-11-02 01:00:54 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:00:58 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:00:58 - openpoke.server - INFO - Created agent: Alice Lunch Invoice Reminder
-2026-11-02 01:00:58 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:00:58 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
-2026-11-02 01:00:58 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
-2026-11-02 01:00:58 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:02 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: createTrigger
-2026-11-02 01:01:02 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool createTrigger completed successfully
-2026-11-02 01:01:02 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:02 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:04 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:04 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
-2026-11-02 01:01:04 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
-2026-11-02 01:01:04 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:01:06 - openpoke.server - INFO - Tool 'wait' completed
-2026-11-02 01:01:07 - openpoke.server - WARNING - Interaction loop exited without assistant content
-2026-11-02 01:01:07 - openpoke.server - INFO - chat request
-2026-11-02 01:01:07 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:01:10 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:01:10 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
-2026-11-02 01:01:10 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:10 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
-2026-11-02 01:01:10 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:10 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:13 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: updateTrigger
-2026-11-02 01:01:13 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool updateTrigger completed successfully
-2026-11-02 01:01:13 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:13 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:15 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:15 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
-2026-11-02 01:01:15 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
-2026-11-02 01:01:15 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:01:17 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:01:21 - openpoke.server - INFO - chat request
-2026-11-02 01:01:21 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:01:24 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
-2026-11-02 01:01:24 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
-2026-11-02 01:01:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:26 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: listTriggers
-2026-11-02 01:01:26 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool listTriggers completed successfully
-2026-11-02 01:01:26 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:26 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:28 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:28 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
-2026-11-02 01:01:28 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
-2026-11-02 01:01:28 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:01:34 - openpoke.server - INFO - chat request
-2026-11-02 01:01:34 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:01:37 - openpoke.server - INFO - Created agent: Dentist Call Reminder
-2026-11-02 01:01:37 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:37 - openpoke.server - INFO - Created agent: Car Insurance Renewal Reminder
-2026-11-02 01:01:37 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:37 - openpoke.server - INFO - [Dentist Call Reminder] Execution started
-2026-11-02 01:01:37 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:37 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:37 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution started
-2026-11-02 01:01:37 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:37 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:41 - openpoke.server - INFO - [Dentist Call Reminder] Executing tool: createTrigger
-2026-11-02 01:01:41 - openpoke.server - INFO - [Dentist Call Reminder] Tool createTrigger completed successfully
-2026-11-02 01:01:41 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:41 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:42 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Executing tool: createTrigger
-2026-11-02 01:01:42 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Tool createTrigger completed successfully
-2026-11-02 01:01:42 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:42 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:43 - openpoke.server - INFO - [Dentist Call Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:43 - openpoke.server - INFO - Agent 'Dentist Call Reminder' completed: SUCCESS
-2026-11-02 01:01:44 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:44 - openpoke.server - INFO - Execution batch completed: Dentist Call Reminder, Car Insurance Renewal Reminder
-2026-11-02 01:01:44 - openpoke.server - INFO - Agent 'Car Insurance Renewal Reminder' completed: SUCCESS
-2026-11-02 01:01:44 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:01:50 - openpoke.server - INFO - chat request
-2026-11-02 01:01:50 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:01:54 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
-2026-11-02 01:01:54 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:54 - openpoke.server - INFO - Reused agent: Dentist Call Reminder
-2026-11-02 01:01:54 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:54 - openpoke.server - INFO - Reused agent: Car Insurance Renewal Reminder
-2026-11-02 01:01:54 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:01:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
-2026-11-02 01:01:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:54 - openpoke.server - INFO - [Dentist Call Reminder] Execution started
-2026-11-02 01:01:54 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:54 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:54 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution started
-2026-11-02 01:01:54 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 1)
-2026-11-02 01:01:54 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:55 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Executing tool: listTriggers
-2026-11-02 01:01:55 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Tool listTriggers completed successfully
-2026-11-02 01:01:55 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:55 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:55 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: listTriggers
-2026-11-02 01:01:55 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool listTriggers completed successfully
-2026-11-02 01:01:55 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:55 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:56 - openpoke.server - INFO - [Dentist Call Reminder] Executing tool: listTriggers
-2026-11-02 01:01:56 - openpoke.server - INFO - [Dentist Call Reminder] Tool listTriggers completed successfully
-2026-11-02 01:01:56 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 2)
-2026-11-02 01:01:56 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:01:57 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:57 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
-2026-11-02 01:01:58 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:58 - openpoke.server - INFO - Agent 'Car Insurance Renewal Reminder' completed: SUCCESS
-2026-11-02 01:01:59 - openpoke.server - INFO - [Dentist Call Reminder] Execution finished: SUCCESS
-2026-11-02 01:01:59 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder, Car Insurance Renewal Reminder, Dentist Call Reminder
-2026-11-02 01:01:59 - openpoke.server - INFO - Agent 'Dentist Call Reminder' completed: SUCCESS
-2026-11-02 01:01:59 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:02:04 - openpoke.server - INFO - chat request
-2026-11-02 01:02:04 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:02:09 - openpoke.server - INFO - Fan-out guard: bare follow-up after asking ['Alice Lunch Invoice Reminder', 'Dentist Call Reminder', 'Car Insurance Renewal Reminder']; asking the user which
-2026-11-02 01:02:09 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:02:16 - openpoke.server - INFO - Cleared all execution agent logs
-2026-11-02 01:02:16 - openpoke.server - INFO - Cleared agent roster
-2026-11-02 01:02:18 - openpoke.server - INFO - Cleared all execution agent logs
-2026-11-02 01:02:18 - openpoke.server - INFO - Cleared agent roster
-2026-11-02 01:02:18 - openpoke.server - INFO - chat request
-2026-11-02 01:02:18 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:02:21 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:02:21 - openpoke.server - INFO - Created agent: Alice lunch invoice reminder
-2026-11-02 01:02:21 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:02:21 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 01:02:21 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 01:02:21 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:25 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: createTrigger
-2026-11-02 01:02:25 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool createTrigger completed successfully
-2026-11-02 01:02:25 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 01:02:25 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:28 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 01:02:28 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
-2026-11-02 01:02:28 - openpoke.server - INFO - Execution batch relayed to the user directly
-2026-11-02 01:02:28 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 01:02:33 - openpoke.server - INFO - chat request
-2026-11-02 01:02:33 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:02:35 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:02:35 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
-2026-11-02 01:02:35 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:02:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 01:02:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 01:02:35 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: updateTrigger
-2026-11-02 01:02:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool updateTrigger completed successfully
-2026-11-02 01:02:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 01:02:38 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:40 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 01:02:40 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
-2026-11-02 01:02:40 - openpoke.server - INFO - Execution batch relayed to the user directly
-2026-11-02 01:02:40 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 01:02:45 - openpoke.server - INFO - chat request
-2026-11-02 01:02:45 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:02:47 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:02:47 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
-2026-11-02 01:02:47 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:02:47 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 01:02:47 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 01:02:47 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: listTriggers
-2026-11-02 01:02:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool listTriggers completed successfully
-2026-11-02 01:02:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 01:02:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:52 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 01:02:52 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
-2026-11-02 01:02:52 - openpoke.server - INFO - Execution batch relayed to the user directly
-2026-11-02 01:02:52 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 01:02:56 - openpoke.server - INFO - chat request
-2026-11-02 01:02:56 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:02:59 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:02:59 - openpoke.server - INFO - Created agent: Dentist call reminder
-2026-11-02 01:02:59 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:02:59 - openpoke.server - INFO - Created agent: Car insurance renewal reminder
-2026-11-02 01:02:59 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:02:59 - openpoke.server - INFO - [Dentist call reminder] Execution started
-2026-11-02 01:02:59 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 1)
-2026-11-02 01:02:59 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:02:59 - openpoke.server - INFO - [Car insurance renewal reminder] Execution started
-2026-11-02 01:02:59 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 1)
-2026-11-02 01:02:59 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:03 - openpoke.server - INFO - [Dentist call reminder] Executing tool: createTrigger
-2026-11-02 01:03:03 - openpoke.server - INFO - [Dentist call reminder] Tool createTrigger completed successfully
-2026-11-02 01:03:03 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 2)
-2026-11-02 01:03:03 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:04 - openpoke.server - INFO - [Car insurance renewal reminder] Executing tool: createTrigger
-2026-11-02 01:03:04 - openpoke.server - INFO - [Car insurance renewal reminder] Tool createTrigger completed successfully
-2026-11-02 01:03:04 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 2)
-2026-11-02 01:03:04 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:05 - openpoke.server - INFO - [Dentist call reminder] Execution finished: SUCCESS
-2026-11-02 01:03:05 - openpoke.server - INFO - Agent 'Dentist call reminder' completed: SUCCESS
-2026-11-02 01:03:06 - openpoke.server - INFO - [Car insurance renewal reminder] Execution finished: SUCCESS
-2026-11-02 01:03:06 - openpoke.server - INFO - Execution batch completed: Dentist call reminder, Car insurance renewal reminder
-2026-11-02 01:03:06 - openpoke.server - INFO - Agent 'Car insurance renewal reminder' completed: SUCCESS
-2026-11-02 01:03:06 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:03:12 - openpoke.server - INFO - chat request
-2026-11-02 01:03:12 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:03:15 - openpoke.server - INFO - Tool 'send_message_to_user' completed
-2026-11-02 01:03:15 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
-2026-11-02 01:03:15 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:03:15 - openpoke.server - INFO - Reused agent: Dentist call reminder
-2026-11-02 01:03:15 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:03:15 - openpoke.server - INFO - Reused agent: Car insurance renewal reminder
-2026-11-02 01:03:15 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
-2026-11-02 01:03:15 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
-2026-11-02 01:03:15 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
-2026-11-02 01:03:15 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:15 - openpoke.server - INFO - [Dentist call reminder] Execution started
-2026-11-02 01:03:15 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 1)
-2026-11-02 01:03:15 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:15 - openpoke.server - INFO - [Car insurance renewal reminder] Execution started
-2026-11-02 01:03:15 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 1)
-2026-11-02 01:03:15 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:17 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: listTriggers
-2026-11-02 01:03:17 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool listTriggers completed successfully
-2026-11-02 01:03:17 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
-2026-11-02 01:03:17 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:17 - openpoke.server - INFO - [Dentist call reminder] Executing tool: listTriggers
-2026-11-02 01:03:17 - openpoke.server - INFO - [Dentist call reminder] Tool listTriggers completed successfully
-2026-11-02 01:03:17 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 2)
-2026-11-02 01:03:17 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:17 - openpoke.server - INFO - [Car insurance renewal reminder] Executing tool: listTriggers
-2026-11-02 01:03:17 - openpoke.server - INFO - [Car insurance renewal reminder] Tool listTriggers completed successfully
-2026-11-02 01:03:17 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 2)
-2026-11-02 01:03:17 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
-2026-11-02 01:03:19 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
-2026-11-02 01:03:19 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
-2026-11-02 01:03:20 - openpoke.server - INFO - [Dentist call reminder] Execution finished: SUCCESS
-2026-11-02 01:03:20 - openpoke.server - INFO - Agent 'Dentist call reminder' completed: SUCCESS
-2026-11-02 01:03:20 - openpoke.server - INFO - [Car insurance renewal reminder] Execution finished: SUCCESS
-2026-11-02 01:03:20 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder, Dentist call reminder, Car insurance renewal reminder
-2026-11-02 01:03:20 - openpoke.server - INFO - Agent 'Car insurance renewal reminder' completed: SUCCESS
-2026-11-02 01:03:20 - openpoke.server - INFO - Processing execution agent results
-2026-11-02 01:03:26 - openpoke.server - INFO - chat request
-2026-11-02 01:03:26 - openpoke.server - INFO - Processing user message through interaction agent
-2026-11-02 01:03:33 - openpoke.server - INFO - Cleared all execution agent logs
-2026-11-02 01:03:33 - openpoke.server - INFO - Cleared agent roster
+2026-11-02 01:29:46 - openpoke.server - INFO - Cleared all execution agent logs
+2026-11-02 01:29:46 - openpoke.server - INFO - Cleared agent roster
+2026-11-02 01:29:46 - openpoke.server - INFO - chat request
+2026-11-02 01:29:46 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:29:49 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:29:49 - openpoke.server - INFO - Created agent: Alice lunch invoice reminder
+2026-11-02 01:29:49 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:29:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
+2026-11-02 01:29:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
+2026-11-02 01:29:49 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:29:54 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: createTrigger
+2026-11-02 01:29:54 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool createTrigger completed successfully
+2026-11-02 01:29:54 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
+2026-11-02 01:29:54 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:29:57 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
+2026-11-02 01:29:57 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
+2026-11-02 01:29:57 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
+2026-11-02 01:29:57 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:29:59 - openpoke.server - INFO - Tool 'wait' completed
+2026-11-02 01:30:00 - openpoke.server - WARNING - Interaction loop exited without assistant content
+2026-11-02 01:30:01 - openpoke.server - INFO - chat request
+2026-11-02 01:30:01 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:30:04 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:30:04 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
+2026-11-02 01:30:04 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
+2026-11-02 01:30:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:04 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:06 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: updateTrigger
+2026-11-02 01:30:06 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool updateTrigger completed successfully
+2026-11-02 01:30:06 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:06 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:08 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
+2026-11-02 01:30:08 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
+2026-11-02 01:30:08 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
+2026-11-02 01:30:08 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:30:10 - openpoke.server - INFO - Tool 'wait' completed
+2026-11-02 01:30:11 - openpoke.server - WARNING - Interaction loop exited without assistant content
+2026-11-02 01:30:12 - openpoke.server - INFO - chat request
+2026-11-02 01:30:12 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:30:15 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:30:15 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
+2026-11-02 01:30:15 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:15 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
+2026-11-02 01:30:15 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:15 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:16 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: listTriggers
+2026-11-02 01:30:16 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool listTriggers completed successfully
+2026-11-02 01:30:16 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:16 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:18 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
+2026-11-02 01:30:18 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder
+2026-11-02 01:30:18 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
+2026-11-02 01:30:18 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:30:25 - openpoke.server - INFO - chat request
+2026-11-02 01:30:25 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:30:28 - openpoke.server - INFO - Created agent: Dentist call reminder
+2026-11-02 01:30:28 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:28 - openpoke.server - INFO - Created agent: Car insurance renewal reminder
+2026-11-02 01:30:28 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:28 - openpoke.server - INFO - [Dentist call reminder] Execution started
+2026-11-02 01:30:28 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:28 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:28 - openpoke.server - INFO - [Car insurance renewal reminder] Execution started
+2026-11-02 01:30:28 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:28 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:31 - openpoke.server - INFO - [Car insurance renewal reminder] Executing tool: createTrigger
+2026-11-02 01:30:31 - openpoke.server - INFO - [Car insurance renewal reminder] Tool createTrigger completed successfully
+2026-11-02 01:30:31 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:31 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:32 - openpoke.server - INFO - [Dentist call reminder] Executing tool: createTrigger
+2026-11-02 01:30:32 - openpoke.server - INFO - [Dentist call reminder] Tool createTrigger completed successfully
+2026-11-02 01:30:32 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:32 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:33 - openpoke.server - INFO - [Car insurance renewal reminder] Execution finished: SUCCESS
+2026-11-02 01:30:33 - openpoke.server - INFO - Agent 'Car insurance renewal reminder' completed: SUCCESS
+2026-11-02 01:30:34 - openpoke.server - INFO - [Dentist call reminder] Execution finished: SUCCESS
+2026-11-02 01:30:34 - openpoke.server - INFO - Execution batch completed: Car insurance renewal reminder, Dentist call reminder
+2026-11-02 01:30:34 - openpoke.server - INFO - Agent 'Dentist call reminder' completed: SUCCESS
+2026-11-02 01:30:34 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:30:40 - openpoke.server - INFO - chat request
+2026-11-02 01:30:40 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:30:44 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:30:44 - openpoke.server - INFO - Reused agent: Alice lunch invoice reminder
+2026-11-02 01:30:44 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:44 - openpoke.server - INFO - Reused agent: Dentist call reminder
+2026-11-02 01:30:44 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:44 - openpoke.server - INFO - Reused agent: Car insurance renewal reminder
+2026-11-02 01:30:44 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:30:44 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution started
+2026-11-02 01:30:44 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:44 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:44 - openpoke.server - INFO - [Dentist call reminder] Execution started
+2026-11-02 01:30:44 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:44 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:44 - openpoke.server - INFO - [Car insurance renewal reminder] Execution started
+2026-11-02 01:30:44 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 1)
+2026-11-02 01:30:44 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:45 - openpoke.server - INFO - [Alice lunch invoice reminder] Executing tool: listTriggers
+2026-11-02 01:30:45 - openpoke.server - INFO - [Alice lunch invoice reminder] Tool listTriggers completed successfully
+2026-11-02 01:30:45 - openpoke.server - INFO - [Alice lunch invoice reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:45 - openpoke.server - INFO - [Alice lunch invoice reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:46 - openpoke.server - INFO - [Car insurance renewal reminder] Executing tool: listTriggers
+2026-11-02 01:30:46 - openpoke.server - INFO - [Car insurance renewal reminder] Tool listTriggers completed successfully
+2026-11-02 01:30:46 - openpoke.server - INFO - [Car insurance renewal reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:46 - openpoke.server - INFO - [Car insurance renewal reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:46 - openpoke.server - INFO - [Dentist call reminder] Executing tool: listTriggers
+2026-11-02 01:30:46 - openpoke.server - INFO - [Dentist call reminder] Tool listTriggers completed successfully
+2026-11-02 01:30:46 - openpoke.server - INFO - [Dentist call reminder] Requesting plan (iteration 2)
+2026-11-02 01:30:46 - openpoke.server - INFO - [Dentist call reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:30:47 - openpoke.server - INFO - [Alice lunch invoice reminder] Execution finished: SUCCESS
+2026-11-02 01:30:47 - openpoke.server - INFO - Agent 'Alice lunch invoice reminder' completed: SUCCESS
+2026-11-02 01:30:48 - openpoke.server - INFO - [Dentist call reminder] Execution finished: SUCCESS
+2026-11-02 01:30:48 - openpoke.server - INFO - Agent 'Dentist call reminder' completed: SUCCESS
+2026-11-02 01:30:48 - openpoke.server - INFO - [Car insurance renewal reminder] Execution finished: SUCCESS
+2026-11-02 01:30:48 - openpoke.server - INFO - Execution batch completed: Alice lunch invoice reminder, Dentist call reminder, Car insurance renewal reminder
+2026-11-02 01:30:48 - openpoke.server - INFO - Agent 'Car insurance renewal reminder' completed: SUCCESS
+2026-11-02 01:30:48 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:30:51 - openpoke.server - INFO - Tool 'wait' completed
+2026-11-02 01:30:56 - openpoke.server - INFO - chat request
+2026-11-02 01:30:56 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:31:02 - openpoke.server - INFO - Cleared all execution agent logs
+2026-11-02 01:31:02 - openpoke.server - INFO - Cleared agent roster
+2026-11-02 01:31:04 - openpoke.server - INFO - Cleared all execution agent logs
+2026-11-02 01:31:04 - openpoke.server - INFO - Cleared agent roster
+2026-11-02 01:31:04 - openpoke.server - INFO - chat request
+2026-11-02 01:31:04 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:31:08 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:31:08 - openpoke.server - INFO - Created agent: Alice Lunch Invoice Reminder
+2026-11-02 01:31:08 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:31:08 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:31:08 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:31:08 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:12 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: createTrigger
+2026-11-02 01:31:12 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool createTrigger completed successfully
+2026-11-02 01:31:12 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:31:12 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:14 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:31:14 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
+2026-11-02 01:31:14 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:31:14 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:31:17 - openpoke.server - INFO - Tool 'wait' completed
+2026-11-02 01:31:18 - openpoke.server - WARNING - Interaction loop exited without assistant content
+2026-11-02 01:31:18 - openpoke.server - INFO - chat request
+2026-11-02 01:31:18 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:31:21 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:31:21 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
+2026-11-02 01:31:21 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:31:21 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:31:21 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:31:21 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: updateTrigger
+2026-11-02 01:31:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool updateTrigger completed successfully
+2026-11-02 01:31:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:31:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:26 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:31:26 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
+2026-11-02 01:31:26 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:31:26 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:31:28 - openpoke.server - INFO - Tool 'wait' completed
+2026-11-02 01:31:28 - openpoke.server - WARNING - Interaction loop exited without assistant content
+2026-11-02 01:31:28 - openpoke.server - INFO - chat request
+2026-11-02 01:31:28 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:31:31 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:31:31 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
+2026-11-02 01:31:31 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:31:31 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:31:31 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:31:31 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:33 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: listTriggers
+2026-11-02 01:31:33 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool listTriggers completed successfully
+2026-11-02 01:31:33 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:31:33 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:35 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:31:35 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
+2026-11-02 01:31:35 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:31:35 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:31:41 - openpoke.server - INFO - chat request
+2026-11-02 01:31:41 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:31:45 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:31:45 - openpoke.server - INFO - Created agent: Dentist Call Reminder
+2026-11-02 01:31:45 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:31:45 - openpoke.server - INFO - Created agent: Car Insurance Renewal Reminder
+2026-11-02 01:31:45 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:31:45 - openpoke.server - INFO - [Dentist Call Reminder] Execution started
+2026-11-02 01:31:45 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 1)
+2026-11-02 01:31:45 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:45 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution started
+2026-11-02 01:31:45 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 1)
+2026-11-02 01:31:45 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:49 - openpoke.server - INFO - [Dentist Call Reminder] Executing tool: createTrigger
+2026-11-02 01:31:49 - openpoke.server - INFO - [Dentist Call Reminder] Tool createTrigger completed successfully
+2026-11-02 01:31:49 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 2)
+2026-11-02 01:31:49 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:51 - openpoke.server - INFO - [Dentist Call Reminder] Execution finished: SUCCESS
+2026-11-02 01:31:51 - openpoke.server - INFO - Agent 'Dentist Call Reminder' completed: SUCCESS
+2026-11-02 01:31:51 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Executing tool: createTrigger
+2026-11-02 01:31:51 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Tool createTrigger completed successfully
+2026-11-02 01:31:51 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 2)
+2026-11-02 01:31:51 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:31:53 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution finished: SUCCESS
+2026-11-02 01:31:53 - openpoke.server - INFO - Execution batch completed: Dentist Call Reminder, Car Insurance Renewal Reminder
+2026-11-02 01:31:53 - openpoke.server - INFO - Agent 'Car Insurance Renewal Reminder' completed: SUCCESS
+2026-11-02 01:31:53 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:32:00 - openpoke.server - INFO - chat request
+2026-11-02 01:32:00 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:32:03 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:32:03 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
+2026-11-02 01:32:03 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:32:03 - openpoke.server - INFO - Reused agent: Dentist Call Reminder
+2026-11-02 01:32:03 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:32:03 - openpoke.server - INFO - Reused agent: Car Insurance Renewal Reminder
+2026-11-02 01:32:03 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:32:03 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:32:03 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:32:03 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:03 - openpoke.server - INFO - [Dentist Call Reminder] Execution started
+2026-11-02 01:32:03 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 1)
+2026-11-02 01:32:03 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:03 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution started
+2026-11-02 01:32:03 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 1)
+2026-11-02 01:32:03 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:05 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Executing tool: listTriggers
+2026-11-02 01:32:05 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Tool listTriggers completed successfully
+2026-11-02 01:32:05 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 2)
+2026-11-02 01:32:05 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:05 - openpoke.server - INFO - [Dentist Call Reminder] Executing tool: listTriggers
+2026-11-02 01:32:05 - openpoke.server - INFO - [Dentist Call Reminder] Tool listTriggers completed successfully
+2026-11-02 01:32:05 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 2)
+2026-11-02 01:32:05 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:05 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: listTriggers
+2026-11-02 01:32:05 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool listTriggers completed successfully
+2026-11-02 01:32:05 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:32:05 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:07 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:32:07 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:32:07 - openpoke.server - INFO - [Dentist Call Reminder] Execution finished: SUCCESS
+2026-11-02 01:32:07 - openpoke.server - INFO - Agent 'Dentist Call Reminder' completed: SUCCESS
+2026-11-02 01:32:07 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution finished: SUCCESS
+2026-11-02 01:32:07 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder, Dentist Call Reminder, Car Insurance Renewal Reminder
+2026-11-02 01:32:07 - openpoke.server - INFO - Agent 'Car Insurance Renewal Reminder' completed: SUCCESS
+2026-11-02 01:32:07 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:32:14 - openpoke.server - INFO - chat request
+2026-11-02 01:32:14 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:32:20 - openpoke.server - INFO - Cleared all execution agent logs
+2026-11-02 01:32:20 - openpoke.server - INFO - Cleared agent roster
+2026-11-02 01:32:22 - openpoke.server - INFO - Cleared all execution agent logs
+2026-11-02 01:32:22 - openpoke.server - INFO - Cleared agent roster
+2026-11-02 01:32:22 - openpoke.server - INFO - chat request
+2026-11-02 01:32:22 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:32:25 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:32:25 - openpoke.server - INFO - Created agent: Alice Lunch Invoice Reminder
+2026-11-02 01:32:25 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:32:25 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:32:25 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:32:25 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:30 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: createTrigger
+2026-11-02 01:32:30 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool createTrigger completed successfully
+2026-11-02 01:32:30 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:32:30 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:32 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:32:32 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
+2026-11-02 01:32:32 - openpoke.server - INFO - Execution batch relayed to the user directly
+2026-11-02 01:32:32 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:32:37 - openpoke.server - INFO - chat request
+2026-11-02 01:32:37 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:32:39 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:32:39 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
+2026-11-02 01:32:39 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:32:39 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:32:39 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:32:39 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:43 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: updateTrigger
+2026-11-02 01:32:43 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool updateTrigger completed successfully
+2026-11-02 01:32:43 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:32:43 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:46 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:32:46 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
+2026-11-02 01:32:46 - openpoke.server - INFO - Execution batch relayed to the user directly
+2026-11-02 01:32:46 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:32:50 - openpoke.server - INFO - chat request
+2026-11-02 01:32:50 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:32:52 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:32:52 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
+2026-11-02 01:32:52 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:32:52 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:32:52 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:32:52 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: listTriggers
+2026-11-02 01:32:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool listTriggers completed successfully
+2026-11-02 01:32:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:32:54 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:32:56 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:32:56 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder
+2026-11-02 01:32:56 - openpoke.server - INFO - Execution batch relayed to the user directly
+2026-11-02 01:32:56 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:33:01 - openpoke.server - INFO - chat request
+2026-11-02 01:33:01 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:33:04 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:33:04 - openpoke.server - INFO - Created agent: Dentist Call Reminder
+2026-11-02 01:33:04 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:33:04 - openpoke.server - INFO - Created agent: Car Insurance Renewal Reminder
+2026-11-02 01:33:04 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:33:04 - openpoke.server - INFO - [Dentist Call Reminder] Execution started
+2026-11-02 01:33:04 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 1)
+2026-11-02 01:33:04 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:04 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution started
+2026-11-02 01:33:04 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 1)
+2026-11-02 01:33:04 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:08 - openpoke.server - INFO - [Dentist Call Reminder] Executing tool: createTrigger
+2026-11-02 01:33:08 - openpoke.server - INFO - [Dentist Call Reminder] Tool createTrigger completed successfully
+2026-11-02 01:33:08 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 2)
+2026-11-02 01:33:08 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:08 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Executing tool: createTrigger
+2026-11-02 01:33:08 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Tool createTrigger completed successfully
+2026-11-02 01:33:08 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 2)
+2026-11-02 01:33:08 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:10 - openpoke.server - INFO - [Dentist Call Reminder] Execution finished: SUCCESS
+2026-11-02 01:33:10 - openpoke.server - INFO - Agent 'Dentist Call Reminder' completed: SUCCESS
+2026-11-02 01:33:11 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution finished: SUCCESS
+2026-11-02 01:33:11 - openpoke.server - INFO - Execution batch completed: Dentist Call Reminder, Car Insurance Renewal Reminder
+2026-11-02 01:33:11 - openpoke.server - INFO - Agent 'Car Insurance Renewal Reminder' completed: SUCCESS
+2026-11-02 01:33:11 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:33:17 - openpoke.server - INFO - chat request
+2026-11-02 01:33:17 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:33:21 - openpoke.server - INFO - Tool 'send_message_to_user' completed
+2026-11-02 01:33:21 - openpoke.server - INFO - Reused agent: Alice Lunch Invoice Reminder
+2026-11-02 01:33:21 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:33:21 - openpoke.server - INFO - Reused agent: Dentist Call Reminder
+2026-11-02 01:33:21 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:33:21 - openpoke.server - INFO - Reused agent: Car Insurance Renewal Reminder
+2026-11-02 01:33:21 - openpoke.server - INFO - Tool 'send_message_to_agent' completed
+2026-11-02 01:33:21 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution started
+2026-11-02 01:33:21 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 1)
+2026-11-02 01:33:21 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:21 - openpoke.server - INFO - [Dentist Call Reminder] Execution started
+2026-11-02 01:33:21 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 1)
+2026-11-02 01:33:21 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:21 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution started
+2026-11-02 01:33:21 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 1)
+2026-11-02 01:33:21 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:22 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Executing tool: listTriggers
+2026-11-02 01:33:22 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Tool listTriggers completed successfully
+2026-11-02 01:33:22 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Requesting plan (iteration 2)
+2026-11-02 01:33:22 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:22 - openpoke.server - INFO - [Dentist Call Reminder] Executing tool: listTriggers
+2026-11-02 01:33:22 - openpoke.server - INFO - [Dentist Call Reminder] Tool listTriggers completed successfully
+2026-11-02 01:33:22 - openpoke.server - INFO - [Dentist Call Reminder] Requesting plan (iteration 2)
+2026-11-02 01:33:22 - openpoke.server - INFO - [Dentist Call Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:22 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Executing tool: listTriggers
+2026-11-02 01:33:22 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Tool listTriggers completed successfully
+2026-11-02 01:33:22 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Requesting plan (iteration 2)
+2026-11-02 01:33:22 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Calling LLM with model: claude-sonnet-4-5-20250929, tools: 14
+2026-11-02 01:33:24 - openpoke.server - INFO - [Alice Lunch Invoice Reminder] Execution finished: SUCCESS
+2026-11-02 01:33:24 - openpoke.server - INFO - Agent 'Alice Lunch Invoice Reminder' completed: SUCCESS
+2026-11-02 01:33:24 - openpoke.server - INFO - [Dentist Call Reminder] Execution finished: SUCCESS
+2026-11-02 01:33:24 - openpoke.server - INFO - Agent 'Dentist Call Reminder' completed: SUCCESS
+2026-11-02 01:33:25 - openpoke.server - INFO - [Car Insurance Renewal Reminder] Execution finished: SUCCESS
+2026-11-02 01:33:25 - openpoke.server - INFO - Execution batch completed: Alice Lunch Invoice Reminder, Dentist Call Reminder, Car Insurance Renewal Reminder
+2026-11-02 01:33:25 - openpoke.server - INFO - Agent 'Car Insurance Renewal Reminder' completed: SUCCESS
+2026-11-02 01:33:25 - openpoke.server - INFO - Processing execution agent results
+2026-11-02 01:33:28 - openpoke.server - INFO - Tool 'wait' completed
+2026-11-02 01:33:33 - openpoke.server - INFO - chat request
+2026-11-02 01:33:33 - openpoke.server - INFO - Processing user message through interaction agent
+2026-11-02 01:33:39 - openpoke.server - INFO - Cleared all execution agent logs
+2026-11-02 01:33:39 - openpoke.server - INFO - Cleared agent roster
 
-with_early_exit: 34 calls (5.67/turn), 176508 prompt tok, 69% cached, $0.2607
-  execution    calls 16  cached 64%  $0.1384
-  interaction  calls 18  cached 73%  $0.1224
+with_early_exit: 31 calls (5.17/turn), 159856 prompt tok, 72% cached, $0.2209
+  execution    calls 16  cached 68%  $0.1255
+  interaction  calls 15  cached 76%  $0.0954
   agents after: ['Car insurance renewal reminder', 'Dentist call reminder', 'Alice lunch invoice reminder']
   checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'final_list_names_all_three': True, 'final_list_is_one_synthesis': True, 'ambiguous_cancel_asks_which': True, 'replies': 9}
   agent checks: {'dentist_has_own_agent': True, 'insurance_has_own_agent': True, 'three_agents': True}
-    > "Got it—setting a reminder for tomorrow at 9am about the lunch invoice for Alice. I'll make sure to keep her manager off any emails about this."
-    > 'Shifting it to 10am tomorrow.'
-    > "I'll check what reminders you have set up."
-    > "You've got one reminder set: send Alice the lunch invoice tomorrow at 10am (and I'll keep her manager off it)."
-    > "I'll set both of those up for you."
-    > "All set—Friday at 8am you'll get the dentist reminder, and Monday at noon for the car insurance renewal."
-    > "I'll check all your reminders."
-    > "You've got three reminders set:\n\n1. **Tomorrow at 10am** – send Alice the lunch invoice (won't cc her manager)\n2. **Friday at 8am** – call the dentist\n3. **Mond"
-    > 'Which reminder do you want to cancel?'
+    > "Got it. Setting a reminder for tomorrow at 9am to send Alice the lunch invoice—and I'll make sure her manager stays off any emails about this."
+    > 'Changing it to 10am tomorrow.'
+    > 'Checking your reminders...'
+    > "You've got one reminder set for tomorrow at 10am—to send Alice the lunch invoice. And don't worry, her manager won't be cc'd."
+    > "I'll set both of those reminders for you."
+    > "You're all set—Friday at 8am to call the dentist, and Monday at noon to renew the car insurance."
+    > 'Let me check all your reminders...'
+    > "You have three reminders set:\n\n1. **Today at noon** – renew the car insurance\n2. **Tomorrow at 10am** – send Alice the lunch invoice (won't cc her manager)\n3. *"
+    > 'I need to clarify—which reminder would you like to cancel? The car insurance one at noon today, the lunch invoice for tomorrow at 10am, or the dentist call on F'
 
-without_early_exit: 35 calls (5.83/turn), 178387 prompt tok, 70% cached, $0.2502
-  execution    calls 16  cached 64%  $0.1351
-  interaction  calls 19  cached 76%  $0.1151
+without_early_exit: 34 calls (5.67/turn), 175403 prompt tok, 77% cached, $0.2106
+  execution    calls 16  cached 78%  $0.1004
+  interaction  calls 18  cached 76%  $0.1101
   agents after: ['Car Insurance Renewal Reminder', 'Dentist Call Reminder', 'Alice Lunch Invoice Reminder']
-  checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'final_list_names_all_three': True, 'final_list_is_one_synthesis': True, 'ambiguous_cancel_asks_which': True, 'replies': 10}
+  checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'final_list_names_all_three': True, 'final_list_is_one_synthesis': True, 'ambiguous_cancel_asks_which': True, 'replies': 9}
   agent checks: {'dentist_has_own_agent': True, 'insurance_has_own_agent': True, 'three_agents': True}
-    > 'got it, setting that reminder for tomorrow at 9am. noted on keeping her manager out of it.'
+    > "On it – setting a reminder for tomorrow at 9am. I've noted not to cc Alice's manager on anything related to this."
     > 'changing it to 10am'
-    > 'done, moved to 10am tomorrow'
-    > "I'll check what reminders you have set."
-    > "you've got one reminder set: tomorrow at 10am to send alice the lunch invoice (won't cc her manager)"
-    > "I'll set up those two reminders for you."
-    > 'done, both reminders are set—friday at 8am for the dentist and monday at noon for car insurance'
-    > "I'll check all your reminders."
-    > "you've got three reminders:\n\n1. tomorrow at 10am – send alice the lunch invoice (won't cc her manager)\n2. monday at noon – renew car insurance\n3. friday at 8am "
-    > 'which reminder do you want to cancel?'
+    > 'checking your reminders'
+    > "you've got one reminder set for tomorrow at 10am – send alice the lunch invoice. and i've got it noted not to cc her manager on anything related to this."
+    > 'setting those up for you'
+    > 'both reminders are set – friday at 8am for the dentist call, and monday at noon for car insurance renewal.'
+    > 'let me check'
+    > "you've got three reminders:\n\n- today at noon: renew car insurance\n- tomorrow at 10am: send alice the lunch invoice (won't cc her manager)\n- friday at 8am: call "
+    > "I need to clarify which reminder you'd like to cancel. You have three active reminders:\n\n- today at noon: renew car insurance\n- tomorrow at 10am: send alice the"
 
-with_relay: 24 calls (4.0/turn), 119847 prompt tok, 77% cached, $0.1539
-  execution    calls 16  cached 79%  $0.0971
-  interaction  calls 8   cached 75%  $0.0568
-  agents after: ['Car insurance renewal reminder', 'Dentist call reminder', 'Alice lunch invoice reminder']
+with_relay: 25 calls (4.17/turn), 129498 prompt tok, 76% cached, $0.1672
+  execution    calls 16  cached 78%  $0.1011
+  interaction  calls 9   cached 74%  $0.0661
+  agents after: ['Car Insurance Renewal Reminder', 'Dentist Call Reminder', 'Alice Lunch Invoice Reminder']
   checks: {'moved_to_10am_confirmed': True, 'reminder_list_names_the_invoice': True, 'dentist_and_insurance_confirmed': True, 'no_internal_ids_shown': True, 'final_list_names_all_three': True, 'final_list_is_one_synthesis': True, 'ambiguous_cancel_asks_which': True, 'replies': 11}
   agent checks: {'dentist_has_own_agent': True, 'insurance_has_own_agent': True, 'three_agents': True}
-    > 'got it, setting that up for you now'
+    > 'got it, setting that up now'
     > "reminder set for tomorrow at 9am to send alice the lunch invoice (won't cc her manager)"
     > 'changing it to 10am'
     > 'reminder moved to 10am tomorrow'
     > 'checking your reminders'
-    > "you have one reminder: send alice the lunch invoice tomorrow at 10am (won't cc her manager)"
-    > 'setting those up for you'
-    > 'both reminders set—dentist on friday at 8am and car insurance monday at noon'
+    > 'you have one reminder: tomorrow at 10am to send alice the lunch invoice'
+    > 'setting those up'
+    > 'both reminders are set—friday at 8am for the dentist call, and monday at noon for car insurance renewal'
     > 'checking all your reminders'
-    > "you've got three reminders:\n\n- tomorrow at 10am: send alice the lunch invoice (won't cc her manager)\n- friday at 8am: call the dentist\n- monday at noon: renew c"
-    > "I need to figure out which reminder you want to cancel. You just asked about all your reminders, so I'm not sure which one you mean—alice's lunch invoice (tomor"
+    > "you've got three reminders set:\n\n- tomorrow at 10am: send alice the lunch invoice\n- friday at 8am: call the dentist\n- today at noon: renew car insurance"
+    > "I need to clarify which reminder you'd like to cancel—you have three set right now:\n\n- today at noon: renew car insurance (most recent)\n- tomorrow at 10am: send"
 
-saving: {'calls': 1, 'cost_share': -0.042, 'relay_calls_vs_early_exit': 10, 'relay_cost_share_vs_early_exit': 0.41}
+saving: {'calls': 3, 'cost_share': -0.049, 'relay_calls_vs_early_exit': 6, 'relay_cost_share_vs_early_exit': 0.243}

@@ -51,8 +51,8 @@ class ExecutionAgentRuntime:
             # Static instructions + history as separate system blocks (the static one is cacheable)
             system_prompt = self.agent.build_system_blocks()
 
-            # Start conversation with the instruction
-            messages = [{"role": "user", "content": instructions}]
+            # Start conversation with the instruction, dated (see agent.clock_line)
+            messages = self.agent.build_messages_for_llm(instructions)
             tools_executed: List[str] = []
             final_response: Optional[str] = None
 

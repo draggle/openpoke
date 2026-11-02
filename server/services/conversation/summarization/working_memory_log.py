@@ -9,11 +9,12 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from ....logging_config import logger
+from ....paths import data_dir
 from ....utils.timezones import now_in_user_timezone
 from .state import LogEntry, SummaryState
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
+_DATA_DIR = data_dir()  # honours OPENPOKE_DATA_DIR: the probes must never read or write a live session's summary
 _WORKING_MEMORY_LOG_PATH = _DATA_DIR / "conversation" / "poke_working_memory.log"
 
 

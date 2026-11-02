@@ -13,6 +13,7 @@ from .seen_store import GmailSeenStore
 from .importance_classifier import classify_email_importance
 from .prefilter import prefilter
 from ...logging_config import logger
+from ...paths import data_dir
 from ...utils.timezones import convert_to_user_timezone
 
 
@@ -32,7 +33,7 @@ DEFAULT_MAX_RESULTS = 50
 DEFAULT_SEEN_LIMIT = 300
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_DATA_DIR = data_dir()  # honours OPENPOKE_DATA_DIR like every other store
 _DEFAULT_SEEN_PATH = _DATA_DIR / "gmail_seen.json"
 
 

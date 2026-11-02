@@ -1,0 +1,35 @@
+{
+  "request": "Set a reminder for tomorrow at 9am to stretch my legs after the standup.",
+  "direct_relay": "1",
+  "calls_before_fire": {
+    "interaction": 1,
+    "execution": 2
+  },
+  "agents": [
+    "Stretch reminder after standup"
+  ],
+  "triggers_created": [
+    {
+      "agent": "Stretch reminder after standup",
+      "payload": "stretch my legs after the standup",
+      "next": "2026-11-03T09:00:00Z"
+    }
+  ],
+  "seconds_to_notify": 24.1,
+  "replies_after_fire": [
+    "time to stretch your legs after the standup"
+  ],
+  "calls_after_fire": {
+    "interaction": 2,
+    "execution": 2,
+    "execution_trigger": 2
+  },
+  "checks": {
+    "user_was_notified": true,
+    "notification_names_the_reminder": true,
+    "billed_to_trigger_role": true,
+    "interaction_agent_delivered_it": true,
+    "nothing_internal_leaked": true
+  },
+  "cost_usd": 0.0468
+}

@@ -1,0 +1,218 @@
+{
+  "what": "six-turn reminder session through the in-process app (isolated data dir); ledger reset per run",
+  "turns": [
+    "Set a reminder for tomorrow at 9am to send Alice the lunch invoice. Important: never cc her manager on any emails related to this.",
+    "Change the reminder time from 9am to 10am tomorrow.",
+    "What reminders do I have set?",
+    "Also remind me Friday at 8am to call the dentist, and set a separate reminder for Monday at noon to renew the car insurance.",
+    "What reminders do I have now?",
+    "cancel it"
+  ],
+  "with_early_exit": {
+    "early_exit": true,
+    "turns": 6,
+    "direct_relay": false,
+    "calls_per_turn": 5.67,
+    "cached_share": 0.69,
+    "total": {
+      "calls": 34,
+      "prompt_tokens": 176508,
+      "completion_tokens": 3393,
+      "cached_tokens": 121568,
+      "cache_write_tokens": 11402,
+      "cost_usd": 0.2607
+    },
+    "by_role": {
+      "execution": {
+        "calls": 16,
+        "calls_per_turn": 2.67,
+        "prompt_tokens": 77653,
+        "completion_tokens": 2018,
+        "cached_tokens": 49406,
+        "cached_share": 0.64,
+        "cost_usd": 0.1384
+      },
+      "interaction": {
+        "calls": 18,
+        "calls_per_turn": 3.0,
+        "prompt_tokens": 98855,
+        "completion_tokens": 1375,
+        "cached_tokens": 72162,
+        "cached_share": 0.73,
+        "cost_usd": 0.1224
+      }
+    },
+    "replies": [
+      "Got it\u2014setting a reminder for tomorrow at 9am about the lunch invoice for Alice. I'll make sure to keep her manager off any emails about this.",
+      "Shifting it to 10am tomorrow.",
+      "I'll check what reminders you have set up.",
+      "You've got one reminder set: send Alice the lunch invoice tomorrow at 10am (and I'll keep her manager off it).",
+      "I'll set both of those up for you.",
+      "All set\u2014Friday at 8am you'll get the dentist reminder, and Monday at noon for the car insurance renewal.",
+      "I'll check all your reminders.",
+      "You've got three reminders set:\n\n1. **Tomorrow at 10am** \u2013 send Alice the lunch invoice (won't cc her manager)\n2. **Friday at 8am** \u2013 call the dentist\n3. **Monday at noon** \u2013 renew the car insurance",
+      "Which reminder do you want to cancel?"
+    ],
+    "checks": {
+      "moved_to_10am_confirmed": true,
+      "reminder_list_names_the_invoice": true,
+      "dentist_and_insurance_confirmed": true,
+      "no_internal_ids_shown": true,
+      "final_list_names_all_three": true,
+      "final_list_is_one_synthesis": true,
+      "ambiguous_cancel_asks_which": true,
+      "replies": 9
+    },
+    "agents_after": [
+      "Car insurance renewal reminder",
+      "Dentist call reminder",
+      "Alice lunch invoice reminder"
+    ],
+    "agent_checks": {
+      "dentist_has_own_agent": true,
+      "insurance_has_own_agent": true,
+      "three_agents": true
+    }
+  },
+  "without_early_exit": {
+    "early_exit": false,
+    "turns": 6,
+    "direct_relay": false,
+    "calls_per_turn": 5.83,
+    "cached_share": 0.7,
+    "total": {
+      "calls": 35,
+      "prompt_tokens": 178387,
+      "completion_tokens": 3043,
+      "cached_tokens": 125623,
+      "cache_write_tokens": 11412,
+      "cost_usd": 0.2502
+    },
+    "by_role": {
+      "execution": {
+        "calls": 16,
+        "calls_per_turn": 2.67,
+        "prompt_tokens": 77738,
+        "completion_tokens": 1790,
+        "cached_tokens": 49452,
+        "cached_share": 0.64,
+        "cost_usd": 0.1351
+      },
+      "interaction": {
+        "calls": 19,
+        "calls_per_turn": 3.17,
+        "prompt_tokens": 100649,
+        "completion_tokens": 1253,
+        "cached_tokens": 76171,
+        "cached_share": 0.76,
+        "cost_usd": 0.1151
+      }
+    },
+    "replies": [
+      "got it, setting that reminder for tomorrow at 9am. noted on keeping her manager out of it.",
+      "changing it to 10am",
+      "done, moved to 10am tomorrow",
+      "I'll check what reminders you have set.",
+      "you've got one reminder set: tomorrow at 10am to send alice the lunch invoice (won't cc her manager)",
+      "I'll set up those two reminders for you.",
+      "done, both reminders are set\u2014friday at 8am for the dentist and monday at noon for car insurance",
+      "I'll check all your reminders.",
+      "you've got three reminders:\n\n1. tomorrow at 10am \u2013 send alice the lunch invoice (won't cc her manager)\n2. monday at noon \u2013 renew car insurance\n3. friday at 8am \u2013 call the dentist",
+      "which reminder do you want to cancel?"
+    ],
+    "checks": {
+      "moved_to_10am_confirmed": true,
+      "reminder_list_names_the_invoice": true,
+      "dentist_and_insurance_confirmed": true,
+      "no_internal_ids_shown": true,
+      "final_list_names_all_three": true,
+      "final_list_is_one_synthesis": true,
+      "ambiguous_cancel_asks_which": true,
+      "replies": 10
+    },
+    "agents_after": [
+      "Car Insurance Renewal Reminder",
+      "Dentist Call Reminder",
+      "Alice Lunch Invoice Reminder"
+    ],
+    "agent_checks": {
+      "dentist_has_own_agent": true,
+      "insurance_has_own_agent": true,
+      "three_agents": true
+    }
+  },
+  "with_relay": {
+    "early_exit": true,
+    "turns": 6,
+    "direct_relay": true,
+    "calls_per_turn": 4.0,
+    "cached_share": 0.77,
+    "total": {
+      "calls": 24,
+      "prompt_tokens": 119847,
+      "completion_tokens": 3007,
+      "cached_tokens": 92880,
+      "cache_write_tokens": 0,
+      "cost_usd": 0.1539
+    },
+    "by_role": {
+      "execution": {
+        "calls": 16,
+        "calls_per_turn": 2.67,
+        "prompt_tokens": 77343,
+        "completion_tokens": 1949,
+        "cached_tokens": 60808,
+        "cached_share": 0.79,
+        "cost_usd": 0.0971
+      },
+      "interaction": {
+        "calls": 8,
+        "calls_per_turn": 1.33,
+        "prompt_tokens": 42504,
+        "completion_tokens": 1058,
+        "cached_tokens": 32072,
+        "cached_share": 0.75,
+        "cost_usd": 0.0568
+      }
+    },
+    "replies": [
+      "got it, setting that up for you now",
+      "reminder set for tomorrow at 9am to send alice the lunch invoice (won't cc her manager)",
+      "changing it to 10am",
+      "reminder moved to 10am tomorrow",
+      "checking your reminders",
+      "you have one reminder: send alice the lunch invoice tomorrow at 10am (won't cc her manager)",
+      "setting those up for you",
+      "both reminders set\u2014dentist on friday at 8am and car insurance monday at noon",
+      "checking all your reminders",
+      "you've got three reminders:\n\n- tomorrow at 10am: send alice the lunch invoice (won't cc her manager)\n- friday at 8am: call the dentist\n- monday at noon: renew car insurance",
+      "I need to figure out which reminder you want to cancel. You just asked about all your reminders, so I'm not sure which one you mean\u2014alice's lunch invoice (tomorrow 10am), dentist call (friday 8am), or car insurance (monday noon)?"
+    ],
+    "checks": {
+      "moved_to_10am_confirmed": true,
+      "reminder_list_names_the_invoice": true,
+      "dentist_and_insurance_confirmed": true,
+      "no_internal_ids_shown": true,
+      "final_list_names_all_three": true,
+      "final_list_is_one_synthesis": true,
+      "ambiguous_cancel_asks_which": true,
+      "replies": 11
+    },
+    "agents_after": [
+      "Car insurance renewal reminder",
+      "Dentist call reminder",
+      "Alice lunch invoice reminder"
+    ],
+    "agent_checks": {
+      "dentist_has_own_agent": true,
+      "insurance_has_own_agent": true,
+      "three_agents": true
+    }
+  },
+  "saving": {
+    "calls": 1,
+    "cost_share": -0.042,
+    "relay_calls_vs_early_exit": 10,
+    "relay_cost_share_vs_early_exit": 0.41
+  }
+}
