@@ -26,14 +26,14 @@ Five numbers, each with the file it comes from, then the five things the numbers
 
 | What | Upstream | This fork | Source |
 |---|---|---|---|
-| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 61.7% (CI 53–70) | **92.5% (CI 86–96)**, paired +30.8 points (+22.5, +39.2), 38 queries won and 1 lost; 83% at 500 and 74% at 1,000 agents on the earlier code, where upstream is at 58% and 39% | [`docs/live/final/rerun_after_app_fixes/live_routing_results_history.json`](docs/live/final/rerun_after_app_fixes/live_routing_results_history.json) |
+| Right agent chosen, 120 live follow-ups, 150 agents, same model and history in both arms | 61.7% (CI 53–70) | **92.5% (CI 86–96)**, paired +30.8 points (+22.5, +39.2), 38 queries won and 1 lost; 92% at 50, 80% at 500 and 74% at 1,000 agents on the same code, where upstream is at 81%, 47% and 34% | [`docs/live/final/rerun_after_app_fixes/live_routing_results_history.json`](docs/live/final/rerun_after_app_fixes/live_routing_results_history.json) |
 | Per-agent history in the prompt after 136 log entries; corrected amounts still asserted stale | 6,220 tokens; n/a | **2,541 tokens (41%); 0 of 7 stale** | [`docs/live/final/rerun_after_app_fixes/memory_results_live.json`](docs/live/final/rerun_after_app_fixes/memory_results_live.json) |
 | Important email found, held-out set of 14 written before the prompt was tuned | 1.00 / 0.86 | **1.00 / 1.00** precision / recall | [`docs/live/final/rerun_after_app_fixes/email_results.json`](docs/live/final/rerun_after_app_fixes/email_results.json) |
 | LLM calls for a six-turn reminder session through the real app | 37 | **26** (and the user told the right things, 7 of 7 checks, every reminder on its own agent) | [`docs/live/final/rerun_after_app_fixes/session_probe.json`](docs/live/final/rerun_after_app_fixes/session_probe.json) |
 | Modelled cost per day, 200 agents, 40 turns, long histories | $5.72 | **$3.10 (−46%)** | [`docs/live/final/cost_results.json`](docs/live/final/cost_results.json) |
 
 What they do not show: every workload is synthetic (no real inbox was replayed); the routing
-number is at one roster size live (the curve to 500 agents is below, and 400 agents offline);
+number is at one roster size live (the curve to 1,000 agents is below, and 400 agents offline);
 the memory and recall rows are eight questions on one agent; the email held-out set is 14
 emails; the relay applies to single-agent turns only, so its saving depends on how many turns fan out (24% on the six-turn session's final run, 9–41% on its earlier runs, 6–48% on the four-turn one).
 How to read the rest: "Results at a glance" has every table; section 6 says what changed and
@@ -96,7 +96,7 @@ either round. What moved and why:
   rules help any roster. The fork's gain over upstream is 18 points, down from 25, because the
   prompt rules are the fork's and the baseline gets them for free.
 
-### The curve: 50, 150 and 500 agents
+### The curve: 50 to 1,000 agents
 
 The single 150-agent number above is one point. The same evaluator, same model, same three
 seeds and same 120 queries per size, at three roster sizes
@@ -110,16 +110,27 @@ seeds and same 120 queries per size, at three roster sizes
 | 500 | 54.2% (45–63) | **82.5%** (75–88) | +28.3 (+18.3, +38.3) | 6 × 10⁻⁷ | 16.4k → 5.5k | $4.46 → $0.95 |
 | 500, after the held-out fixes | 58.3% (49–67) | **83.3%** (76–89) | +25.0 (+15.0, +35.0) | 5 × 10⁻⁶ | 16.4k → 5.5k | $4.44 → $0.95 |
 | 1,000, after the held-out fixes | 39.2% (31–48) | **74.2%** (66–81) | +35.8 (+24.2, +46.7) | 2 × 10⁻⁸ | 28.0k → 5.4k | $8.54 → $0.96 |
+| **50, code as it ships** | 80.8% (73–87) | **91.7%** (85–95) | +10.0 (+2.5, +17.5) | 0.02 | 5.7k → 5.7k | $0.96 → $0.93 |
+| **150, code as it ships** (the headline run) | 61.7% (53–70) | **92.5%** (86–96) | +30.8 (+22.5, +39.2) | 2 × 10⁻¹⁰ | 7.9k → 5.7k | $1.67 → $0.98 |
+| **500, code as it ships** | 46.7% (38–56) | **80.0%** (72–86) | +34.2 (+24.2, +44.2) | 2 × 10⁻⁹ | 15.0k → 5.5k | $4.07 → $0.97 |
+| **1,000, code as it ships** | 34.2% (26–43) | **74.2%** (66–81) | +39.2 (+28.3, +50.0) | 4 × 10⁻¹⁰ | 25.1k → 5.5k | $7.70 → $1.02 |
 
-At 1,000 agents upstream's roster is 28k tokens a query and the model picks right 39% of the
-time; the fork's prompt is the same 5.4k it was at 50 and it picks right 74%. The fork's own
-losses at 1,000 are topic-only follow-ups (47%): "where are we on the invoice" with a dozen
-invoice threads for a dozen people, and the model searched once in 120 queries when nine
-needed it. One ablation was run to see whether the budget itself was the limit: 16 shown
-instead of 12 at 500 agents scored 79.2% (71–86) against 83.3% with 12, at 4% more prompt
-tokens ([`ablation_500_agents_16_slots.json`](docs/live/final/scale/ablation_500_agents_16_slots.json)).
-Showing more did not help, so 12 stays; the misses at scale are the model choosing among
-lookalike threads, not the target being absent. The "after" rows were run once each on the
+The bold rows are the whole curve rerun on the code as it ships, after every fix in section
+8, on the same seeds and queries ([`docs/live/final/scale/*_shipping.json`](docs/live/final/scale/)). At 1,000 agents upstream's
+roster is 25k tokens a query and the model picks right 34% of the time; the fork's prompt is
+the same 5.5k it was at 50 and it picks right 74%, the same 74.2% as the earlier run. The
+fork's own losses at 1,000 are topic-only follow-ups (43%): "where are we on the invoice" with
+a dozen invoice threads for a dozen people, and the model searched twice in 120 queries when
+nine needed it. The fork's number moves a few points between runs at every size (91.7 and
+90.0 at 50; 92.5 to 96.7 at 150; 80.0 to 83.3 at 500); upstream's moves more, and the paired
+difference widens with the roster every time. One ablation asks whether the budget itself is
+the limit: 16 shown instead of 12 at 500 agents, run twice. First run 79.2% (71–86) against
+83.3% with 12; second run, on the shipping code, 84.2% (77–90) against 80.0% with 12
+([`ablation_500_agents_16_slots.json`](docs/live/final/scale/ablation_500_agents_16_slots.json),
+[`ablation_500_agents_16_slots_shipping.json`](docs/live/final/scale/ablation_500_agents_16_slots_shipping.json)).
+It lost once and won once, inside the interval both times, at 3–4% more prompt tokens; 12
+stays. The misses at scale are the model choosing among lookalike threads, not the target
+being absent. The "after" rows were run once each on the
 code as it ships; the 500-agent run survived ten
 transient TLS failures because the evaluator now retries a dropped connection (two earlier
 attempts had died on the first one). Read it as a curve, not three wins. At 50 agents upstream is not overloaded: 85% from a list
@@ -835,8 +846,8 @@ retention row 1.00, nothing stale; email 1.00 / 1.00 on the dev set and 1.00 / 1
 early exit, **26** with the relay; the follow-up probe 6 of 6 with every trigger on the named
 weekday; the three hand scripts right on all 36 turns with three outbound calls, each one the
 user had just asked for; the reminder probe 5 of 5 in 18 s; the injection set 0 of 12 in every
-arm with 6 of 6 legitimate sends. The 500- and 1,000-agent points were not rerun (they are
-the earlier code's numbers above). Total API spend for the rerun, about $6.
+arm with 6 of 6 legitimate sends. The curve was then rerun on the same code, 50 to 1,000 agents and the 16-slot ablation (the
+bold rows in "The curve" above). Total API spend for the rerun, about $21.
 
 Last, the unit suite itself was writing agent logs under `server/data` because tests set the
 data-directory override after the stores had resolved their paths at import; `tests/conftest.py`
