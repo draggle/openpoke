@@ -25,7 +25,30 @@ def _load_env_file() -> None:
         pass
 
 
+ANTHROPIC_NATIVE_BASE_URL = "https://api.anthropic.com/v1"
+ANTHROPIC_NATIVE_STRONG_MODEL = "claude-sonnet-4-5"
+ANTHROPIC_NATIVE_CHEAP_MODEL = "claude-haiku-4-5"
+
+
+def apply_provider_defaults() -> None:
+    """An ``ANTHROPIC_API_KEY`` on its own is enough: route to the native Messages API.
+
+    Upstream requires ``OPENROUTER_API_KEY`` before any model call and reports its absence as a
+    configuration error, so a ``.env`` holding only an Anthropic key failed at the first message.
+    When no OpenAI-compatible key is set, the Anthropic key stands in for it and the base URL,
+    API flavour and model ids default to Anthropic's own. Anything set explicitly is kept.
+    """
+    if os.environ.get("OPENROUTER_API_KEY") or not os.environ.get("ANTHROPIC_API_KEY"):
+        return
+    os.environ["OPENROUTER_API_KEY"] = os.environ["ANTHROPIC_API_KEY"]
+    os.environ.setdefault("OPENROUTER_BASE_URL", ANTHROPIC_NATIVE_BASE_URL)
+    os.environ.setdefault("OPENPOKE_LLM_API", "anthropic")
+    os.environ.setdefault("OPENPOKE_STRONG_MODEL", ANTHROPIC_NATIVE_STRONG_MODEL)
+    os.environ.setdefault("OPENPOKE_CHEAP_MODEL", ANTHROPIC_NATIVE_CHEAP_MODEL)
+
+
 _load_env_file()
+apply_provider_defaults()
 
 
 DEFAULT_APP_NAME = "OpenPoke Server"

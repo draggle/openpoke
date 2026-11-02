@@ -821,7 +821,8 @@ Agent uses, and a quarter of queries carry no retrievable words.
 As upstream (`README.upstream.md`). New knobs are documented in `.env.example`; defaults turn
 everything on. Set `OPENPOKE_ROSTER_STRATEGY=all`, `OPENPOKE_AGENT_MEMORY=0` and
 `OPENPOKE_ROUTING=strong_only` to get upstream behaviour for A/B comparison on a real inbox.
-`OPENPOKE_LLM_API=anthropic` with `ANTHROPIC_API_KEY` uses the native API (prompt caching works there).
+A `.env` with only `ANTHROPIC_API_KEY` is enough: the server then uses the native Messages API
+(prompt caching works there) with Sonnet 4.5 and Haiku 4.5; `OPENROUTER_API_KEY` takes precedence when set.
 
 ## Gaps I saw beyond the brief
 
