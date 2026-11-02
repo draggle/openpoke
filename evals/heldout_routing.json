@@ -1,5 +1,5 @@
 {
- "what": "Hand-written held-out routing set: 49 agents, 72 follow-ups, written in one sitting before any run and never used for tuning. Kinds and the pass bar are fixed here.",
+ "what": "Hand-written held-out routing set: 50 agents, 72 follow-ups, written in one sitting before any run and never used for tuning. Kinds and the pass bar are fixed here.",
  "span_days": 45,
  "expectations": {
   "written_before_any_run": true,

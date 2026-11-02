@@ -2,7 +2,7 @@
 
 The synthetic generator draws names, topics and query phrasings from the same lists the fork's
 roster selection was tuned against. This set was written by hand, in one sitting, before it was
-ever run, and it is never used for tuning: 48 agents and 72 follow-ups with the failure modes a
+ever run, and it is never used for tuning: 50 agents and 72 follow-ups with the failure modes a
 real roster has and the generator does not draw deliberately. Every query names its kind so the
 table can say which ones a roster design survives:
 

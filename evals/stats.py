@@ -33,9 +33,6 @@ def wilson(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
     return (max(0.0, centre - half), min(1.0, centre + half))
 
 
-__all__ = ["wilson"]
-
-
 def pair_rows(rows_a: Iterable[Dict], rows_b: Iterable[Dict]) -> List[Pair]:
     """Match rows by (seed, text, target) and return (ok_a, ok_b) per matched query, in A's order."""
     key = lambda r: (r.get("seed"), r["text"], r["target"])  # noqa: E731
@@ -101,3 +98,6 @@ def main(argv: Sequence[str] = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+__all__ = ["mcnemar_exact", "pair_rows", "paired_bootstrap_diff", "paired_summary", "wilson"]

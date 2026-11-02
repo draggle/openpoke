@@ -3,7 +3,7 @@ upstream roster vs budgeted roster + search_agents?
 
 For each synthetic follow-up query we build the exact prompt the Interaction Agent would see
 (system prompt + <conversation_history> + <active_agents> + <new_user_message>) and let the
-model act with the real tool schemas. We follow at most 3 tool steps:
+model act with the real tool schemas. We follow at most 3 tool steps and one final answer (four model turns):
 
 - ``send_message_to_agent(agent_name=X)``  -> decision = X
 - ``search_agents(query)``                 -> we run the search and feed the result back

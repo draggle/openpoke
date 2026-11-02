@@ -30,7 +30,7 @@ from server.services.execution.registry import AgentRegistry, RegistryConfig, to
 from .roster_eval import build_registry
 from .synthetic import DAY, Workload, generate, transcript_for
 
-FEATURE_NAMES = ["bm25", "name_overlap", "recency_rank", "log_age", "use_count", "pinned", "in_transcript", "waiting"]
+FEATURE_NAMES = ["bm25", "name_overlap", "recency_rank", "age", "use_count", "pinned", "in_transcript", "waiting"]
 
 
 def _context(registry: AgentRegistry, workload: Workload) -> Dict:
