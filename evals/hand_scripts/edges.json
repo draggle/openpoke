@@ -1,0 +1,14 @@
+{"name": "edges", "turns": [
+  {"say": "remind me tmrw 9am dentist, fri 8am insurance, and mon noon alice invoice"},
+  {"say": "what reminders do i have"},
+  {"say": "push them all back an hour"},
+  {"say": "what reminders do i have"},
+  {"say": "delete all of them"},
+  {"say": "what reminders do i have"},
+  {"say": "did Marcus get back to me?"},
+  {"say": "remind me every monday at 9am to submit the timesheet"},
+  {"say": "make that 9:30"},
+  {"say": "what reminders do i have"},
+  {"say": "cancel the recurring one"},
+  {"say": "lol ok"}
+]}

@@ -1,0 +1,127 @@
+{
+  "name": "reminders",
+  "turns": [
+    {
+      "say": "hey",
+      "replies": [
+        "Hey! What's up?"
+      ],
+      "seconds": 6.0
+    },
+    {
+      "say": "Remind me every weekday at 8am to check the inbox.",
+      "replies": [
+        "setting that up for you now",
+        "reminder set for 8am every weekday to check your inbox"
+      ],
+      "seconds": 15.1
+    },
+    {
+      "say": "what reminders do I have?",
+      "replies": [
+        "I'll check that for you",
+        "you have one reminder: check inbox every weekday at 8am utc"
+      ],
+      "seconds": 13.1
+    },
+    {
+      "say": "Remind me in 1 minute to stretch.",
+      "replies": [
+        "I'll set that up for you",
+        "stretch reminder set for 1 minute from now",
+        "time to stretch! \ud83e\uddd8"
+      ],
+      "seconds": 95.1
+    },
+    {
+      "say": "create a reminder to go shower in 30 mins",
+      "replies": [
+        "setting that up",
+        "reminder set for 30 minutes from now to go shower"
+      ],
+      "seconds": 14.1
+    },
+    {
+      "say": "actually nevermind",
+      "replies": [
+        "canceling that shower reminder",
+        "shower reminder canceled"
+      ],
+      "seconds": 13.1
+    },
+    {
+      "say": "remind me to call mom tomorrow at 9 pm",
+      "replies": [
+        "setting that up for you",
+        "reminder set for tomorrow at 9 pm to call mom"
+      ],
+      "seconds": 14.1
+    },
+    {
+      "say": "remind me to call mom tomorrow at 9 pm",
+      "replies": [
+        "already got that one set up for you"
+      ],
+      "seconds": 9.0
+    },
+    {
+      "say": "Set a reminder for tomorrow at 10am to send Alice the lunch invoice. Never cc her manager.",
+      "replies": [
+        "setting that up",
+        "reminder set for tomorrow at 10am to send alice the lunch invoice (won't cc her manager)"
+      ],
+      "seconds": 15.1
+    },
+    {
+      "say": "what's scheduled this week?",
+      "replies": [
+        "I'll check all your scheduled reminders for this week",
+        "here's what's scheduled this week:\n\n- check inbox every weekday at 8am (mon-fri)\n- call mom tomorrow (tuesday) at 9pm\n- send alice the lunch invoice tomorrow (tuesday) at 10am"
+      ],
+      "seconds": 17.1
+    },
+    {
+      "say": "move the inbox one to 8:30",
+      "replies": [
+        "updating that to 8:30am for you",
+        "reminder moved to 8:30am every weekday"
+      ],
+      "seconds": 14.1
+    },
+    {
+      "say": "cancel the mom one",
+      "replies": [
+        "canceling that for you",
+        "cancelled the reminder to call mom tomorrow at 9 pm"
+      ],
+      "seconds": 12.1
+    },
+    {
+      "say": "remind me at 7 to take the bins out",
+      "replies": [
+        "setting that up",
+        "reminder set for 7pm today to take the bins out"
+      ],
+      "seconds": 14.1
+    },
+    {
+      "say": "ok thanks",
+      "replies": [
+        "you got it"
+      ],
+      "seconds": 6.0
+    }
+  ],
+  "agents_after": [
+    "Bins Reminder",
+    "Call Mom Reminder",
+    "Weekday Inbox Reminder",
+    "Alice Lunch Invoice Reminder",
+    "Shower Reminder",
+    "Stretch Reminder"
+  ],
+  "outbound_calls": [],
+  "drafts": {},
+  "calls": 0,
+  "cost_usd": 0.0
+}

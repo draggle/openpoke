@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from ...services.send_gate import SendAuthorisation, authorise_send
+from ...services.send_gate import SendAuthorisation, authorise_send, note_batch
 from .relay import relay_enabled, relay_message, strip_summary
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
@@ -161,6 +161,9 @@ class ExecutionBatchManager:
             if state.pending == 0:
                 dispatch_payload = self._format_batch_payload(state.results)
                 relay = relay_message(state.results) if relay_enabled() and state.user_sourced else None
+                if state.user_sourced:
+                    # "ok go ahead" next turn may approve this draft however it reaches the user.
+                    note_batch(created_draft=any("gmail_create_draft" in (r.tools_executed or []) for r in state.results))
                 agent_names = [entry.agent_name for entry in state.results]
                 logger.info(f"Execution batch completed: {', '.join(agent_names)}")
                 self._batch_state = None

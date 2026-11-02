@@ -11,6 +11,7 @@ See the "Tests and evaluators" section of the top-level README. Quick start:
     python -m evals.session_probe --live        # calls/cost per turn through the app: old loop, early exit, + direct relay (temporary data dir)
     python -m evals.followup_probe --live       # bare follow-ups that are not ambiguous must act; new reminder creates, not moves; triggers land on the named weekday (shipping config, temporary data dir)
     python -m evals.trigger_probe --live        # a reminder fires under the real scheduler; the interaction agent must deliver it
+    python -m evals.hand_session --live --script evals/hand_scripts/gmail.json --scheduler --fake-gmail   # scripted hand use through the real app; transcript for review
     python -m evals.guard_check                  # offline: did-you-mean guard false fires / catches
     python -m evals.lifecycle_eval               # offline: sixty simulated days; roster cost flat, reminders never archived
     python -m evals.stats <results.json>         # offline: McNemar + paired bootstrap for a two-arm routing result

@@ -112,3 +112,24 @@ def test_trigger_sourced_runs_are_never_relayed(monkeypatch):
     manager, log, dispatched = _manager(monkeypatch, "<user_summary>reminder: call the dentist</user_summary>")
     asyncio.run(manager.execute_agent("Dentist reminder", "fire", source="trigger"))
     assert len(dispatched) == 1 and log.replies == []
+
+
+def test_relayed_batch_that_created_a_draft_marks_a_draft_pending(monkeypatch):
+    from server.services import send_gate
+
+    monkeypatch.delenv("OPENPOKE_DIRECT_RELAY", raising=False)
+    manager, log, dispatched = _manager(monkeypatch, "Draft d-1 created.\n<user_summary>drafted the reply to alice, want me to send it?</user_summary>")
+
+    class DraftRuntime:
+        def __init__(self, agent_name, source="user", send_authorisation=None): self.agent_name = agent_name
+        async def execute(self, instructions):
+            await asyncio.sleep(0.01)
+            return ExecutionResult(agent_name=self.agent_name, success=True,
+                                   response="Draft d-1 created.\n<user_summary>drafted the reply to alice, want me to send it?</user_summary>",
+                                   tools_executed=["task_email_search", "gmail_create_draft"])
+
+    monkeypatch.setattr(bm, "ExecutionAgentRuntime", DraftRuntime)
+    send_gate.note_batch(created_draft=False)
+    asyncio.run(manager.execute_agent("Alice reply", "draft a reply"))
+    assert log.replies == ["drafted the reply to alice, want me to send it?"]
+    assert send_gate.draft_pending()

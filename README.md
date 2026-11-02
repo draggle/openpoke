@@ -39,7 +39,7 @@ emails; the relay applies to single-agent turns only, so its saving depends on h
 How to read the rest: "Results at a glance" has every table; section 6 says what changed and
 why; section 7 is the review's findings and their fixes; "Gaps I saw beyond the brief" opens
 with the one I'd raise first, a send gate so email cannot make the agent send email; "How to read the numbers" is the
-caveats in full. `python -m pytest` runs 318 tests offline in about four seconds;
+caveats in full. `python -m pytest` runs 327 tests offline in about four seconds;
 `bash evals/run_live.sh` reproduces every live table for about $10.
 
 ## Results at a glance
@@ -797,6 +797,33 @@ upstream arm forwarded one injected email again), `search_history` 8 of 8
 [`injection_results_after_app_fixes.json`](docs/live/final/injection_results_after_app_fixes.json),
 [`recall_results_after_app_fixes.json`](docs/live/final/recall_results_after_app_fixes.json)).
 
+**Scripted hand sessions, and the bug they found in the send gate.** The hand use above was
+typed; `evals/hand_session.py` now does the same through the real app from a JSON script,
+waiting for each answer the way a person would, with the real reminder scheduler running so
+"remind me in 1 minute" fires, and with an in-memory inbox and outbound stubs installed in every
+execution agent (`--fake-gmail`) so the email paths run without a Composio login and every
+outbound call is recorded. Three scripts live in `evals/hand_scripts/`, transcripts in
+[`docs/live/final/hand/`](docs/live/final/hand/). Reminders (14 turns: a weekday recurrence,
+a one-minute reminder that fired, "actually nevermind", the same request twice, "what's
+scheduled this week?", "move the inbox one to 8:30", "remind me at 7") and edge cases (12 turns:
+three reminders in one shorthand message, "push them all back an hour", "delete all of them",
+an unknown person, a recurring reminder edited then cancelled) were right on every turn. The
+Gmail script was not: "find the latest email from Alice and **draft** a reply saying thanks"
+was *sent*, and so was "draft a reply to Priya". The send gate's rule matched "reply" as a send
+verb and ignored "draft" ([`hand_gmail_before_gate_fix.json`](docs/live/final/hand/hand_gmail_before_gate_fix.json)).
+And after the agent did draft, "ok go ahead" was refused, because only the interaction agent's
+`send_draft` tool set the "a draft was just shown" flag and this draft had reached the user
+through the relay. Both fixed in `server/services/send_gate.py`: a drafting verb before the
+send verb ("draft a reply", "write up a response", "prepare an email") or an explicit "don't
+send" denies, while "send the draft" still sends; and any user-sourced batch that executed
+`gmail_create_draft` marks a draft pending, so the next affirmative approves it whichever way
+it was shown (`tests/test_send_gate.py`, `tests/test_relay.py`). Rerun: draft shown first,
+"send it" sent it, the corrected Priya draft went out on "ok go ahead", the reminder-fired
+forward stopped at a draft and asked, two outbound calls in the whole session, both approved
+([`hand_gmail.json`](docs/live/final/hand/hand_gmail.json)); the injection set unchanged, 0 of 12
+under the gate with 6 of 6 legitimate sends
+([`injection_results_after_gate_fix.json`](docs/live/final/injection_results_after_gate_fix.json)).
+
 Last, the unit suite itself was writing agent logs under `server/data` because tests set the
 data-directory override after the stores had resolved their paths at import; `tests/conftest.py`
 now sets it before any server import, `evals/injection_eval.py` takes a temporary directory
@@ -833,7 +860,7 @@ change instead of confirming, which the upstream loop allows.
 python -m venv .venv && . .venv/bin/activate
 pip install -r server/requirements.txt pytest pytest-asyncio matplotlib
 
-python -m pytest                 # 318 tests, ~4s, no network
+python -m pytest                 # 327 tests, ~4s, no network
 python -m evals.run_all          # all offline evals -> evals/out/*.json + charts
 bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 ```
@@ -864,6 +891,7 @@ bash evals/run_live.sh           # every live evaluator (needs a key; ~$10)
 | `evals.recall_eval` | whether the real execution model calls `search_history` when the answer is only in the raw journal, and whether it answers correctly; false-call rate on facts already in the prompt | yes |
 | `evals.session_probe` | calls, prompt tokens, cached share and cost by role for a real six-turn session through the in-process app: old loop, early exit, early exit + direct relay; substring checks on what the user was told, including one synthesised answer from three agents and one ambiguous "cancel it" that must be asked about | yes |
 | `evals.followup_probe` | eight-turn session on the shipping configuration: bare follow-ups that are *not* ambiguous must be acted on, not asked about; a new reminder on an existing topic is created, not moved; every trigger it created is read back and checked against the weekday the user named | yes |
+| `evals.hand_session` | types a JSON script of user turns into the real app (temporary data dir), optionally with the real reminder scheduler and an in-memory Gmail with recorded outbound calls; writes the transcript for review; three scripts in `evals/hand_scripts/` | yes |
 | `evals.trigger_probe` | a reminder created through the app is forced to fire under the real scheduler; checks the user is notified by the interaction agent, the run is billed to the trigger role, nothing internal leaks | yes |
 | `evals.live_routing_eval --fixture evals/heldout_routing.json` | the hand-written held-out routing set through both arms; `python -m evals.heldout_routing <results.json>` grades it against the bars written before the first run | yes |
 | `evals.stats` | exact McNemar and paired bootstrap on the queries both arms answered; `python -m evals.stats <results.json>` | no |
@@ -1029,6 +1057,6 @@ server/services/trigger_scheduler.py              touch agent on fire; coalesce 
 server/services/gmail/importance_classifier.py    category prompt, two-sided Jev gate, summary fallback
 server/services/gmail/importance_watcher.py       prefilter + concurrent classification
 server/routes/meta.py                             /api/v1/meta/usage, /api/v1/meta/agents
-tests/                                            318 tests + 46 labelled emails + 14 held-out emails + 72 held-out routing queries + 12 injected emails
-evals/                                            16 evaluators, synthetic workload, paraphrase set, held-out routing set, injection set, paired stats
+tests/                                            327 tests + 46 labelled emails + 14 held-out emails + 72 held-out routing queries + 12 injected emails
+evals/                                            17 evaluators, synthetic workload, paraphrase set, held-out routing set, injection set, paired stats
 ```

@@ -1,0 +1,16 @@
+{"name": "reminders", "turns": [
+  {"say": "hey"},
+  {"say": "Remind me every weekday at 8am to check the inbox."},
+  {"say": "what reminders do I have?"},
+  {"say": "Remind me in 1 minute to stretch.", "wait_s": 80},
+  {"say": "create a reminder to go shower in 30 mins"},
+  {"say": "actually nevermind"},
+  {"say": "remind me to call mom tomorrow at 9 pm"},
+  {"say": "remind me to call mom tomorrow at 9 pm"},
+  {"say": "Set a reminder for tomorrow at 10am to send Alice the lunch invoice. Never cc her manager."},
+  {"say": "what's scheduled this week?"},
+  {"say": "move the inbox one to 8:30"},
+  {"say": "cancel the mom one"},
+  {"say": "remind me at 7 to take the bins out"},
+  {"say": "ok thanks"}
+]}

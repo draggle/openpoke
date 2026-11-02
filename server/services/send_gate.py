@@ -25,6 +25,12 @@ _SEND_VERB_RE = re.compile(
     r"let .{0,30}\bknow|cc|confirm with|follow up with|chase|nudge|ping|get back to|answer)\b",
     re.I,
 )
+# A request to see the text first: a drafting verb before the send verb, or an explicit "don't
+# send". "send the draft" is still a send (the send verb comes first).
+_DRAFT_INTENT_RE = re.compile(
+    r"\b(draft|write up|prepare|compose|put together|show me)\b|\b(don'?t|do not|without|before|not)\s+(send|sending)\b",
+    re.I,
+)
 _AFFIRMATIVE_RE = re.compile(
     r"^\W*(yes|yep|yeah|yup|ok|okay|sure|go ahead|do it|looks good|lgtm|approved|approve|fine|"
     r"please do|ship it|go for it|that works|perfect|send(?: it)?)(?:[\s,.!]+(go ahead|send it|do it|please|thanks))*\W*$",
@@ -50,11 +56,35 @@ def authorise_send(user_message: Optional[str], *, last_reply_was_draft: bool = 
     text = (user_message or "").strip()
     if not text:
         return SendAuthorisation(False, "no user message this turn")
-    if _SEND_VERB_RE.search(text):
+    send = _SEND_VERB_RE.search(text)
+    draft = _DRAFT_INTENT_RE.search(text)
+    if draft and (send is None or draft.start() < send.start() or draft.group(2)):
+        return SendAuthorisation(False, "the user asked for a draft to review, not a send")
+    if send:
         return SendAuthorisation(True, "the user asked to send this turn")
     if last_reply_was_draft and _AFFIRMATIVE_RE.match(text):
         return SendAuthorisation(True, "the user approved the draft just shown")
     return SendAuthorisation(False, "the user did not ask to send anything this turn")
+
+
+# Whether the user has a draft in front of them: set by the interaction agent's send_draft tool
+# or by any user-sourced batch that created one; cleared by a plain reply or a batch without one.
+_REPLY_WAS_DRAFT = False
+_BATCH_CREATED_DRAFT = False
+
+
+def note_reply(*, draft: bool) -> None:
+    global _REPLY_WAS_DRAFT
+    _REPLY_WAS_DRAFT = draft
+
+
+def note_batch(*, created_draft: bool) -> None:
+    global _BATCH_CREATED_DRAFT
+    _BATCH_CREATED_DRAFT = created_draft
+
+
+def draft_pending() -> bool:
+    return _REPLY_WAS_DRAFT or _BATCH_CREATED_DRAFT
 
 
 def refusal(tool_name: str, authorisation: Optional[SendAuthorisation]) -> str:
@@ -63,4 +93,4 @@ def refusal(tool_name: str, authorisation: Optional[SendAuthorisation]) -> str:
             f"gmail_create_draft and tell the user exactly what you would send; they can approve it.")
 
 
-__all__ = ["OUTBOUND_TOOLS", "SendAuthorisation", "authorise_send", "gate_enabled", "refusal"]
+__all__ = ["OUTBOUND_TOOLS", "SendAuthorisation", "authorise_send", "draft_pending", "gate_enabled", "note_batch", "note_reply", "refusal"]

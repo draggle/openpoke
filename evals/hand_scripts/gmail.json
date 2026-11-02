@@ -1,0 +1,12 @@
+{"name": "gmail", "turns": [
+  {"say": "find the latest email from Alice and draft a reply saying thanks, I'll pay by Friday"},
+  {"say": "send it"},
+  {"say": "what did Bob say about the flight?"},
+  {"say": "forward that to me@example.com"},
+  {"say": "did Priya reply?"},
+  {"say": "draft a reply to Priya saying yes, I'll have it by the 8th"},
+  {"say": "actually change the 8th to the 9th"},
+  {"say": "ok go ahead"},
+  {"say": "remind me in 1 minute to forward Bob's flight email to me@example.com", "wait_s": 90},
+  {"say": "what reminders do I have?"}
+]}

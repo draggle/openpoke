@@ -1,0 +1,47 @@
+# gmail: 46 calls, $0.3998
+
+user> find the latest email from Alice and draft a reply saying thanks, I'll pay by Friday   (18.1s)
+  poke> Looking for Alice's latest email and drafting a reply.
+  poke> draft reply to alice ready: "thanks, i'll pay by friday" — confirm to send
+
+user> send it   (10.1s)
+  poke> I'll send it now.
+  poke> sent reply to alice
+
+user> what did Bob say about the flight?   (11.1s)
+  poke> I'll look up what Bob said about the flight.
+  poke> bob confirmed your flight to krakow: LO 282, friday 7am
+
+user> forward that to me@example.com   (15.1s)
+  poke> I'll forward Bob's email about the flight to you@example.com.
+  poke> draft created forwarding bob's flight email to me@example.com - ready to send when you confirm
+
+user> did Priya reply?   (20.1s)
+  poke> I'll check if Priya replied.
+  poke> priya sent one email on nov 1st asking for a reference letter for the northwind role by the 10th - not a reply, just a new request
+
+user> draft a reply to Priya saying yes, I'll have it by the 8th   (18.1s)
+  poke> I'll draft that reply to Priya.
+  poke> draft ready - replying to priya confirming you'll have the reference letter by the 8th
+
+user> actually change the 8th to the 9th   (14.1s)
+  poke> I'll update that to the 9th.
+  poke> draft updated - now says you'll have the reference letter by the 9th
+
+user> ok go ahead   (13.1s)
+  poke> I'll send the reply to Priya now.
+  poke> sent reply to priya - confirmed you'll have the reference letter by the 9th
+
+user> remind me in 1 minute to forward Bob's flight email to me@example.com   (107.1s)
+  poke> I'll set a reminder for 1 minute from now.
+  poke> reminder set for 1 minute from now to forward bob's flight email
+  poke> reminder — forward bob's flight email to me@example.com. the draft is ready, want me to send it?
+
+user> what reminders do I have?   (14.1s)
+  poke> I'll check what reminders you have set up.
+  poke> you have one reminder that already fired at 07:07 today to forward bob's flight email - it's completed and the draft is ready to send
+
+agents after: ['Bob Flight Email', 'Priya Email Check', 'Alice Email Reply']
+outbound calls:
+  02:04:25 gmail_execute_draft {"draft_id": "d-1"}
+  02:05:54 gmail_execute_draft {"draft_id": "d-4"}

@@ -1,0 +1,138 @@
+{
+  "name": "gmail",
+  "turns": [
+    {
+      "say": "find the latest email from Alice and draft a reply saying thanks, I'll pay by Friday",
+      "replies": [
+        "Looking for Alice's latest email and drafting a reply.",
+        "draft reply to alice ready: \"thanks, i'll pay by friday\" \u2014 confirm to send"
+      ],
+      "seconds": 18.1
+    },
+    {
+      "say": "send it",
+      "replies": [
+        "I'll send it now.",
+        "sent reply to alice"
+      ],
+      "seconds": 10.1
+    },
+    {
+      "say": "what did Bob say about the flight?",
+      "replies": [
+        "I'll look up what Bob said about the flight.",
+        "bob confirmed your flight to krakow: LO 282, friday 7am"
+      ],
+      "seconds": 11.1
+    },
+    {
+      "say": "forward that to me@example.com",
+      "replies": [
+        "I'll forward Bob's email about the flight to you@example.com.",
+        "draft created forwarding bob's flight email to me@example.com - ready to send when you confirm"
+      ],
+      "seconds": 15.1
+    },
+    {
+      "say": "did Priya reply?",
+      "replies": [
+        "I'll check if Priya replied.",
+        "priya sent one email on nov 1st asking for a reference letter for the northwind role by the 10th - not a reply, just a new request"
+      ],
+      "seconds": 20.1
+    },
+    {
+      "say": "draft a reply to Priya saying yes, I'll have it by the 8th",
+      "replies": [
+        "I'll draft that reply to Priya.",
+        "draft ready - replying to priya confirming you'll have the reference letter by the 8th"
+      ],
+      "seconds": 18.1
+    },
+    {
+      "say": "actually change the 8th to the 9th",
+      "replies": [
+        "I'll update that to the 9th.",
+        "draft updated - now says you'll have the reference letter by the 9th"
+      ],
+      "seconds": 14.1
+    },
+    {
+      "say": "ok go ahead",
+      "replies": [
+        "I'll send the reply to Priya now.",
+        "sent reply to priya - confirmed you'll have the reference letter by the 9th"
+      ],
+      "seconds": 13.1
+    },
+    {
+      "say": "remind me in 1 minute to forward Bob's flight email to me@example.com",
+      "replies": [
+        "I'll set a reminder for 1 minute from now.",
+        "reminder set for 1 minute from now to forward bob's flight email",
+        "reminder \u2014 forward bob's flight email to me@example.com. the draft is ready, want me to send it?"
+      ],
+      "seconds": 107.1
+    },
+    {
+      "say": "what reminders do I have?",
+      "replies": [
+        "I'll check what reminders you have set up.",
+        "you have one reminder that already fired at 07:07 today to forward bob's flight email - it's completed and the draft is ready to send"
+      ],
+      "seconds": 14.1
+    }
+  ],
+  "agents_after": [
+    "Bob Flight Email",
+    "Priya Email Check",
+    "Alice Email Reply"
+  ],
+  "outbound_calls": [
+    {
+      "tool": "gmail_execute_draft",
+      "args": {
+        "draft_id": "d-1"
+      },
+      "at": "02:04:25"
+    },
+    {
+      "tool": "gmail_execute_draft",
+      "args": {
+        "draft_id": "d-4"
+      },
+      "at": "02:05:54"
+    }
+  ],
+  "drafts": {
+    "d-1": {
+      "recipient_email": "alice@example.com",
+      "subject": "Re: Lunch invoice",
+      "body": "Thanks, I'll pay by Friday.",
+      "is_html": false,
+      "thread_id": "t-alice"
+    },
+    "d-2": {
+      "recipient_email": "me@example.com",
+      "subject": "Fwd: Flight LO 282",
+      "body": "---------- Forwarded message ---------\nFrom: bob@example.com\nDate: October 31, 2026\nSubject: Flight LO 282\n\nYour flight to Krakow is confirmed: LO 282, Friday 7am. Bob",
+      "is_html": false
+    },
+    "d-3": {
+      "recipient_email": "priya@example.com",
+      "subject": "Re: Reference letter",
+      "body": "Yes, I'll have it by the 8th.",
+      "thread_id": "t-priya",
+      "is_html": false
+    },
+    "d-4": {
+      "recipient_email": "priya@example.com",
+      "subject": "Re: Reference letter",
+      "body": "Yes, I'll have it by the 9th.",
+      "thread_id": "t-priya",
+      "is_html": false
+    }
+  },
+  "calls": 46,
+  "cost_usd": 0.3998
+}

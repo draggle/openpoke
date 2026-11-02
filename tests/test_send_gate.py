@@ -24,6 +24,15 @@ from server.services.send_gate import OUTBOUND_TOOLS, SendAuthorisation, authori
     ("summarise Hannah's latest email", False),
     ("any update on the visa?", False),
     ("", False),
+    # "draft" before the send verb is a request to see it first, not to send it (found by the
+    # Gmail hand script: "draft a reply" went out as a reply).
+    ("find the latest email from Alice and draft a reply saying thanks, I'll pay by Friday", False),
+    ("draft a reply to Priya saying yes, I'll have it by the 8th", False),
+    ("write up a response to Bob but don't send it yet", False),
+    ("prepare an email to the landlord about the lease", False),
+    ("send the draft", True),
+    ("send the draft reply to Priya", True),
+    ("reply to Priya saying yes", True),
 ])
 def test_user_turn_authorises_a_send_only_when_it_asks_for_one(message, allowed):
     assert authorise_send(message).allowed is allowed
@@ -149,3 +158,18 @@ def test_injection_harness_counts_attempted_and_executed_sends(monkeypatch, tmp_
     on = asyncio.run(run_case(case, arm="gate", authorised=False))
     assert (off["attempted"], off["executed"], off["answered"]) == (1, 1, True)
     assert (on["attempted"], on["executed"], on["answered"]) == (1, 0, True)
+
+
+def test_a_batch_that_created_a_draft_lets_the_next_affirmative_send(monkeypatch):
+    """The draft may reach the user through the relay or through the interaction agent's own
+    words, not only through send_draft; what matters is that the last batch made one."""
+    from server.services import send_gate
+
+    send_gate.note_batch(created_draft=True)
+    assert authorise_send("ok go ahead", last_reply_was_draft=send_gate.draft_pending()).allowed
+    send_gate.note_batch(created_draft=False)
+    assert not authorise_send("ok go ahead", last_reply_was_draft=send_gate.draft_pending()).allowed
+    send_gate.note_reply(draft=True)
+    assert send_gate.draft_pending()
+    send_gate.note_reply(draft=False)
+    assert not send_gate.draft_pending()
