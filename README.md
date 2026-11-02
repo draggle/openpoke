@@ -594,7 +594,7 @@ that restores the round-two behaviour.
   driven through the app in a temporary data directory (`OPENPOKE_DATA_DIR`, honoured by every
   store), so it never reads or clears a working installation's state.
 - **Learned reranker, measured and not shipped.** `evals/learned_selector.py` fits a logistic
-  reranker over the signals `select()` already uses (BM25, name overlap, recency rank, log age,
+  reranker over the signals `select()` already uses (BM25, name overlap, recency rank, clipped age,
   use count, pinned, named in transcript, waiting) on five synthetic seeds and scores recall@12
   on three held-out seeds against `select()`. Result and why it stays an experiment are in the
   offline table.
